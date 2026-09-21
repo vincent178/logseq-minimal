@@ -7,24 +7,19 @@
             [frontend.common.missionary :as c.m]
             [frontend.components.block :as component-block]
             [frontend.components.export :as export]
-            [frontend.components.file-sync :as fs-sync]
             [frontend.components.page-menu :as page-menu]
             [frontend.components.plugins :as plugins]
             [frontend.components.right-sidebar :as sidebar]
-            [frontend.components.rtc.indicator :as rtc-indicator]
             [frontend.components.server :as server]
-            [frontend.components.settings :as settings]
             [frontend.components.svg :as svg]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler :as handler]
-            [frontend.handler.db-based.rtc-flows :as rtc-flows]
             [frontend.handler.db-based.vector-search-flows :as vector-search-flows]
             [frontend.handler.page :as page-handler]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
@@ -34,7 +29,6 @@
             [logseq.db :as ldb]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
-            [logseq.shui.util :as shui-util]
             [missionary.core :as m]
             [reitit.frontend.easy :as rfe]
             [rum.core :as rum]))
@@ -48,48 +42,6 @@
                                         (when (mobile-util/native-iphone?)
                                           (state/set-left-sidebar-open! false))
                                         (route-handler/redirect-to-home!))}))
-
-(rum/defcs rtc-collaborators <
-  rum/reactive
-  (rum/local nil ::online-users)
-  (rum/local nil ::online-users-canceler)
-  {:will-mount (fn [state]
-                 (reset!
-                  (::online-users-canceler state)
-                  (c.m/run-task :fetch-online-users
-                    (m/reduce (fn [_ v] (reset! (::online-users state) v)) rtc-flows/rtc-online-users-flow)
-                    :succ (constantly nil)))
-                 state)
-   :will-unmount (fn [state]
-                   (when @(::online-users-canceler state) (@(::online-users-canceler state)))
-                   (reset! (::online-users state) nil)
-                   state)}
-  [state]
-  (let [rtc-graph-id (ldb/get-graph-rtc-uuid (db/get-db))
-        online-users @(::online-users state)]
-    (when rtc-graph-id
-      [:div.rtc-collaborators.flex.gap-1.text-sm.bg-gray-01.items-center
-       (shui/button-ghost-icon :user-plus
-                               {:on-click #(shui/dialog-open!
-                                            (fn []
-                                              [:div.p-2.-mb-8
-                                               [:h1.text-3xl.-mt-2.-ml-2 "Collaborators:"]
-                                               (settings/settings-collaboration)]))})
-
-       (when (seq online-users)
-         (for [{user-email :user/email
-                user-name :user/name
-                user-uuid :user/uuid} online-users
-               :let [color (shui-util/uuid-color user-uuid)]]
-           (when user-name
-             (shui/avatar
-              {:class "w-5 h-5"
-               :style {:app-region "no-drag"}
-               :title user-email}
-              (shui/avatar-fallback
-               {:style {:background-color (str color "50")
-                        :font-size 11}}
-               (some-> (subs user-name 0 2) (string/upper-case)))))))])))
 
 (rum/defc left-menu-button < rum/reactive
   < {:key-fn #(identity "left-menu-toggle-button")}
@@ -400,30 +352,8 @@
       [:div.flex.flex-1
        (block-breadcrumb (state/get-current-page))]
       [:div.flex.items-center
-       (when (and current-repo
-                  (ldb/get-graph-rtc-uuid (db/get-db))
-                  (user-handler/logged-in?)
-                  db-based?
-                  (user-handler/rtc-group?))
-         [:<>
-          (recent-slider)
-          (rum/with-key (rtc-collaborators)
-            (str "collab-" current-repo))
-          (rtc-indicator/indicator)])
-
-       (when (user-handler/logged-in?)
-         (rtc-indicator/downloading-detail))
-       (when (user-handler/logged-in?)
-         (rtc-indicator/uploading-detail))
-
        (when db-based?
          (semantic-search-progressing current-repo))
-
-       (when (and current-repo
-                  (not (config/demo-graph? current-repo))
-                  (not db-based?)
-                  (user-handler/alpha-or-beta-user?))
-         (fs-sync/indicator))
 
        (when (and (not= (state/get-current-route) :home)
                   (not custom-home-page?))
@@ -456,11 +386,7 @@
        (updater-tips-new-version t)]]]))
 
 (def ^:private header-related-flow
-  (m/latest
-   (fn [state rtc-running?]
-     {:user-groups (get-in state [:user/info :UserGroups])
-      :rtc-running? rtc-running?})
-   (m/watch state/state) rtc-flows/rtc-running-flow))
+  (m/watch state/state))
 
 (rum/defc header
   [opts]

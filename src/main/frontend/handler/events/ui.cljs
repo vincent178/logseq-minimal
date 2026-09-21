@@ -1,10 +1,7 @@
 (ns frontend.handler.events.ui
   "UI events"
-  (:require [clojure.core.async :as async]
-            [clojure.core.async.interop :refer [p->c]]
-            [frontend.components.assets :as assets]
+  (:require [frontend.components.assets :as assets]
             [frontend.components.cmdk.core :as cmdk]
-            [frontend.components.file-sync :as file-sync]
             [frontend.components.page :as component-page]
             [frontend.components.plugins :as plugin]
             [frontend.components.property.dialog :as property-dialog]
@@ -20,19 +17,13 @@
             [frontend.db :as db]
             [frontend.extensions.fsrs :as fsrs]
             [frontend.extensions.srs :as srs]
-            [frontend.fs.sync :as sync]
-            [frontend.handler.db-based.rtc :as rtc-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
             [frontend.handler.file-based.native-fs :as nfs-handler]
-            [frontend.handler.file-sync :as file-sync-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.plugin :as plugin-handler]
-            [frontend.handler.repo :as repo-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.user :as user-handler]
-            [frontend.modules.instrumentation.sentry :as sentry-event]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -164,8 +155,7 @@
      :warning false (.-id o))))
 
 (defn- refresh-cb []
-  (page-handler/create-today-journal!)
-  (events/file-sync-restart!))
+  (page-handler/create-today-journal!))
 
 (defmethod events/handle :graph/ask-for-re-fresh [_]
   (shui/dialog-open!
@@ -310,50 +300,9 @@
     :title (str (if asset-block "Edit" "Create") " asset")
     :center? true}))
 
-(defn- enable-beta-features!
-  []
-  (when-not (false? (state/enable-sync?)) ; user turns it off
-    (file-sync-handler/set-sync-enabled! true)))
-
-;; TODO: separate rtc and file-based implementation
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
-  (state/set-state! [:ui/loading? :login] false)
-  (async/go
-    (let [result (async/<! (sync/<user-info sync/remoteapi))
-          mobile-or-web? (or (util/mobile?) util/web-platform?)]
-      (cond
-        (instance? ExceptionInfo result)
-        nil
-        (map? result)
-        (do
-          (state/set-user-info! result)
-          (when-let [uid (user-handler/user-uuid)]
-            (sentry-event/set-user! uid))
-          (let [status (if (user-handler/alpha-or-beta-user?) :welcome :unavailable)]
-            (when (and (= status :welcome) (user-handler/logged-in?))
-              (enable-beta-features!)
-              (async/<! (p->c (rtc-handler/<get-remote-graphs)))
-              (when-not mobile-or-web?
-                (async/<! (file-sync-handler/load-session-graphs)))
-              (p/let [repos (repo-handler/refresh-repos!)]
-                (when-let [repo (state/get-current-repo)]
-                  (when-not mobile-or-web?
-                    (when (some #(and (= (:url %) repo)
-                                      (vector? (:sync-meta %))
-                                      (util/uuid-string? (first (:sync-meta %)))
-                                      (util/uuid-string? (second (:sync-meta %)))) repos)
-                      (sync/<sync-start))))))
-            (when-not mobile-or-web?
-              (file-sync/maybe-onboarding-show status))))))))
-
-(defmethod events/handle :file-sync/onboarding-tip [[_ type opts]]
-  (let [type (keyword type)]
-    (when-not (config/db-based-graph? (state/get-current-repo))
-      (shui/dialog-open!
-       (file-sync/make-onboarding-panel type)
-       (merge {:close-btn? false
-               :center? true
-               :close-backdrop? (not= type :welcome)} opts)))))
+  ;; no accounts or remote graphs in the minimal build
+  (state/set-state! [:ui/loading? :login] false))
 
 (defmethod events/handle :dialog/show-block [[_ block option]]
   (shui/dialog-open!
