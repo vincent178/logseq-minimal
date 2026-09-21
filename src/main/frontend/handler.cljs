@@ -9,7 +9,6 @@
             [frontend.components.editor :as editor]
             [frontend.components.page :as page]
             [frontend.components.reference :as reference]
-            [frontend.components.user.login :as user.login]
             [frontend.components.whiteboard :as whiteboard]
             [frontend.config :as config]
             [frontend.context.i18n :as i18n]
@@ -31,7 +30,6 @@
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.idb :as idb]
             [frontend.mobile.util :as mobile-util]
             [frontend.modules.instrumentation.core :as instrument]
@@ -149,8 +147,6 @@
     (set-global-error-notification!)
 
     (register-components-fns!)
-    (user-handler/restore-tokens-from-localstorage)
-    (user.login/setup-configure!)
     (state/set-db-restoring! true)
     (when (util/electron?)
       (el/listen!))

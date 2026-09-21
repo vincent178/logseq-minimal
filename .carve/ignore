@@ -91,3 +91,29 @@ frontend.common.missionary/background-task-running?
 ;; defonce
 mobile.components.popup/native-sheet-listener
 mobile.bottom-tabs/add-tab-listeners!
+;; Minimal build: login/sync removed (Cut 1). These are kept only as a
+;; compile-stable seam for sync code that Cut 2 deletes; all inert.
+frontend.handler.user/username
+frontend.handler.user/restore-tokens-from-localstorage
+frontend.handler.user/<ensure-id&access-token
+frontend.handler.user/alpha-user?
+frontend.handler.user/beta-user?
+frontend.handler.user/get-user-type
+frontend.state/set-auth-id-token
+frontend.state/set-auth-refresh-token
+frontend.state/set-auth-access-token
+frontend.state/clear-user-info!
+frontend.state/user-groups
+;; Minimal build: legacy file-sync surface, removed entirely in Cut 2
+frontend.fs.sync/remove-all-pwd!
+frontend.handler.file-sync/reset-session-graphs
+frontend.handler.file-sync/reset-user-state!
+frontend.components.settings/sync-switcher-row
+frontend.components.settings/sync-diff-merge-switcher-row
+frontend.config/LOGIN-URL
+frontend.config/COGNITO-IDP
+frontend.config/COGNITO-CLIENT-ID
+frontend.config/REGION
+frontend.config/USER-POOL-ID
+frontend.config/IDENTITY-POOL-ID
+frontend.config/OAUTH-DOMAIN

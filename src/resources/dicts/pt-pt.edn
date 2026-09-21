@@ -141,8 +141,6 @@
  :settings-page/plugin-system "Plugins"
  :settings-page/enable-flashcards "Flashcards"
  :settings-page/alpha-features "Funcionalidades em fase Alfa"
- :settings-page/beta-features "Funcionalidades em fase Beta"
- :settings-page/login-prompt "Para aceder a novas funcionalidades antes de qualquer outra pessoa tem de ser um \"Sponsor\" ou \"Backer\" na Open Collective do Logseq e, portanto, tem de iniciar sessão primeiro."
  :settings-page/sync "Sincronizar"
  :settings-page/enable-whiteboards "Quadros brancos"
  :yes "Sim"

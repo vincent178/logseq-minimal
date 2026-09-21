@@ -162,8 +162,6 @@
  :settings-page/enable-flashcards "Картки"
  :settings-page/network-proxy "Мережевий проксі"
  :settings-page/alpha-features "Альфа-функції"
- :settings-page/beta-features "Бета-функції"
- :settings-page/login-prompt "Щоб отримати доступ до нових функцій раніше за інших, ви повинні бути відкритим колективним спонсором або спонсором Logseq і, отже, спершу увійти."
  :settings-page/sync "Синхронізація"
  :settings-page/enable-whiteboards "Дошки"
  :yes "Так"

@@ -11,7 +11,6 @@
             [frontend.components.whiteboard :as whiteboard]
             [frontend.extensions.zotero :as zotero]
             [frontend.components.bug-report :as bug-report]
-            [frontend.components.user.login :as login]
             [logseq.shui.demo :as shui]
             [frontend.components.imports :as imports]
             [frontend.config :as config]
@@ -80,10 +79,6 @@
    ["/plugins"
     {:name :plugins
      :view plugins/plugins-page}]
-
-   ["/login"
-    {:name :user-login
-     :view login/page}]
 
    ["/all-files"
     {:name :all-files

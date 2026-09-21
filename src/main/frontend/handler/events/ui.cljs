@@ -14,7 +14,6 @@
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
             [frontend.components.shell :as shell]
-            [frontend.components.user.login :as login]
             [frontend.components.whiteboard :as whiteboard]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
@@ -33,7 +32,6 @@
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.instrumentation.sentry :as sentry-event]
             [frontend.state :as state]
             [frontend.ui :as ui]
@@ -291,17 +289,12 @@
   (state/set-state! :mobile/show-action-bar? false))
 
 (defmethod events/handle :user/logout [[_]]
-  (file-sync-handler/reset-session-graphs)
-  (sync/remove-all-pwd!)
-  (file-sync-handler/reset-user-state!)
-  (login/sign-out!))
+  ;; no accounts in the minimal build — logout is a no-op
+  nil)
 
-(defmethod events/handle :user/login [[_ host-ui?]]
-  (if (or host-ui? (not util/electron?))
-    (js/window.open config/LOGIN-URL)
-    (if (mobile-util/native-platform?)
-      (route-handler/redirect! {:to :user-login})
-      (login/open-login-modal!))))
+(defmethod events/handle :user/login [[_ _host-ui?]]
+  ;; no accounts in the minimal build — login is a no-op
+  nil)
 
 (defmethod events/handle :whiteboard/onboarding [[_ opts]]
   (shui/dialog-open!

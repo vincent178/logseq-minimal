@@ -137,7 +137,6 @@
                                           (page-handler/<unfavorite-page! block-id-str)
                                           (page-handler/<favorite-page! block-id-str)))}}]))))
         page-menu-and-hr (concat page-menu [{:hr true}])
-        login? (and (state/sub :auth/id-token) (user-handler/logged-in?))
         items (fn []
                 (->>
                  [(when (state/enable-editing?)
@@ -167,23 +166,7 @@
                   (when config/publishing?
                     {:title (t :toggle-theme)
                      :options {:on-click #(state/toggle-theme!)}
-                     :icon (ui/icon "bulb")})
-
-                  (when-not (or config/publishing? login?)
-                    {:title (t :login)
-                     :options {:on-click #(state/pub-event! [:user/login])}
-                     :icon (ui/icon "user")})
-
-                  (when login? {:hr true})
-                  (when login?
-                    {:item [:span.flex.flex-col.relative.group.pt-1.w-full
-                            [:b.leading-none (user-handler/username)]
-                            [:small.opacity-70 (user-handler/email)]
-                            [:i.absolute.opacity-0.group-hover:opacity-100.text-red-rx-09
-                             {:class "right-1 top-3" :title (t :logout)}
-                             (ui/icon "logout")]]
-                     :options {:on-click #(user-handler/logout)
-                               :class "w-full"}})]
+                     :icon (ui/icon "bulb")})]
                  (concat page-menu-and-hr)
                  (remove nil?)))]
 

@@ -145,8 +145,6 @@
  :settings-page/enable-flashcards "啟用卡片"
  :settings-page/network-proxy "網路代理"
  :settings-page/alpha-features "Alpha 功能"
- :settings-page/beta-features "Beta 功能"
- :settings-page/login-prompt "你必須是 Logseq 的 Open Collective Sponsor 或 Backer 以使用新功能。（需要登入）"
  :settings-page/sync "同步"
  :settings-page/enable-whiteboards "啟用白板"
  :yes "是"

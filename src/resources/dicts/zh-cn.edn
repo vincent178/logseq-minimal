@@ -186,7 +186,6 @@
  :settings-page/tab-version-control "多版本控制"
  :settings-page/plugin-system "插件系统"
  :settings-page/network-proxy "网络代理"
- :settings-page/login-prompt "你必须是 Logseq 的 Open Collective Sponsor 或者 Backer 才能提前使用新功能（仍在测试中），因此需要登录。"
  :settings-page/alpha-features "Alpha 功能"
  :settings-page/custom-global-configuration "自定义全局配置"
  :settings-page/edit-global-config-edn "编辑全局 config.edn"

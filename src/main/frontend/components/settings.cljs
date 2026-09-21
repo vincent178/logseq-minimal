@@ -1078,11 +1078,8 @@
   (let [current-repo (state/get-current-repo)
         enable-journals? (state/enable-journals? current-repo)
         enable-flashcards? (state/enable-flashcards? current-repo)
-        enable-sync? (state/enable-sync?)
-        enable-sync-diff-merge? (state/enable-sync-diff-merge?)
         db-based? (config/db-based-graph? current-repo)
-        enable-whiteboards? (state/enable-whiteboards? current-repo)
-        logged-in? (user-handler/logged-in?)]
+        enable-whiteboards? (state/enable-whiteboards? current-repo)]
     [:div.panel-wrap.is-features.mb-8
      (journal-row enable-journals?)
      (when (not enable-journals?)
@@ -1104,40 +1101,7 @@
      (when (util/electron?)
        (http-server-switcher-row))
      (flashcards-switcher-row enable-flashcards?)
-     (when-not db-based? (zotero-settings-row))
-     (when-not web-platform?
-       [:div.mt-1.sm:mt-0.sm:col-span-2
-        [:hr]
-        (if logged-in?
-          [:div
-           (user-handler/email)
-           [:p (ui/button (t :logout) {:class "p-1"
-                                       :icon "logout"
-                                       :on-click user-handler/logout})]]
-          [:div
-           (ui/button (t :login) {:class "p-1"
-                                  :icon "login"
-                                  :on-click (fn []
-                                              (state/close-settings!)
-                                              (state/pub-event! [:user/login]))})
-           [:p.text-sm.opacity-50 (t :settings-page/login-prompt)]])])
-
-     (when-not web-platform?
-       [:<>
-        [:div.it.sm:grid.sm:grid-cols-3.sm:gap-4.sm:items-center
-         [:label.flex.font-medium.leading-5.self-start.mt-1
-          (ui/icon  (if logged-in? "lock-open" "lock") {:class "mr-1"}) (t :settings-page/beta-features)]]
-        [:div.flex.flex-col.gap-4
-         {:class (when-not user-handler/alpha-or-beta-user? "opacity-50 pointer-events-none cursor-not-allowed")}
-         (sync-switcher-row enable-sync?)
-         (when (and enable-sync? (not (config/db-based-graph? current-repo)))
-           (sync-diff-merge-switcher-row enable-sync-diff-merge?))
-         [:div.text-sm
-          (t :settings-page/sync-desc-1)
-          [:a.mx-1 {:href "https://blog.logseq.com/how-to-setup-and-use-logseq-sync/"
-                    :target "_blank"}
-           (t :settings-page/sync-desc-2)]
-          (t :settings-page/sync-desc-3)]]])]))
+     (when-not db-based? (zotero-settings-row))]))
 
      ;; (when-not web-platform?
      ;;   [:<>
