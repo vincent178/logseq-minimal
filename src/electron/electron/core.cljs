@@ -222,19 +222,23 @@
     (.setApplicationMenu Menu menu)))
 
 (defn- setup-deeplink! []
-  ;; Works for Deeplink v1.0.9
-  ;; :mainWindow is only used for handling window restoring on second-instance,
-  ;; But we already handle window restoring without deeplink.
-  ;; https://github.com/glawson/electron-deeplink/blob/73d58edcde3d0e80b1819cd68a0c6e837a9c9258/src/index.ts#L150-L155
-  (-> (Deeplink. #js
-                  {:app app
-                   :mainWindow nil
-                   :protocol LSP_SCHEME
-                   :isDev dev?})
-      (.on "received"
-           (fn [url]
-             (when-let [win @*win]
-               (open-url-handler win url))))))
+  ;; Deeplinks are non-essential for local use; a broken/missing native module
+  ;; (e.g. unsigned dev build) must not crash the app.
+  (try
+    ;; Works for Deeplink v1.0.9
+    ;; :mainWindow is only used for handling window restoring on second-instance,
+    ;; But we already handle window restoring without deeplink.
+    (-> (Deeplink. #js
+                    {:app app
+                     :mainWindow nil
+                     :protocol LSP_SCHEME
+                     :isDev dev?})
+        (.on "received"
+             (fn [url]
+               (when-let [win @*win]
+                 (open-url-handler win url)))))
+    (catch :default e
+      (logger/warn "Deeplink setup failed (non-fatal)" e))))
 
 (defn- on-app-ready!
   [^js app']
