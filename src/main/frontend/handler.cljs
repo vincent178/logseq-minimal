@@ -165,13 +165,21 @@
                  _ (state/set-repos! repos)
                  _ (mobile-util/hide-splash) ;; hide splash as early as ui is stable
                  repo (or (state/get-current-repo) (:url (first repos)))
-                 ;; First run with no graphs: create the demo graph so the app
-                 ;; (and the e2e suite, which has no native folder picker)
-                 ;; opens into a working graph. User-facing DB-graph creation
-                 ;; is removed; this is the only auto-created DB graph.
-                 _ (if (empty? repos)
-                     (repo-handler/create-demo-db!)
-                     (restore-and-setup! repo))]
+                 ;; First run with no graphs:
+                 ;;  - Electron: land on the folder picker (user picks a dir)
+                 ;;  - Web/e2e: create an in-memory file demo graph so the app
+                 ;;    (and the e2e suite, which has no native folder picker)
+                 ;;    opens into a working graph.
+                 _ (cond
+                     (empty? repos)
+                     (when-not (util/electron?)
+                       (repo-handler/create-demo-file-graph!))
+
+                     ;; file graph or DB graph: restore (restore-graph! handles both)
+                     repo
+                     (restore-and-setup! repo)
+
+                     :else nil)]
            (set-network-watcher!)
 
            (when (util/electron?)

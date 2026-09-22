@@ -10,19 +10,19 @@
             [frontend.db.react :as react]
             [frontend.date :as date]
             [frontend.db.restore :as db-restore]
+            [frontend.fs :as fs]
+            [frontend.handler.file-based.repo :as file-repo-handler]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
-            [frontend.persist-db :as persist-db]
             [frontend.search :as search]
             [frontend.state :as state]
             [frontend.undo-redo :as undo-redo]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
-            [logseq.common.config :as common-config]
             [logseq.db :as ldb]
             [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
@@ -186,20 +186,32 @@
 ;; Exception: the first-run demo graph is still created so a fresh launch (and
 ;; the e2e suite, which has no native folder picker) opens into a working graph.
 
-(defn create-demo-db!
-  "Create the first-run demo graph."
+(defn create-demo-file-graph!
+  "Create the first-run demo file graph. Web/e2e only (Electron lands on the
+  folder picker). Uses the in-memory memory-fs backend, so no directory picker
+  or SQLite is needed."
   []
-  (let [full-graph-name (str config/db-version-prefix config/demo-repo)
-        config (common-config/create-config-for-db-graph config/config-default-content)]
-    (-> (p/let [_ (persist-db/<new full-graph-name {:config config
-                                                    :graph-git-sha config/revision})
-                _ (start-repo-db-if-not-exists! full-graph-name)
-                _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
-                _ (restore-and-setup-repo! full-graph-name)]
-          (state/pub-event! [:shortcut/refresh])
-          (state/pub-event! [:init/commands])
-          (state/pub-event! [:page/create (date/today) {:redirect? false}])
-          full-graph-name)
+  (let [repo config/demo-repo
+        dir "memory:///local"
+        today (date/today)
+        files [{:file/path "journals/2020_12_26.md"
+                :file/content "- Welcome to Logseq!\n- This is a demo graph stored in memory."}]]
+    (-> (p/do! (fs/mkdir-recur! (str dir "/journals"))
+               (fs/mkdir-recur! (str dir "/pages"))
+               (fs/mkdir-recur! (str dir "/logseq"))
+               (fs/write-plain-text-file! repo dir "journals/2020_12_26.md"
+                                          "- Welcome to Logseq!\n- This is a demo graph stored in memory." {})
+               (fs/write-plain-text-file! repo dir "logseq/config.edn" config/config-default-content {})
+               (start-repo-db-if-not-exists! repo)
+               (file-repo-handler/load-new-repo-to-db! repo {:new-graph? true
+                                                             :empty-graph? false
+                                                             :file-objs files})
+               (state/add-repo! {:url repo :root dir}))
+        (p/then (fn [_]
+                  (state/pub-event! [:shortcut/refresh])
+                  (state/pub-event! [:init/commands])
+                  (state/pub-event! [:page/create today {:redirect? false}])
+                  repo))
         (p/catch (fn [error]
                    (notification/show! "Create demo graph failed." :error)
                    (js/console.error error))))))

@@ -10,7 +10,6 @@
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
-            [logseq.db.sqlite.util :as sqlite-util]
             [shadow.resource :as rc]))
 
 (goog-define DEV-RELEASE false)
@@ -355,12 +354,11 @@
        (string/starts-with? s local-db-prefix)))
 
 (defn db-based-graph?
+  "DB graphs removed (minimal build is file-graphs only). Always false."
   ([]
-   (db-based-graph? (state/get-current-repo)))
-  ([s]
-   (boolean
-    (and (string? s)
-         (sqlite-util/db-based-graph? s)))))
+   false)
+  ([_s]
+   false))
 
 (defn get-local-asset-absolute-path
   [s]
