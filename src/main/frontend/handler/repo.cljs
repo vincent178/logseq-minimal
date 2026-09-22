@@ -8,6 +8,7 @@
             [frontend.db :as db]
             [frontend.db.persist :as db-persist]
             [frontend.db.react :as react]
+            [frontend.date :as date]
             [frontend.db.restore :as db-restore]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
@@ -15,11 +16,13 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
+            [frontend.persist-db :as persist-db]
             [frontend.search :as search]
             [frontend.state :as state]
             [frontend.undo-redo :as undo-redo]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
+            [logseq.common.config :as common-config]
             [logseq.db :as ldb]
             [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
@@ -180,6 +183,26 @@
     (ipc/ipc "graphReady" graph)))
 
 ;; DB-graph creation removed (minimal build is file-graphs only).
+;; Exception: the first-run demo graph is still created so a fresh launch (and
+;; the e2e suite, which has no native folder picker) opens into a working graph.
+
+(defn create-demo-db!
+  "Create the first-run demo graph."
+  []
+  (let [full-graph-name (str config/db-version-prefix config/demo-repo)
+        config (common-config/create-config-for-db-graph config/config-default-content)]
+    (-> (p/let [_ (persist-db/<new full-graph-name {:config config
+                                                    :graph-git-sha config/revision})
+                _ (start-repo-db-if-not-exists! full-graph-name)
+                _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
+                _ (restore-and-setup-repo! full-graph-name)]
+          (state/pub-event! [:shortcut/refresh])
+          (state/pub-event! [:init/commands])
+          (state/pub-event! [:page/create (date/today) {:redirect? false}])
+          full-graph-name)
+        (p/catch (fn [error]
+                   (notification/show! "Create demo graph failed." :error)
+                   (js/console.error error))))))
 
 (defn gc-graph!
   [graph]
