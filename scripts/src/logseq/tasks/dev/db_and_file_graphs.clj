@@ -21,9 +21,7 @@
          "frontend.handler.db-based."
          "frontend.inference-worker"
          "frontend.components.property" "frontend.components.class" "frontend.components.quick-add" "frontend.components.vector-search"
-         "frontend.components.db-based" "frontend.components.objects" "frontend.components.query.view"
-         "mobile.core" "mobile.events" "mobile.externals" "mobile.init" "mobile.state"
-         "mobile.components"]))
+         "frontend.components.db-based" "frontend.components.objects" "frontend.components.query.view"]))
 
 (def file-graph-ns
   "Namespaces or parent namespaces _only_ for file graphs"
@@ -70,8 +68,7 @@
          "src/main/frontend/inference_worker"
          "src/main/logseq/api/db_based.cljs"
          "src/main/logseq/api/db_based"
-         "src/electron/electron/db.cljs"
-         "src/main/mobile"]))
+         "src/electron/electron/db.cljs"]))
 
 (def file-graph-paths
   "Paths _only_ for file graphs"
@@ -148,10 +145,7 @@
                              "{:block/name page-title})"
                              ;; TODO: Mv these 2 file-based ns out of db files
                              "(:require [logseq.db.file-based.rules :as file-rules]))"
-                             "[logseq.db.file-based.schema :as file-schema]))"
-                             ;; :block/name ones from src/main/mobile
-                             "(if-let [journal (db/get-page page-name)]"
-                             "(p/then #(mobile-state/open-block-modal! (db/get-page page-name)))))))]"}
+                             "[logseq.db.file-based.schema :as file-schema]))"}
         res (grep-many file-concepts db-graph-paths)
         invalid-lines (when (= 0 (:exit res))
                         (remove #(some->> (string/split % #":\s+") second string/trim (contains? allowed-exceptions))

@@ -186,3 +186,7 @@ frontend.util/check-password-strength
 frontend.util/drain-chan
 frontend.common.async-util/c->p
 frontend.flows/current-login-user-flow
+;; Used cross-namespace / via platform-conditional branches that carve misses
+frontend.util/base64string-to-unit8array
+frontend.util/safe-sanitize-file-name
+frontend.util.fs/file-name-sanity

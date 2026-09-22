@@ -173,57 +173,6 @@ const common = {
     ], { ignoreInitial: true }, common.syncJS_CSSinRt)
   },
 
-  syncWorkersToMobile () {
-    return gulp.src([
-      path.join(outputPath, 'js/db-worker.js'),
-    ], { base: outputJsPath }).pipe(gulp.dest(mobileJsPath))
-  },
-
-  keepSyncWorkersToMobile () {
-    return gulp.watch([
-      path.join(outputPath, 'js/db-worker.js'),
-    ], { ignoreInitial: false }, common.syncWorkersToMobile)
-  },
-
-  async runCapWithLocalDevServerEntry (cb) {
-    const mode = process.env.PLATFORM || 'ios'
-
-    const LOGSEQ_APP_SERVER_URL = `http://localhost:3002`
-
-    if (typeof global.fetch === 'function') {
-      try {
-        await fetch(LOGSEQ_APP_SERVER_URL)
-      } catch (e) {
-        return cb(new Error(
-          `/* ❌ Please check if the service is ON. (${LOGSEQ_APP_SERVER_URL}) ❌ */`))
-      }
-    }
-
-    console.log(`------ Cap ${mode.toUpperCase()} -----`)
-    console.log(`Dev serve at: ${LOGSEQ_APP_SERVER_URL}`)
-    console.log(`--------------------------------------`)
-
-    cp.execSync(`npx cap sync ${mode}`, {
-      stdio: 'inherit',
-      env: Object.assign(process.env, {
-        LOGSEQ_APP_SERVER_URL,
-      }),
-    })
-
-    cp.execSync(`rm -rf ios/App/App/public/out`, {
-      stdio: 'inherit',
-    })
-
-    cp.execSync(`npx cap run ${mode}`, {
-      stdio: 'inherit',
-      env: Object.assign(process.env, {
-        LOGSEQ_APP_SERVER_URL,
-      }),
-    })
-
-    cb()
-  },
-
   switchReactDevelopmentMode (cb) {
     try {
       const reactFrom = path.join(outputPath, 'js', 'react.development.js')
@@ -290,16 +239,10 @@ exports.electronMaker = async () => {
   })
 }
 
-exports.cap = common.runCapWithLocalDevServerEntry
 exports.clean = common.clean
 exports.watch = gulp.series(
   common.syncResourceFile,
   common.syncAssetFiles, common.switchReactDevelopmentMode,
   gulp.parallel(common.keepSyncResourceFile, css.watchCSS))
-exports.watchMobile = gulp.series(
-  common.syncResourceFile, common.syncAssetFiles,
-  gulp.parallel(common.keepSyncResourceFile, common.keepSyncWorkersToMobile, css.watchMobileCSS))
 exports.build = gulp.series(common.clean, common.syncResourceFile,
   common.syncAssetFiles, css.buildCSS)
-exports.buildMobile = gulp.series(common.clean, common.syncResourceFile,
-  common.syncAssetFiles, css.buildMobileCSS)

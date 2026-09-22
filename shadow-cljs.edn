@@ -5,8 +5,7 @@
  ;; :ssl   {:password "logseq"}
 
  ;; "." for /static
- :dev-http {3001 ["static" "."]
-            3002 "static/mobile"}
+ :dev-http {3001 ["static" "."]}
 
  :js-options {:js-package-dirs ["node_modules" "packages/tldraw/apps"]}
 
@@ -116,49 +115,6 @@
                      :devtools {:watch-path "/static"
                                 :preloads [devtools.preload
                                            shadow.remote.runtime.cljs.browser]}}
-  :mobile {:target        :browser
-           :module-loader true
-           :js-options    {:ignore-asset-requires true
-                           :resolve {"react" {:target :global
-                                              :global "React"}
-                                     "react-dom" {:target :global
-                                                  :global "ReactDOM"}}}
-           ;; handle `require(xxx.css)`
-           :modules       {:main
-                           {:init-fn mobile.core/init}
-                           :code-editor
-                           {:entries [frontend.extensions.code]
-                            :depends-on #{:main}}}
-
-           :output-dir       "./static/mobile/js"
-           :asset-path       "./js"
-           :release          {:asset-path "http://localhost"}
-           :compiler-options {:infer-externs      :auto
-                              :output-feature-set :es-next-in
-                              :source-map true
-                              :externs ["datascript/externs.js"
-                                        "externs.js"]
-                              :warnings {:fn-deprecated false
-                                         :redef false}}
-           :build-hooks [(shadow.hooks/git-revision-hook "--long --always --dirty")]
-           :closure-defines
-           {lambdaisland.glogi.console/colorize "false"
-            lambdaisland.glogi.console/timestamp "true"
-            goog.debug.LOGGING_ENABLED true
-            frontend.modules.instrumentation.sentry/SENTRY-DSN #shadow/env "LOGSEQ_SENTRY_DSN"
-            frontend.modules.instrumentation.posthog/POSTHOG-TOKEN #shadow/env "LOGSEQ_POSTHOG_TOKEN"
-            ;; frontend.config/ENABLE-PLUGINS #shadow/env ["ENABLE_PLUGINS" :as :bool :default true]
-            ;; Set to switch file sync server to dev, set this to false in `yarn watch`
-            frontend.config/ENABLE-FILE-SYNC-PRODUCTION #shadow/env ["ENABLE_FILE_SYNC_PRODUCTION" :as :bool :default true]
-            frontend.config/ENABLE-RTC-SYNC-PRODUCTION #shadow/env ["ENABLE_RTC_SYNC_PRODUCTION" :as :bool :default true]
-            frontend.config/REVISION #shadow/env ["LOGSEQ_REVISION" :default "dev"]}
-
-           :devtools {:before-load mobile.core/stop!          ;; before live-reloading any code call this function
-                      :after-load mobile.core/render!          ;; after live-reloading finishes call this function
-                      :watch-path "/static/mobile"
-                      :preloads [devtools.preload
-                                 shadow.remote.runtime.cljs.browser]
-                      :loader-mode :eval}}
   :electron {:target :node-script
              :output-to "static/electron.js"
              :main electron.core/main
