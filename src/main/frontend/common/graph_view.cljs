@@ -6,7 +6,6 @@
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
-            [logseq.db.sqlite.create-graph :as sqlite-create-graph]
             [logseq.graph-parser.db :as gp-db]))
 
 (defn- build-links
@@ -100,7 +99,7 @@
                              (get-in p [:block/properties :exclude-from-graph-view]))))))
         links (concat relation tagged-pages namespaces)
         linked (set (mapcat identity links))
-        build-in-pages (->> (if db-based? sqlite-create-graph/built-in-pages-names gp-db/built-in-pages-names)
+        build-in-pages (->> gp-db/built-in-pages-names
                             (map string/lower-case)
                             set)
         nodes (cond->> full-pages'

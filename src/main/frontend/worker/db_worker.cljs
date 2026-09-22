@@ -17,7 +17,6 @@
             [frontend.worker.db-listener :as db-listener]
             [frontend.worker.db-metadata :as worker-db-metadata]
             [frontend.worker.db.fix :as db-fix]
-            [frontend.worker.db.migrate :as db-migrate]
             [frontend.worker.db.validate :as worker-db-validate]
             [frontend.worker.export :as worker-export]
             [frontend.worker.file :as file]
@@ -44,7 +43,6 @@
             [logseq.db.common.view :as db-view]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.property :as db-property]
-            [logseq.db.sqlite.create-graph :as sqlite-create-graph]
             [logseq.db.sqlite.export :as sqlite-export]
             [logseq.db.sqlite.gc :as sqlite-gc]
             [logseq.db.sqlite.util :as sqlite-util]
@@ -213,11 +211,10 @@
                                        :kv/value (common-util/time-ms)}]))))
 
 (defn- <create-or-open-db!
-  [repo {:keys [config datoms] :as opts}]
+  [repo {:keys [datoms]}]
   (when-not (worker-state/get-sqlite-conn repo)
     (p/let [[db search-db :as dbs] (get-dbs repo)
-            storage (new-sqlite-storage db)
-            db-based? (sqlite-util/db-based-graph? repo)]
+            storage (new-sqlite-storage db)]
       (swap! *sqlite-conns assoc repo {:db db
                                        :search search-db})
       (doseq [db' dbs]
@@ -244,20 +241,10 @@
                       data (map (fn [datom]
                                   [:db/add (:e datom) (:a datom) (:v datom)])
                                 datoms)]
-                  (d/transact! conn data {:initial-db? true})))
-            initial-data-exists? (when (nil? datoms)
-                                   (and (d/entity @conn :logseq.class/Root)
-                                        (= "db" (:kv/value (d/entity @conn :logseq.kv/db-type)))))]
+                  (d/transact! conn data {:initial-db? true})))]
         (swap! *datascript-conns assoc repo conn)
-        (when (and db-based? (not initial-data-exists?) (not datoms))
-          (let [config (or config "")
-                initial-data (sqlite-create-graph/build-db-initial-data
-                              config (select-keys opts [:import-type :graph-git-sha]))]
-            (ldb/transact! conn initial-data {:initial-db? true})))
 
         (gc-sqlite-dbs! db conn {})
-
-        (db-migrate/migrate conn)
 
         (db-listener/listen-db-changes! repo (get @*datascript-conns repo))))))
 

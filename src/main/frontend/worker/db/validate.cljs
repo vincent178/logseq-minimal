@@ -3,7 +3,6 @@
   (:require [clojure.string :as string]
             [datascript.core :as d]
             [datascript.impl.entity :as de]
-            [frontend.worker.db.migrate :as db-migrate]
             [frontend.worker.shared-service :as shared-service]
             [logseq.db :as ldb]
             [logseq.db.frontend.class :as db-class]
@@ -66,10 +65,7 @@
                            (and (:block/title entity) (nil? (:block/page entity)) (nil? (:block/parent entity)) (nil? (:block/name entity)))
                            [[:db/retractEntity (:db/id entity)]]
                            (= :block/path-refs (:db/ident entity))
-                           (try
-                             (db-migrate/remove-block-path-refs db)
-                             (catch :default _e
-                               nil))
+                           [[:db/retractEntity (:db/id entity)]]
                            (not-every? (fn [e] (ldb/class? e)) (:block/tags entity))
                            (let [non-tags (remove ldb/class? (:block/tags entity))]
                              (map (fn [tag]
@@ -225,7 +221,6 @@
   [conn]
   (fix-extends-cardinality! conn)
   (fix-icon-wrong-type! conn)
-  (db-migrate/ensure-built-in-data-exists! conn)
   (fix-non-closed-values! conn)
   (fix-num-prefix-db-idents! conn)
 
