@@ -3,16 +3,11 @@
             [clojure.string :as string]
             [dommy.core :as dom]
             [frontend.components.block :as component-block]
-            [frontend.components.class :as class-component]
             [frontend.components.content :as content]
-            [frontend.components.db-based.page :as db-page]
             [frontend.components.editor :as editor]
             [frontend.components.file-based.hierarchy :as hierarchy]
             [frontend.components.icon :as icon-component]
-            [frontend.components.library :as library]
-            [frontend.components.objects :as objects]
             [frontend.components.plugins :as plugins]
-            [frontend.components.property.config :as property-config]
             [frontend.components.query :as query]
             [frontend.components.reference :as reference]
             [frontend.components.scheduled-deadlines :as scheduled]
@@ -360,6 +355,7 @@
                         title))
               old-name title]
           [:div.ls-page-title.flex.flex-1.flex-row.flex-wrap.w-full.relative.items-center.gap-2
+           {:data-testid "page title"}
            [:h1.page-title.flex-1.cursor-pointer.gap-1
             {:class (when-not whiteboard-page? "title")
              :on-pointer-down (fn [e]
@@ -407,86 +403,6 @@
                        nested? (component-block/map-inline {} (gp-mldoc/inline->edn title (mldoc/get-default-config
                                                                                            (get page :block/format :markdown))))
                        :else title))])]])))))
-
-(rum/defc db-page-title-actions
-  [page]
-  [:div.ls-page-title-actions
-   [:div.flex.flex-row.items-center.gap-2
-    (when-not (:logseq.property/icon (db/entity (:db/id page)))
-      (shui/button
-       {:variant :ghost
-        :size :sm
-        :class "px-2 py-0 h-6 text-xs text-muted-foreground"
-        :on-click (fn [e]
-                    (state/pub-event! [:editor/new-property {:property-key "Icon"
-                                                             :block page
-                                                             :target (.-target e)}]))}
-       "Add icon"))
-
-    (shui/button
-     {:variant :ghost
-      :size :sm
-      :class "px-2 py-0 h-6 text-xs text-muted-foreground"
-      :on-click (fn [e]
-                  (if (ldb/property? page)
-                    (shui/popup-show!
-                     (.-target e)
-                     (fn []
-                       [:div.ls-property-dropdown
-                        (property-config/property-dropdown page nil {})])
-                     {:align :center
-                      :as-dropdown? true
-                      :dropdown-menu? true})
-                    (let [opts (cond-> {:block page :target (.-target e)}
-                                 (ldb/class? page)
-                                 (assoc :class-schema? true))]
-                      (state/pub-event! [:editor/new-property opts]))))}
-     (cond
-       (ldb/class? page)
-       "Add tag property"
-       (ldb/property? page)
-       "Configure"
-       :else
-       "Set property"))]])
-
-(rum/defc db-page-title
-  [page {:keys [whiteboard-page? sidebar? journals? container-id tag-dialog?]}]
-  (let [with-actions? (not config/publishing?)]
-    [:div.ls-page-title.flex.flex-1.w-full.content.items-start.title
-     {:class (when-not whiteboard-page? "title")
-      "data-testid" "page title"
-      :on-pointer-down (fn [e]
-                         (when (util/right-click? e)
-                           (state/set-state! :page-title/context {:page (:block/title page)
-                                                                  :page-entity page})))}
-
-     [:div.w-full.relative
-      (component-block/block-container
-       {:id (str (:block/uuid page))
-        :page-title? true
-        :page-title-actions-cp (when (and with-actions?
-                                          (not (util/mobile?))
-                                          (not= (:db/id (state/get-edit-block)) (:db/id page)))
-                                 db-page-title-actions)
-        :hide-title? sidebar?
-        :sidebar? sidebar?
-        :tag-dialog? tag-dialog?
-        :hide-children? true
-        :container-id container-id
-        :show-tag-and-property-classes? true
-        :journal-page? (ldb/journal? page)
-        :on-title-click (fn [e]
-                          (cond
-                            (gobj/get e "shiftKey")
-                            (state/sidebar-add-block!
-                             (state/get-current-repo)
-                             (:db/id page)
-                             :page)
-                            (and (util/mobile?) journals?)
-                            (route-handler/redirect-to-page! (:block/uuid page))
-                            :else
-                            nil))}
-       page)]]))
 
 (defn- page-mouse-over
   [e *control-show? *all-collapsed?]
@@ -552,82 +468,18 @@
        (plugins/hook-ui-slot :page-head-actions-slotted nil)
        (plugins/hook-ui-items :pagebar)])))
 
-(rum/defc tabs < rum/static
-  [page opts]
-  (let [class? (ldb/class? page)
-        property? (ldb/property? page)
-        both? (and class? property?)
-        default-tab (cond
-                      both?
-                      "tag"
-                      class?
-                      "tag"
-                      :else
-                      "property")]
-    [:div.page-tabs
-     (shui/tabs
-      {:defaultValue default-tab
-       :class "w-full"}
-      (when both?
-        [:div.flex.flex-row.gap-1.items-center
-         (shui/tabs-list
-          {:class "h-8"}
-          (when class?
-            (shui/tabs-trigger
-             {:value "tag"
-              :class "py-1 text-xs"}
-             "Tagged nodes"))
-          (when property?
-            (shui/tabs-trigger
-             {:value "property"
-              :class "py-1 text-xs"}
-             "Nodes with property"))
-          (when property?
-            (db-page/configure-property page)))])
-
-      (when class?
-        (shui/tabs-content
-         {:value "tag"}
-         (objects/class-objects page opts)))
-      (when property?
-        (shui/tabs-content
-         {:value "property"}
-         (objects/property-related-objects page opts))))]))
-
-(rum/defc sidebar-page-properties
-  [config page]
-  (let [[collapsed? set-collapsed!] (rum/use-state (not (ldb/class? page)))]
-    [:div.ls-sidebar-page-properties.flex.flex-col.gap-2.mt-2
-     [:div
-      (shui/button
-       {:variant :ghost
-        :size :sm
-        :class "px-1 text-muted-foreground"
-        :on-click #(set-collapsed! (not collapsed?))}
-       [:span.text-xs (str (if collapsed? "Open" "Hide")) " properties"])]
-
-     (when-not collapsed?
-       [:<>
-        (component-block/db-properties-cp config page {:sidebar-properties? true})
-        [:hr.my-4]])]))
-
 ;; A page is just a logical block
 (rum/defcs ^:large-vars/cleanup-todo page-inner < rum/reactive db-mixins/query mixins/container-id
   (rum/local false ::all-collapsed?)
   (rum/local false ::control-show?)
   (rum/local nil   ::current-page)
-  [state {:keys [repo page preview? sidebar? tag-dialog? linked-refs? unlinked-refs? config journals?] :as option}]
+  [state {:keys [repo page preview? sidebar? tag-dialog? linked-refs? unlinked-refs? journals?] :as option}]
   (let [current-repo (state/sub :git/current-repo)
         page (or page (some-> (:db/id option) db/entity))
-        config (assoc config
-                      :id (str (:block/uuid page)))
         repo (or repo current-repo)
         block? (some? (:block/page page))
-        class-page? (ldb/class? page)
-        property-page? (ldb/property? page)
         title (:block/title page)
         journal? (db/journal-page? title)
-        db-based? (config/db-based-graph? repo)
         fmt-journal? (boolean (date/journal-title->int title))
         whiteboard? (:whiteboard? option) ;; in a whiteboard portal shape?
         whiteboard-page? (model/whiteboard-page? page) ;; is this page a whiteboard?
@@ -637,8 +489,7 @@
         *control-show? (::control-show? state)
         *all-collapsed? (::all-collapsed? state)
         block-or-whiteboard? (or block? whiteboard?)
-        home? (= :home (state/get-current-route))
-        show-tabs? (and db-based? (or class-page? (ldb/property? page)) (not tag-dialog?))]
+        home? (= :home (state/get-current-route))]
     (if page
       (when (or title block-or-whiteboard?)
         [:div.flex-1.page.relative.cp__page-inner-wrap
@@ -649,15 +500,14 @@
                   {})
 
                 {:key title
-                 :class (util/classnames [{:is-journals (or journal? fmt-journal?)
-                                           :is-node-page (or class-page? property-page?)}])})
+                 :class (util/classnames [{:is-journals (or journal? fmt-journal?)}])})
 
          (if (and whiteboard-page? (not sidebar?))
            [:div ((state/get-component :whiteboard/tldraw-preview) (:block/uuid page))] ;; FIXME: this is not reactive
            [:div.relative.grid.gap-4.sm:gap-8.page-inner.mb-16
             (when-not (or block? sidebar?)
               [:div.flex.flex-row.space-between
-               (when (and (or (mobile-util/native-platform?) (util/mobile?)) (not db-based?))
+               (when (or (mobile-util/native-platform?) (util/mobile?))
                  [:div.flex.flex-row.pr-2
                   {:style {:margin-left -15}
                    :on-mouse-over (fn [e]
@@ -666,30 +516,13 @@
                                      (page-mouse-leave e *control-show?))}
                   (page-blocks-collapse-control title *control-show? *all-collapsed?)])
                (when (and (not whiteboard?) (ldb/page? page))
-                 (if db-based?
-                   (db-page-title page
-                                  {:whiteboard-page? whiteboard-page?
-                                   :sidebar? sidebar?
-                                   :journals? journals?
-                                   :container-id (:container-id state)
-                                   :tag-dialog? tag-dialog?})
-                   (page-title-cp page {:journal? journal?
-                                        :fmt-journal? fmt-journal?
-                                        :preview? preview?})))
+                 (page-title-cp page {:journal? journal?
+                                      :fmt-journal? fmt-journal?
+                                      :preview? preview?}))
                (lsp-pagebar-slot)])
 
             (when (and block? (not sidebar?))
               (component-block/breadcrumb {} repo (:block/uuid page) {}))
-
-            (when (and db-based? (ldb/library? page))
-              (library/add-pages page))
-
-            (when (and db-based? sidebar? (ldb/page? page))
-              [:div.-mb-8
-               (sidebar-page-properties config page)])
-
-            (when show-tabs?
-              (tabs page {:current-page? option :sidebar? sidebar?}))
 
             (when (not tag-dialog?)
               [:div.ls-page-blocks
@@ -709,14 +542,11 @@
             (when today?
               (scheduled/scheduled-and-deadlines title))
 
-            (when (and (not block?) (not db-based?))
+            (when (not block?)
               (tagged-pages repo page title))
 
-            (when (and (ldb/page? page) (:logseq.property.class/_extends page))
-              (class-component/class-children page))
-
             ;; referenced blocks
-            (when-not (or whiteboard? tag-dialog? linked-refs? (and block? (not db-based?)))
+            (when-not (or whiteboard? tag-dialog? linked-refs? block?)
               [:div.fade-in.delay {:key "page-references"}
                (rum/with-key
                  (reference/references page {:sidebar? sidebar?
@@ -725,15 +555,14 @@
                  (str title "-refs"))])
 
             (when-not block-or-whiteboard?
-              (when (and (not journal?) (not db-based?))
+              (when (not journal?)
                 (hierarchy/structures (:block/title page))))
 
             (when-not (or whiteboard? unlinked-refs?
                           sidebar?
                           tag-dialog?
                           home?
-                          (or class-page? property-page?)
-                          (and block? (not db-based?)))
+                          block?)
               [:div.fade-in.delay {:key "page-unlinked-references"}
                (reference/unlinked-references page {:sidebar? sidebar?})])])])
       [:div.opacity-75 "Page not found"])))

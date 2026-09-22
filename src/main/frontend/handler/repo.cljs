@@ -18,6 +18,7 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
+            [frontend.persist-db :as persist-db]
             [frontend.search :as search]
             [frontend.state :as state]
             [frontend.undo-redo :as undo-redo]
@@ -202,6 +203,8 @@
                (fs/write-plain-text-file! repo dir "journals/2020_12_26.md"
                                           "- Welcome to Logseq!\n- This is a demo graph stored in memory." {})
                (fs/write-plain-text-file! repo dir "logseq/config.edn" config/config-default-content {})
+               ;; register the worker-side conn (same as the NFS open flow)
+               (persist-db/<new repo {})
                (start-repo-db-if-not-exists! repo)
                (file-repo-handler/load-new-repo-to-db! repo {:new-graph? true
                                                              :empty-graph? false
@@ -211,6 +214,8 @@
                   (state/pub-event! [:shortcut/refresh])
                   (state/pub-event! [:init/commands])
                   (state/pub-event! [:page/create today {:redirect? false}])
+                  ;; land on the seeded journal page (e2e expects a page title)
+                  (route-handler/redirect-to-page! "Dec 26th, 2020")
                   repo))
         (p/catch (fn [error]
                    (notification/show! "Create demo graph failed." :error)

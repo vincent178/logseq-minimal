@@ -56,12 +56,9 @@
          ;; TODO: change to deps/cli/src when :block/name no longer in other cli namespaces
          "deps/cli/src/logseq/cli/commands"
          "src/main/frontend/handler/db_based"
-         "src/main/frontend/components/class.cljs"
          "src/main/frontend/components/property.cljs"
          "src/main/frontend/components/property"
-         "src/main/frontend/components/objects.cljs"
          "src/main/frontend/components/quick_add.cljs"
-         "src/main/frontend/components/db_based"
          "src/main/frontend/components/query/view.cljs"
          "src/main/logseq/api/db_based.cljs"
          "src/main/logseq/api/db_based"
