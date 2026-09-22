@@ -6,7 +6,6 @@
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler.block :as block-handler]
-            [frontend.handler.db-based.export :as db-export-handler]
             [frontend.handler.export :as export]
             [frontend.handler.export.html :as export-html]
             [frontend.handler.export.opml :as export-opml]
@@ -110,11 +109,6 @@
             (t :export-zip)]
            [:p.text-sm.opacity-70.mb-0 "Primary way to backup graph's content and assets to a .zip file."]])
 
-        (when (and db-based? (not (util/mobile?)))
-          [:div
-           [:a.font-medium {:on-click #(db-export-handler/export-repo-as-db-edn! current-repo)}
-            (t :export-db-edn)]
-           [:p.text-sm.opacity-70.mb-0 "Exports to a readable and editable .edn file. Don't rely on this as a primary backup."]])
         (when-not (mobile-util/native-platform?)
           [:div
            [:a.font-medium {:on-click #(export-text/export-repo-as-markdown! current-repo)}

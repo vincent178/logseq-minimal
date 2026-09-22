@@ -184,16 +184,6 @@
   (-> (if (string? file) file (.arrayBuffer file))
       (p/then db-asset/<get-file-array-buffer-checksum)))
 
-(defn <get-all-assets
-  []
-  (when-let [path (config/get-current-repo-assets-root)]
-    (p/let [result (p/catch (fs/readdir path {:path-only? true})
-                            (constantly nil))]
-      (p/all (map (fn [path]
-                    (p/let [data (fs/read-file-raw path "" {})]
-                      (let [path' (util/node-path.join "assets" (util/node-path.basename path))]
-                        [path' data]))) result)))))
-
 (defn ensure-assets-dir!
   [repo]
   (p/let [repo-dir (config/get-repo-dir repo)

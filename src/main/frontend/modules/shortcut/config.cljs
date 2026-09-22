@@ -629,22 +629,6 @@
                        :inactive (not (state/developer-mode?))
                        :fn :frontend.handler.common.developer/show-page-ast}
 
-   :misc/export-block-data {:binding []
-                            :db-graph? true
-                            :fn :frontend.handler.db-based.export/export-block-data}
-
-   :misc/export-page-data {:binding []
-                           :db-graph? true
-                           :fn :frontend.handler.db-based.export/export-page-data}
-
-   :misc/export-graph-ontology-data {:binding []
-                                     :db-graph? true
-                                     :fn :frontend.handler.db-based.export/export-graph-ontology-data}
-
-   :misc/import-edn-data {:binding []
-                          :db-graph? true
-                          :fn :frontend.handler.db-based.import/import-edn-data-dialog}
-
    :dev/validate-db   {:binding []
                        :db-graph? true
                        :inactive (not (state/developer-mode?))
@@ -877,10 +861,6 @@
           :ui/clear-all-notifications
           :git/commit
           :sidebar/close-top
-          :misc/export-block-data
-          :misc/export-page-data
-          :misc/export-graph-ontology-data
-          :misc/import-edn-data
           :dev/show-block-data
           :dev/show-block-ast
           :dev/show-page-data
@@ -1076,10 +1056,6 @@
      :auto-complete/shift-complete
      :auto-complete/meta-complete
      :git/commit
-     :misc/export-block-data
-     :misc/export-page-data
-     :misc/export-graph-ontology-data
-     :misc/import-edn-data
      :dev/show-block-data
      :dev/show-block-ast
      :dev/show-page-data

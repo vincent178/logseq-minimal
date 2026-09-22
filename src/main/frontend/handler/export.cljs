@@ -10,7 +10,6 @@
    [frontend.db :as db]
    [frontend.extensions.zip :as zip]
    [frontend.external.roam-export :as roam-export]
-   [frontend.handler.assets :as assets-handler]
    [frontend.handler.export.common :as export-common-handler]
    [frontend.handler.notification :as notification]
    [frontend.idb :as idb]
@@ -51,19 +50,6 @@
           (.setAttribute anchor "download" "index.html")
           (.click anchor))))))
 
-(defn db-based-export-repo-as-zip!
-  [repo]
-  (p/let [db-data (persist-db/<export-db repo {:return-data? true})
-          filename "db.sqlite"
-          repo-name (common-sqlite/sanitize-db-name repo)
-          assets (assets-handler/<get-all-assets)
-          files (cons [filename db-data] assets)
-          zipfile (zip/make-zip repo-name files repo)]
-    (when-let [anchor (gdom/getElement "download-as-zip")]
-      (.setAttribute anchor "href" (js/window.URL.createObjectURL zipfile))
-      (.setAttribute anchor "download" (.-name zipfile))
-      (.click anchor))))
-
 (defn file-based-export-repo-as-zip!
   [repo]
   (p/let [files (export-common-handler/<get-file-contents repo "md")
@@ -79,9 +65,7 @@
 
 (defn export-repo-as-zip!
   [repo]
-  (if (config/db-based-graph? repo)
-    (db-based-export-repo-as-zip! repo)
-    (file-based-export-repo-as-zip! repo)))
+  (file-based-export-repo-as-zip! repo))
 
 ;; FIXME: All uses of :block/properties in this ns
 (defn- dissoc-properties [m ks]

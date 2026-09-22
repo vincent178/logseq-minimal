@@ -545,7 +545,7 @@
 (defmethod handle-action :trigger [_ state _event]
   (let [highlighted-item (some-> state state->highlighted-item)
         command (:source-command highlighted-item)
-        dont-close-commands #{:graph/open :graph/remove :dev/replace-graph-with-db-file :misc/import-edn-data :editor/move-blocks}
+        dont-close-commands #{:graph/open :graph/remove :dev/replace-graph-with-db-file :editor/move-blocks}
         search-args (:search/args @state/state)
         action (or (:action command)
                    (when-let [trigger (:trigger search-args)]
