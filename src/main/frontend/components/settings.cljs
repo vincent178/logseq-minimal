@@ -13,7 +13,6 @@
             [frontend.db :as db]
             [frontend.dicts :as dicts]
             [frontend.handler.config :as config-handler]
-            [frontend.handler.db-based.rtc :as rtc-handler]
             [frontend.handler.db-based.vector-search-flows :as vector-search-flows]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
@@ -909,38 +908,6 @@
    [active])
 
   [:<>])
-
-(rum/defc settings-rtc-members
-  []
-  (let [[invite-email set-invite-email!] (hooks/use-state "")
-        current-repo (state/get-current-repo)
-        [users-info] (hooks/use-atom (:rtc/users-info @state/state))
-        users (get users-info current-repo)]
-    (hooks/use-effect!
-     #(c.m/run-task* (m/sp (c.m/<? (rtc-handler/<rtc-get-users-info))))
-     [])
-    [:div.flex.flex-col.gap-2.mt-4
-     [:h2.opacity-50.font-medium "Members:"]
-     [:div.users.flex.flex-col.gap-1
-      (for [{user-name :user/name
-             user-email :user/email
-             graph<->user-user-type :graph<->user/user-type} users]
-        [:div.flex.flex-row.items-center.gap-2 {:key (str "user-" user-name)}
-         [:div user-name]
-         (when user-email [:div.opacity-50.text-sm user-email])
-         (when graph<->user-user-type [:div.opacity-50.text-sm (name graph<->user-user-type)])])]
-     [:div.flex.flex-col.gap-4.mt-4
-      (shui/input
-       {:placeholder   "Email address"
-        :on-change     #(set-invite-email! (util/evalue %))})
-      (shui/button
-       {:on-click (fn []
-                    (let [user-email invite-email
-                          graph-uuid (ldb/get-graph-rtc-uuid (db/get-db))]
-                      (when-not (string/blank? user-email)
-                        (when graph-uuid
-                          (rtc-handler/<rtc-invite-email graph-uuid user-email)))))}
-       "Invite")]]))
 
 (rum/defc mcp-server-row
   [t]

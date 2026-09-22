@@ -185,3 +185,4 @@ frontend.util.fs/read-repo-file
 frontend.util/check-password-strength
 frontend.util/drain-chan
 frontend.common.async-util/c->p
+frontend.flows/current-login-user-flow
