@@ -9,7 +9,6 @@
             [logseq.e2e.graph :as graph]
             [logseq.e2e.keyboard :as k]
             [logseq.e2e.locator :as loc]
-            [logseq.e2e.multi-tabs-basic-test]
             [logseq.e2e.outliner-basic-test]
             [logseq.e2e.plugins-basic-test]
             [logseq.e2e.property-basic-test]
@@ -47,11 +46,6 @@
   (->> (future (run-tests 'logseq.e2e.outliner-basic-test))
        (swap! *futures assoc :outliner-test)))
 
-(defn run-multi-tabs-test
-  []
-  (->> (future (run-tests 'logseq.e2e.multi-tabs-basic-test))
-       (swap! *futures assoc :multi-tabs-test)))
-
 (defn run-reference-test
   []
   (->> (future (run-tests 'logseq.e2e.reference-basic-test))
@@ -76,7 +70,6 @@
   [& _]
   (run-tests 'logseq.e2e.editor-basic-test
              'logseq.e2e.commands-basic-test
-             'logseq.e2e.multi-tabs-basic-test
              'logseq.e2e.outliner-basic-test
              'logseq.e2e.plugins-basic-test
              'logseq.e2e.reference-basic-test
@@ -109,7 +102,6 @@
                 {:state :detached}))
 
   (run-tests 'logseq.e2e.commands-basic-test
-             'logseq.e2e.multi-tabs-basic-test
              'logseq.e2e.outliner-basic-test)
 
   (do
