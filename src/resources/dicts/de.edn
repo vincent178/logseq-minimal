@@ -231,7 +231,6 @@
  :on-boarding/importing-main-title "Vorhandene Notizen importieren"
  :on-boarding/importing-opml-desc " OPML-Dateien importieren"
  :on-boarding/importing-roam-desc "Einen Roam JSON Export importieren"
- :on-boarding/importing-sqlite-desc "SQLite-DB-Export deines Logseq-Graphs in einen neuen DB-Graph importieren"
  :on-boarding/importing-title "Möchten Sie bestehende Notizen importieren?"
 
  :on-boarding/main-desc "Wählen Sie ein Verzeichnis, wo Logseq Ihre Gedanken, Ideen und Notizen aufbewahren kann."

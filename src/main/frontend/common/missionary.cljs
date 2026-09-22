@@ -102,12 +102,6 @@
            (catch Cancelled _
              (m/amb))))))
 
-(defn throttle
-  [dur-ms >in]
-  (m/ap
-    (let [x (m/?> (m/relieve {} >in))]
-      (m/amb x (do (m/? (m/sleep dur-ms)) (m/amb))))))
-
 (defn snapshot-of-flow
   "Return a task. take first value from f.
   can be understood as `deref` in missionary"

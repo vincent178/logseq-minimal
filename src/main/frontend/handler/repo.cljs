@@ -5,13 +5,12 @@
             [clojure.string :as string]
             [electron.ipc :as ipc]
             [frontend.config :as config]
-            [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.persist :as db-persist]
             [frontend.db.react :as react]
+            [frontend.date :as date]
             [frontend.db.restore :as db-restore]
             [frontend.handler.global-config :as global-config-handler]
-            [frontend.handler.graph :as graph-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.route :as route-handler]
@@ -183,47 +182,27 @@
   (when (util/electron?)
     (ipc/ipc "graphReady" graph)))
 
-(defn graph-already-exists?
-  "Checks to see if given db graph name already exists"
-  [graph-name]
-  (let [full-graph-name (string/lower-case (str config/db-version-prefix graph-name))]
-    (some #(= (some-> (:url %) string/lower-case) full-graph-name) (state/get-repos))))
+;; DB-graph creation removed (minimal build is file-graphs only).
+;; Exception: the first-run demo graph is still created so a fresh launch (and
+;; the e2e suite, which has no native folder picker) opens into a working graph.
 
-(defn- create-db [full-graph-name {:keys [file-graph-import?]}]
-  (->
-   (p/let [config (common-config/create-config-for-db-graph config/config-default-content)
-           _ (persist-db/<new full-graph-name
-                              (cond-> {:config config
-                                       :graph-git-sha config/revision}
-                                file-graph-import? (assoc :import-type :file-graph)))
-           _ (start-repo-db-if-not-exists! full-graph-name)
-           _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
-           _ (restore-and-setup-repo! full-graph-name {:file-graph-import? file-graph-import?})
-           _ (when-not file-graph-import? (route-handler/redirect-to-home!))
-           _ (repo-config-handler/set-repo-config-state! full-graph-name config/config-default-content)
-          ;; TODO: handle global graph
-           _ (state/pub-event! [:init/commands])
-           _ (when-not file-graph-import? (state/pub-event! [:page/create (date/today) {:redirect? false}]))]
-     (state/pub-event! [:shortcut/refresh])
-     (route-handler/redirect-to-home!)
-     (ui-handler/re-render-root!)
-     (graph-handler/settle-metadata-to-local! {:created-at (js/Date.now)})
-     (prn "New db created: " full-graph-name)
-     full-graph-name)
-   (p/catch (fn [error]
-              (notification/show! "Create graph failed." :error)
-              (js/console.error error)))))
-
-(defn new-db!
-  "Handler for creating a new database graph"
-  ([graph] (new-db! graph {}))
-  ([graph opts]
-   (let [full-graph-name (str config/db-version-prefix graph)]
-     (if (graph-already-exists? graph)
-       (state/pub-event! [:notification/show
-                          {:content (str "The graph '" graph "' already exists. Please try again with another name.")
-                           :status :error}])
-       (create-db full-graph-name opts)))))
+(defn create-demo-db!
+  "Create the first-run demo graph."
+  []
+  (let [full-graph-name (str config/db-version-prefix config/demo-repo)
+        config (common-config/create-config-for-db-graph config/config-default-content)]
+    (-> (p/let [_ (persist-db/<new full-graph-name {:config config
+                                                    :graph-git-sha config/revision})
+                _ (start-repo-db-if-not-exists! full-graph-name)
+                _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
+                _ (restore-and-setup-repo! full-graph-name)]
+          (state/pub-event! [:shortcut/refresh])
+          (state/pub-event! [:init/commands])
+          (state/pub-event! [:page/create (date/today) {:redirect? false}])
+          full-graph-name)
+        (p/catch (fn [error]
+                   (notification/show! "Create demo graph failed." :error)
+                   (js/console.error error))))))
 
 (defn gc-graph!
   [graph]

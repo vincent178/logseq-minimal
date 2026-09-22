@@ -16,7 +16,6 @@
             [frontend.db.restore :as db-restore]
             [frontend.error :as error]
             [frontend.handler.command-palette :as command-palette]
-            [frontend.handler.db-based.vector-search-flows :as vector-search-flows]
             [frontend.handler.events :as events]
             [frontend.handler.events.ui]
             [frontend.handler.file-based.events]
@@ -166,8 +165,12 @@
                  _ (state/set-repos! repos)
                  _ (mobile-util/hide-splash) ;; hide splash as early as ui is stable
                  repo (or (state/get-current-repo) (:url (first repos)))
+                 ;; First run with no graphs: create the demo graph so the app
+                 ;; (and the e2e suite, which has no native folder picker)
+                 ;; opens into a working graph. User-facing DB-graph creation
+                 ;; is removed; this is the only auto-created DB graph.
                  _ (if (empty? repos)
-                     (repo-handler/new-db! config/demo-repo)
+                     (repo-handler/create-demo-db!)
                      (restore-and-setup! repo))]
            (set-network-watcher!)
 
@@ -181,14 +184,8 @@
                       (state/set-db-restoring! false)
                       (p/resolve! state/app-ready-promise true)
                       (log/info ::app-init-spent-time (- (util/time-ms) t1))
-                      (when-not (util/mobile?)
-                        (p/let [webgpu-available? (db-browser/<check-webgpu-available?)]
-                          (log/info :webgpu-available? webgpu-available?)
-                          (when webgpu-available?
-                            (p/do! (db-browser/start-inference-worker!)
-                                   (db-browser/<connect-db-worker-and-infer-worker!)
-                                   (reset! vector-search-flows/*infer-worker-ready true))))
-                        nil))))
+                      ;; vector-search / inference worker removed
+                      nil)))
 
      (util/<app-wake-up-from-sleep-loop (atom false))
 

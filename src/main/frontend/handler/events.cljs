@@ -344,9 +344,6 @@
                       (db/entity [:block/uuid (:block/uuid block)])))]
        (js/setTimeout #(editor-handler/edit-block! block :max) 100)))))
 
-(defmethod handle :vector-search/sync-state [[_ state]]
-  (state/set-state! :vector-search/state state))
-
 ;; db-worker -> UI
 (defmethod handle :db/sync-changes [[_ data]]
   (let [retract-datoms (filter (fn [d] (and (= :block/uuid (:a d)) (false? (:added d)))) (:tx-data data))
@@ -370,9 +367,6 @@
     (p/all (map (fn [id]
                   (db-async/<get-block (state/get-current-repo) id
                                        {:skip-refresh? false})) ids))))
-
-(defmethod handle :vector-search/load-model-progress [[_ data]]
-  (state/set-state! :vector-search/load-model-progress data))
 
 (defn run!
   []

@@ -4,7 +4,6 @@
             [cljs-time.core :as t]
             [clojure.string :as string]
             [dommy.core :as d]
-            [frontend.common.missionary :as c.m]
             [frontend.components.block :as component-block]
             [frontend.components.export :as export]
             [frontend.components.page-menu :as page-menu]
@@ -16,7 +15,6 @@
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler :as handler]
-            [frontend.handler.db-based.vector-search-flows :as vector-search-flows]
             [frontend.handler.page :as page-handler]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.route :as route-handler]
@@ -280,30 +278,6 @@
                                     (:block/uuid page)
                                     {:header? true})]])))
 
-(rum/defc semantic-search-progressing
-  [repo]
-  (let [[vec-search-state set-vec-search-state] (hooks/use-state nil)
-        {:keys [indexing?]} (get-in vec-search-state [:repo->index-info repo])]
-    (hooks/use-effect!
-     (fn []
-       (c.m/run-task
-         ::update-vec-search-state
-         (m/reduce
-          (fn [_ v]
-            (set-vec-search-state v))
-          (m/ap
-            (m/?> vector-search-flows/infer-worker-ready-flow)
-            (c.m/<? (state/<invoke-db-worker :thread-api/vec-search-update-index-info repo))
-            (m/?> vector-search-flows/vector-search-state-flow)))
-         :succ (constantly nil)))
-     [])
-    (when indexing?
-      (shui/button
-       {:class   "opacity-50"
-        :variant :ghost
-        :size    :sm}
-       "Embedding..."))))
-
 (rum/defc ^:large-vars/cleanup-todo header-aux < rum/reactive
   [{:keys [current-repo default-home new-block-mode]}]
   (let [electron-mac? (and util/mac? (util/electron?))
@@ -311,8 +285,7 @@
                                                  (state/set-left-sidebar-open!
                                                   (not (:ui/left-sidebar-open? @state/state))))})
         custom-home-page? (and (state/custom-home-page?)
-                               (= (state/sub-default-home-page) (state/get-current-page)))
-        db-based? (config/db-based-graph? current-repo)]
+                               (= (state/sub-default-home-page) (state/get-current-page)))]
     [:div.cp__header.drag-region#head
      {:class           (util/classnames [{:electron-mac   electron-mac?
                                           :native-ios     (mobile-util/native-ios?)
@@ -352,9 +325,6 @@
       [:div.flex.flex-1
        (block-breadcrumb (state/get-current-page))]
       [:div.flex.items-center
-       (when db-based?
-         (semantic-search-progressing current-repo))
-
        (when (and (not= (state/get-current-route) :home)
                   (not custom-home-page?))
          (home-button))

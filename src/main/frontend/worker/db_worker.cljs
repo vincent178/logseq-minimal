@@ -19,7 +19,6 @@
             [frontend.worker.db.fix :as db-fix]
             [frontend.worker.db.migrate :as db-migrate]
             [frontend.worker.db.validate :as worker-db-validate]
-            [frontend.worker.embedding :as embedding]
             [frontend.worker.export :as worker-export]
             [frontend.worker.file :as file]
             [frontend.worker.file.reset :as file-reset]
@@ -346,11 +345,6 @@
   [_rtc-ws-url]
   ;; minimal build: no RTC websocket; arg kept for caller compatibility
   (init-sqlite-module!))
-
-(def-thread-api :thread-api/set-infer-worker-proxy
-  [infer-worker-proxy]
-  (reset! worker-state/*infer-worker infer-worker-proxy)
-  nil)
 
 ;; [graph service]
 (defonce *service (atom []))
@@ -716,33 +710,7 @@
       (gc-sqlite-dbs! db conn {:full-gc? true})
       nil)))
 
-(def-thread-api :thread-api/vec-search-embedding-model-info
-  [repo]
-  (embedding/task--embedding-model-info repo))
-
-(def-thread-api :thread-api/vec-search-init-embedding-model
-  [repo]
-  (js/Promise. (embedding/task--init-embedding-model repo)))
-
-(def-thread-api :thread-api/vec-search-load-model
-  [repo model-name]
-  (js/Promise. (embedding/task--load-model repo model-name)))
-
-(def-thread-api :thread-api/vec-search-embedding-graph
-  [repo opts]
-  (embedding/embedding-graph! repo opts))
-
-(def-thread-api :thread-api/vec-search-search
-  [repo query-string nums-neighbors]
-  (embedding/task--search repo query-string nums-neighbors))
-
-(def-thread-api :thread-api/vec-search-cancel-indexing
-  [repo]
-  (embedding/cancel-indexing repo))
-
-(def-thread-api :thread-api/vec-search-update-index-info
-  [repo]
-  (js/Promise. (embedding/task--update-index-info! repo)))
+;; vector-search thread-apis removed (semantic search removed)
 
 (def-thread-api :thread-api/mobile-logs
   []
@@ -898,7 +866,7 @@
                                     (js-invoke (:proxy service) k args)))
 
                                 (or
-                                 (contains? #{:thread-api/set-infer-worker-proxy :thread-api/sync-app-state} method-k)
+                                 (contains? #{:thread-api/sync-app-state} method-k)
                                  (nil? service))
                                 ;; only proceed down this branch before shared-service is initialized
                                 (apply f args)
