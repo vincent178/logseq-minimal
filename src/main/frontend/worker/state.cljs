@@ -38,21 +38,14 @@
                        :auth/access-token nil
                        :auth/refresh-token nil
 
-                       :rtc/downloading-graph? false
-
                        ;; thread atoms, these atoms' value are syncing from ui-thread
                        :thread-atom/online-event (atom nil)}))
 
-(defonce *rtc-ws-url (atom nil))
-
 (defonce *sqlite (atom nil))
-;; repo -> {:db conn :search conn :client-ops conn}
+;; repo -> {:db conn :search conn}
 (defonce *sqlite-conns (atom {}))
 ;; repo -> conn
 (defonce *datascript-conns (atom nil))
-
-;; repo -> conn
-(defonce *client-ops-conns (atom nil))
 
 ;; repo -> pool
 (defonce *opfs-pools (atom nil))
@@ -61,16 +54,12 @@
 (defn get-sqlite-conn
   ([repo] (get-sqlite-conn repo :db))
   ([repo which-db]
-   (assert (contains? #{:db :search :client-ops} which-db) which-db)
+   (assert (contains? #{:db :search} which-db) which-db)
    (get-in @*sqlite-conns [repo which-db])))
 
 (defn get-datascript-conn
   [repo]
   (get @*datascript-conns repo))
-
-(defn get-client-ops-conn
-  [repo]
-  (get @*client-ops-conns repo))
 
 (defn get-opfs-pool
   [repo]
@@ -121,10 +110,6 @@
 (defn get-date-formatter
   [repo]
   (common-config/get-date-formatter (get-config repo)))
-
-(defn set-rtc-downloading-graph!
-  [value]
-  (swap! *state assoc :rtc/downloading-graph? value))
 
 (defn get-id-token
   []

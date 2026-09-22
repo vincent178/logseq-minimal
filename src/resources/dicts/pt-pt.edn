@@ -141,7 +141,6 @@
  :settings-page/plugin-system "Plugins"
  :settings-page/enable-flashcards "Flashcards"
  :settings-page/alpha-features "Funcionalidades em fase Alfa"
- :settings-page/sync "Sincronizar"
  :settings-page/enable-whiteboards "Quadros brancos"
  :yes "Sim"
  :submit "Submeter"
@@ -185,8 +184,6 @@
  :help-shortcut-title "Clique para ver atalhos e outras dicas"
  :parsing-files "A analisar ficheiros"
  :loading-files "A carregar ficheiros"
- :login "Iniciar sessão"
- :logout "Terminar sessão"
  :download "Descarregar"
  :language "Idioma"
  :remove-background "Remover fundo"
@@ -244,9 +241,6 @@
  :select.graph/empty-placeholder-description "Sem grafos correspondentes. Quer adicionar outro?"
  :select.graph/add-graph "Sim, adicionar outro grafo"
 
- :file-sync/other-user-graph "O grafo local atual está ligado ao grafo remoto de outro utilizador. Portanto, a sincronização não pode ser iniciada."
- :file-sync/graph-deleted "O grafo remoto atual foi apagado"
- :file-sync/rsapi-cannot-upload-err "Não foi possível iniciar a sincronização, verifique se a hora local está correta."
 
  :notification/clear-all "Limpar tudo"
 

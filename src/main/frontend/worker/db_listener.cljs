@@ -4,7 +4,6 @@
             [datascript.core :as d]
             [frontend.common.thread-api :as thread-api]
             [frontend.worker.pipeline :as worker-pipeline]
-            [frontend.worker.rtc.gen-client-op :as gen-client-op]
             [frontend.worker.search :as search]
             [frontend.worker.shared-service :as shared-service]
             [frontend.worker.state :as worker-state]
@@ -20,8 +19,7 @@
   "Return tx-report"
   [repo conn {:keys [tx-meta] :as tx-report}]
   (when repo (worker-state/set-db-latest-tx-time! repo))
-  (when-not (:rtc-download-graph? tx-meta)
-    (let [{:keys [from-disk?]} tx-meta
+  (let [{:keys [from-disk?]} tx-meta
           result (worker-pipeline/invoke-hooks repo conn tx-report (worker-state/get-context))
           tx-report' (:tx-report result)]
       (when result
@@ -40,7 +38,7 @@
              (when (seq blocks-to-remove-set)
                ((@thread-api/*thread-apis :thread-api/search-delete-blocks) repo blocks-to-remove-set))
              (when (seq blocks-to-add)
-               ((@thread-api/*thread-apis :thread-api/search-upsert-blocks) repo blocks-to-add))))))
+               ((@thread-api/*thread-apis :thread-api/search-upsert-blocks) repo blocks-to-add)))))
       tx-report')))
 
 (comment
@@ -81,7 +79,8 @@
           get-batch-txs #(->> @*batch-all-txs
                               (sort-by :tx)
                               (common-util/distinct-by-last-wins (fn [[e a v _tx added]] [e a v added])))
-          additional-args gen-client-op/group-datoms-by-entity]
+          ;; minimal build: no RTC op generation; handlers receive just the repo
+          additional-args (fn [_tx-data] {})]
       (d/listen! conn ::listen-db-changes!
                  (fn listen-db-changes!-inner
                    [{:keys [tx-data _db-before _db-after tx-meta] :as tx-report}]

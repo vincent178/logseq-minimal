@@ -253,10 +253,6 @@
  :settings-page/enable-flashcards                  "Kartičky"
  :settings-page/network-proxy                      "Sieťová proxy"
  :settings-page/alpha-features                     "Alfa funkcie"
- :settings-page/sync                               "Synchronizovať"
- :settings-page/sync-diff-merge                    "Povoliť inteligentné slučovanie pri synchronizácii"
- :settings-page/sync-diff-merge-desc               "Automaticky slučuje lokálne aktualizácie s vzdialenými súbormi pri konflikte, namiesto prepísania vzdialených súborov"
- :settings-page/sync-diff-merge-warn               "Schopnosť inteligentného slučovania sa aktivuje iba na klientovi po prvom úspešnom zosynchronizovaní so vzdialeným serverom na grafe v novej verzii Logseq. Aktivujte toto na všetkých zariadeniach pre dosiahnutie najlepšej skúsenosti."
  :settings-page/enable-whiteboards                 "Tabule"
  :settings-page/native-titlebar                    "Natívne záhlavie okna"
  :settings-page/native-titlebar-desc               "Aktivuje natívne záhlavie okna na systémoch Windows a Linux."
@@ -404,7 +400,6 @@
  :graph                                            "Graf"
  :graph/all-graphs                                 "Všetky grafy"
  :graph/local-graphs                               "Lokálne grafy:"
- :graph/remote-graphs                              "Vzdialené grafy:"
  :export                                           "Exportovať"
  :export-graph                                     "Exportovať graf"
  :export-page                                      "Exportovať stránku"
@@ -433,8 +428,6 @@
  :loading                                          "Načítava sa ..."
  :parsing-files                                    "Parsovanie súborov"
  :loading-files                                    "Načítavajú sa súbory"
- :login                                            "Prihlásiť sa"
- :logout                                           "Odhlásiť sa"
  :download                                         "Stiahnuť"
  :language                                         "Jazyk"
  :remove-background                                "Odstrániť pozadie"
@@ -512,10 +505,6 @@
  :select.graph/empty-placeholder-description       "Žiadne zodpovedajúce grafy. Chcete pridať ďalší?"
  :select.graph/add-graph                           "Áno, pridať ďalší graf"
 
- :file-sync/other-user-graph                       "Aktuálny lokálny graf je prepojený so vzdialeným grafom iného používateľa. Nie je možné spustiť synchronizáciu."
- :file-sync/graph-deleted                          "Aktuálny vzdialený graf bol odstránený."
- :file-sync/rsapi-cannot-upload-err                "Nie je možné spustiť synchronizáciu. Skontrolujte, či máte na lokálnom zariadení nastavený správny čas."
- :file-sync/connectivity-testing-failed            "Testovanie sieťovej konektivity zlyhalo. Skontrolujte svoje nastavenia siete. Testovacie adresy: "
 
  :notification/clear-all                           "Zmazať všetko"
 

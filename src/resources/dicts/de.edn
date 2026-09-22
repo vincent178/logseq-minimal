@@ -39,8 +39,6 @@
  :language "Sprache"
  :loading "Lädt..."
  :loading-files "Dateien laden"
- :login "Einloggen"
- :logout "Ausloggen"
  :new-graph "Neuen Graphen hinzufügen"
  :new-page "Neue Seite:"
  :new-tag "Neuer Tag:"
@@ -124,10 +122,6 @@
 
  :editor/block-search "Nach einem Block suchen"
 
- :file-sync/connectivity-testing-failed "Netzwerkverbindungstest fehlgeschlagen. Bitte überprüfe deine Netzwerkeinstellungen. Test-URLs: "
- :file-sync/graph-deleted "Der aktuelle Remote-Graph wurde gelöscht"
- :file-sync/other-user-graph "Aktueller lokaler Graph ist an den Remote-Graph des anderen Benutzers gebunden. Kann also nicht mit der Synchronisierung beginnen."
- :file-sync/rsapi-cannot-upload-err "Konnte nicht mit der Synchronisierung beginnen; bitte überprüfen Sie, ob die lokale Zeit korrekt ist."
 
  :file/format-not-supported "Format .{1} wird nicht unterstützt."
  :file/last-modified-at "Zuletzt geändert am"
@@ -159,7 +153,6 @@
 
  :graph/all-graphs "Alle Graphen"
  :graph/local-graphs "Lokale Graphen:"
- :graph/remote-graphs "Remote-Graphs:"
 
  :handbook/close "Schließen"
  :handbook/help-categories "Hilfekategorien"
@@ -400,9 +393,6 @@
  :settings-page/preferred-outdenting-tip "Linke Seite: Ausrücken mit Standardeinstellung - Rechte Seite: Ausrücken mit aktivierter Logischer Ausrückung"
  :settings-page/preferred-outdenting-tip-more "→ Mehr erfahren"
  :settings-page/preferred-pasting-file-hint "Wenn aktiviert, werden eingefügte Bilder aus dem Internet heruntergeladen und in assets/ gespeichert. Wenn deaktiviert, wird ein Weblink zum Bild eingefügt."
- :settings-page/sync-diff-merge "Smart Merge bei der Synchronisation aktivieren"
- :settings-page/sync-diff-merge-desc "Führt bei Konflikten die lokalen Änderungen automatisch mit den Dateien auf dem Server zusammen, anstatt die Dateien auf dem Server zu überschreiben."
- :settings-page/sync-diff-merge-warn "Die Smart Merge-Fähigkeit kann auf einem Client erst nach der ersten erfolgreichen Synchronisation mit dem Server auf dem Graphen mit der neuen Logseq-Version aktiviert werden. Aktivieren Sie dies auf allen Geräten, um die beste Erfahrung zu erhalten."
  :settings-page/theme-dark "Dunkel"
  :settings-page/theme-light "Hell"
  :settings-page/theme-system "System"
@@ -562,10 +552,8 @@
  :settings-page/show-brackets "Klammern anzeigen"
  :settings-page/show-full-blocks "Alle Zeilen einer Blockreferenz anzeigen"
  :settings-page/spell-checker "Rechtschreibprüfung"
- :settings-page/sync "Synchronisation"
  :settings-page/tab-advanced "Erweitert"
  :settings-page/tab-assets "Anlagen"
- :settings-page/tab-collaboration "Zusammenarbeit"
  :settings-page/tab-features "Funktionen"
  :settings-page/tab-general "Allgemein"
  :settings-page/tab-keymap "Tastenbelegung"

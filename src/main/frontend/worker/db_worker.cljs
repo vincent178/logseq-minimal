@@ -26,11 +26,6 @@
             [frontend.worker.handler.page :as worker-page]
             [frontend.worker.handler.page.file-based.rename :as file-worker-page-rename]
             [frontend.worker.pipeline :as worker-pipeline]
-            [frontend.worker.rtc.asset-db-listener]
-            [frontend.worker.rtc.client-op :as client-op]
-            [frontend.worker.rtc.core :as rtc.core]
-            [frontend.worker.rtc.db-listener]
-            [frontend.worker.rtc.migrate :as rtc-migrate]
             [frontend.worker.search :as search]
             [frontend.worker.shared-service :as shared-service]
             [frontend.worker.state :as worker-state]
@@ -64,7 +59,6 @@
 (defonce *sqlite worker-state/*sqlite)
 (defonce *sqlite-conns worker-state/*sqlite-conns)
 (defonce *datascript-conns worker-state/*datascript-conns)
-(defonce *client-ops-conns worker-state/*client-ops-conns)
 (defonce *opfs-pools worker-state/*opfs-pools)
 (defonce *publishing? (atom false))
 
@@ -154,27 +148,25 @@
       (restore-data-from-addr db addr))))
 
 (defn- close-db-aux!
-  [repo ^Object db ^Object search ^Object client-ops]
+  [repo ^Object db ^Object search]
   (swap! *sqlite-conns dissoc repo)
   (swap! *datascript-conns dissoc repo)
-  (swap! *client-ops-conns dissoc repo)
   (when db (.close db))
   (when search (.close search))
-  (when client-ops (.close client-ops))
   (when-let [^js pool (worker-state/get-opfs-pool repo)]
     (.pauseVfs pool))
   (swap! *opfs-pools dissoc repo))
 
 (defn- close-other-dbs!
   [repo]
-  (doseq [[r {:keys [db search client-ops]}] @*sqlite-conns]
+  (doseq [[r {:keys [db search]}] @*sqlite-conns]
     (when-not (= repo r)
-      (close-db-aux! r db search client-ops))))
+      (close-db-aux! r db search))))
 
 (defn close-db!
   [repo]
-  (let [{:keys [db search client-ops]} (get @*sqlite-conns repo)]
-    (close-db-aux! repo db search client-ops)))
+  (let [{:keys [db search]} (get @*sqlite-conns repo)]
+    (close-db-aux! repo db search)))
 
 (defn reset-db!
   [repo db-transit-str]
@@ -198,9 +190,8 @@
             _ (when (zero? capacity)   ; file handle already releases since pool will be initialized only once
                 (.unpauseVfs pool))
             db (new (.-OpfsSAHPoolDb pool) repo-path)
-            search-db (new (.-OpfsSAHPoolDb pool) (str "search" repo-path))
-            client-ops-db (new (.-OpfsSAHPoolDb pool) (str "client-ops-" repo-path))]
-      [db search-db client-ops-db])))
+            search-db (new (.-OpfsSAHPoolDb pool) (str "search" repo-path))]
+      [db search-db])))
 
 (defn- enable-sqlite-wal-mode!
   [^Object db]
@@ -208,15 +199,15 @@
   (.exec db "PRAGMA journal_mode=WAL"))
 
 (defn- gc-sqlite-dbs!
-  "Gc main db weekly and rtc ops db each time when opening it"
-  [sqlite-db client-ops-db datascript-conn {:keys [full-gc?]}]
+  "Gc main db weekly"
+  [sqlite-db datascript-conn {:keys [full-gc?]}]
   (let [last-gc-at (:kv/value (d/entity @datascript-conn :logseq.kv/graph-last-gc-at))]
     (when (or full-gc?
               (nil? last-gc-at)
               (not (number? last-gc-at))
               (> (- (common-util/time-ms) last-gc-at) (* 3 24 3600 1000))) ; 3 days ago
       (println :debug "gc current graph")
-      (doseq [db (if @*publishing? [sqlite-db] [sqlite-db client-ops-db])]
+      (doseq [db [sqlite-db]]
         (sqlite-gc/gc-kvs-table! db {:full-gc? full-gc?})
         (.exec db "VACUUM"))
       (ldb/transact! datascript-conn [{:db/ident :logseq.kv/graph-last-gc-at
@@ -225,18 +216,14 @@
 (defn- <create-or-open-db!
   [repo {:keys [config datoms] :as opts}]
   (when-not (worker-state/get-sqlite-conn repo)
-    (p/let [[db search-db client-ops-db :as dbs] (get-dbs repo)
+    (p/let [[db search-db :as dbs] (get-dbs repo)
             storage (new-sqlite-storage db)
-            client-ops-storage (when-not @*publishing?
-                                 (new-sqlite-storage client-ops-db))
             db-based? (sqlite-util/db-based-graph? repo)]
       (swap! *sqlite-conns assoc repo {:db db
-                                       :search search-db
-                                       :client-ops client-ops-db})
+                                       :search search-db})
       (doseq [db' dbs]
         (enable-sqlite-wal-mode! db'))
       (common-sqlite/create-kvs-table! db)
-      (when-not @*publishing? (common-sqlite/create-kvs-table! client-ops-db))
       (search/create-tables-and-triggers! search-db)
       (ldb/register-transact-pipeline-fn!
        (fn [tx-report]
@@ -259,28 +246,19 @@
                                   [:db/add (:e datom) (:a datom) (:v datom)])
                                 datoms)]
                   (d/transact! conn data {:initial-db? true})))
-            client-ops-conn (when-not @*publishing? (common-sqlite/get-storage-conn
-                                                     client-ops-storage
-                                                     client-op/schema-in-db))
             initial-data-exists? (when (nil? datoms)
                                    (and (d/entity @conn :logseq.class/Root)
                                         (= "db" (:kv/value (d/entity @conn :logseq.kv/db-type)))))]
         (swap! *datascript-conns assoc repo conn)
-        (swap! *client-ops-conns assoc repo client-ops-conn)
-        (when (and (not @*publishing?) (not= client-op/schema-in-db (d/schema @client-ops-conn)))
-          (d/reset-schema! client-ops-conn client-op/schema-in-db))
         (when (and db-based? (not initial-data-exists?) (not datoms))
           (let [config (or config "")
                 initial-data (sqlite-create-graph/build-db-initial-data
                               config (select-keys opts [:import-type :graph-git-sha]))]
             (ldb/transact! conn initial-data {:initial-db? true})))
 
-        (gc-sqlite-dbs! db client-ops-db conn {})
+        (gc-sqlite-dbs! db conn {})
 
-        (let [migration-result (db-migrate/migrate conn)]
-          (when (client-op/rtc-db-graph? repo)
-            (let [client-ops (rtc-migrate/migration-results=>client-ops migration-result)]
-              (client-op/add-ops! repo client-ops))))
+        (db-migrate/migrate conn)
 
         (db-listener/listen-db-changes! repo (get @*datascript-conns repo))))))
 
@@ -365,8 +343,8 @@
       (.-version sqlite))))
 
 (def-thread-api :thread-api/init
-  [rtc-ws-url]
-  (reset! worker-state/*rtc-ws-url rtc-ws-url)
+  [_rtc-ws-url]
+  ;; minimal build: no RTC websocket; arg kept for caller compatibility
   (init-sqlite-module!))
 
 (def-thread-api :thread-api/set-infer-worker-proxy
@@ -507,8 +485,7 @@
                        tx-data)
             _ (when context (worker-state/set-context! context))
             tx-meta' (cond-> tx-meta
-                       (and (not (:whiteboard/transact? tx-meta))
-                            (not (:rtc-download-graph? tx-meta))) ; delay writes to the disk
+                       (not (:whiteboard/transact? tx-meta)) ; delay writes to the disk
                        (assoc :skip-store? true)
 
                        true
@@ -733,10 +710,10 @@
 
 (def-thread-api :thread-api/gc-graph
   [repo]
-  (let [{:keys [db client-ops]} (get @*sqlite-conns repo)
+  (let [{:keys [db]} (get @*sqlite-conns repo)
         conn (get @*datascript-conns repo)]
     (when (and db conn)
-      (gc-sqlite-dbs! db client-ops conn {:full-gc? true})
+      (gc-sqlite-dbs! db conn {:full-gc? true})
       nil)))
 
 (def-thread-api :thread-api/vec-search-embedding-model-info
@@ -770,11 +747,6 @@
 (def-thread-api :thread-api/mobile-logs
   []
   @worker-state/*log)
-
-(def-thread-api :thread-api/get-rtc-graph-uuid
-  [repo]
-  (when-let [conn (worker-state/get-datascript-conn repo)]
-    (ldb/get-graph-rtc-uuid @conn)))
 
 (def-thread-api :thread-api/api-get-page-data
   [repo page-title]
@@ -861,11 +833,7 @@
      (c.m/<? (init-sqlite-module!))
      (when-not (:import-type start-opts)
        (c.m/<? (start-db! repo start-opts))
-       (assert (some? (worker-state/get-datascript-conn repo))))
-     ;; Don't wait for rtc started because the app will be slow to be ready
-     ;; for users.
-     (when @worker-state/*rtc-ws-url
-       (rtc.core/new-task--rtc-start true)))))
+       (assert (some? (worker-state/get-datascript-conn repo)))))))
 
 (def broadcast-data-types
   (set (map
@@ -873,9 +841,7 @@
         [:sync-db-changes
          :notification
          :log
-         :add-repo
-         :rtc-log
-         :rtc-sync-state])))
+         :add-repo])))
 
 (defn- <init-service!
   [graph start-opts]

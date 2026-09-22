@@ -249,10 +249,6 @@
  :settings-page/enable-flashcards "Kartu Belajar"
  :settings-page/network-proxy "Proxy jaringan"
  :settings-page/alpha-features "Fitur Alpha"
- :settings-page/sync "Sinkronisasi"
- :settings-page/sync-diff-merge "Aktifkan penggabungan cerdas saat sinkronisasi"
- :settings-page/sync-diff-merge-desc "Gabungkan pembaruan lokal dengan berkas remote secara otomatis saat terjadi konflik, daripada menimpa berkas remote."
- :settings-page/sync-diff-merge-warn "Kemampuan penggabungan cerdas hanya diaktifkan pada perangkat setelah sinkronisasi pertama yang berhasil dengan server remote pada grafik dalam versi Logseq yang baru. Aktifkan ini di semua perangkat untuk mencapai pengalaman terbaik."
  :settings-page/enable-whiteboards "Papan tulis"
  :settings-page/native-titlebar "Bilah judul asli"
  :settings-page/native-titlebar-desc "Aktifkan bilah judul jendela asli di Windows dan Linux."
@@ -401,7 +397,6 @@
  :graph "Grafik"
  :graph/all-graphs "Semua grafik"
  :graph/local-graphs "Grafik lokal:"
- :graph/remote-graphs "Grafik jarak jauh:"
  :export "Ekspor"
  :export-graph "Ekspor grafik"
  :export-page "Ekspor halaman"
@@ -430,8 +425,6 @@
  :loading "Memuat..."
  :parsing-files "Menganalisis berkas"
  :loading-files "Memuat berkas"
- :login "Masuk"
- :logout "Keluar"
  :download "Unduh"
  :language "Bahasa"
  :remove-background "Hapus latar belakang"
@@ -511,10 +504,6 @@
  :select.graph/empty-placeholder-description "Tidak ada grafik yang cocok. Apakah Anda ingin menambahkan yang lain?"
  :select.graph/add-graph "Ya, tambahkan grafik lain"
 
- :file-sync/other-user-graph "Grafik lokal saat ini terikat ke grafik jarak jauh pengguna lain. Jadi tidak dapat memulai sinkronisasi."
- :file-sync/graph-deleted "Grafik jarak jauh saat ini telah dihapus"
- :file-sync/rsapi-cannot-upload-err "Tidak dapat memulai sinkronisasi, harap periksa apakah waktu lokal sudah benar."
- :file-sync/connectivity-testing-failed "Pengujian koneksi jaringan gagal. Harap periksa pengaturan jaringan Anda. URL pengujian: "
 
  :notification/clear-all "Hapus semua"
 

@@ -22,8 +22,6 @@
  :italics "Cursief"
  :language "Taal"
  :loading-files "Bestanden laden"
- :login "Inloggen"
- :logout "Uitloggen"
  :new-graph "Nieuwe grafiek toevoegen"
  :parsing-files "Bestanden analyseren"
  :plugins "Plugins"
@@ -65,8 +63,6 @@
  :file/name "Bestandsnaam"
  :file/no-data "Geen gegevens"
 
- :file-sync/graph-deleted "Het huidige remote grafiek is verwijderd"
- :file-sync/other-user-graph "De huidige lokale grafiek is gebonden aan de remote grafiek van de andere gebruiker. Dus kan de synchronisatie niet starten."
 
  :help/about "Over Logseq"
  :help/block-reference "Blok referentie"
