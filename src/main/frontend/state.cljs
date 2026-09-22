@@ -3,7 +3,6 @@
   cursors"
   (:require [cljs-bean.core :as bean]
             [cljs.core.async :as async :refer [>!]]
-            [cljs.spec.alpha :as s]
             [clojure.set :as set]
             [clojure.string :as string]
             [datascript.core :as d]
@@ -290,32 +289,6 @@
       :auth/access-token                     nil
       :auth/id-token                         nil
 
-      ;; file-sync
-      :file-sync/jstour-inst                   nil
-      :file-sync/onboarding-state            (or (storage/get :file-sync/onboarding-state)
-                                                 {:welcome false})
-      :file-sync/remote-graphs               {:loading false :graphs nil}
-      :file-sync/set-remote-graph-password-result {}
-
-      ;; graph-uuid -> {:graphs-txid {}
-      ;;                :file-sync/sync-manager {}
-      ;;                :file-sync/sync-state {}
-      ;;                ;; {file-path -> payload}
-      ;;                :file-sync/progress {}
-      ;;                :file-sync/start-time {}
-      ;;                :file-sync/last-synced-at {}}
-      :file-sync/graph-state                 {:current-graph-uuid nil}
-      ;; graph-uuid -> ...
-
-      :rtc/state                             (atom {})
-      ;; only latest rtc-log stored here, when a log stream is needed,
-      ;; use missionary to create a rtc-log-flow, use (missionary.core/watch <atom>)
-      :rtc/log                               (atom nil)
-      :rtc/uploading?                        false
-      :rtc/downloading-graph-uuid            nil
-      :rtc/graphs                            []
-      :rtc/online-info                       (atom {})
-      :rtc/asset-upload-download-progress    (atom {})
       :rtc/users-info                        (atom {})
 
       :user/info                             {:UserGroups (storage/get :user-groups)}
@@ -918,48 +891,14 @@ Similar to re-frame subscriptions"
   []
   (:git/current-repo @state))
 
+;; minimal build: no remote/sync graphs
 (defn get-remote-file-graphs
   []
-  (get-in @state [:file-sync/remote-graphs :graphs]))
+  nil)
 
 (defn get-rtc-graphs
   []
-  (:rtc/graphs @state))
-
-(defn get-remote-graph-info-by-uuid
-  [uuid]
-  (when-let [graphs (seq (get-in @state [:file-sync/remote-graphs :graphs]))]
-    (some #(when (= (:GraphUUID %) (str uuid)) %) graphs)))
-
-(defn get-remote-graph-usage
-  []
-  (when-let [graphs (seq (get-in @state [:file-sync/remote-graphs :graphs]))]
-    (->> graphs
-         (map #(hash-map :uuid (:GraphUUID %)
-                         :name (:GraphName %)
-                         :used-gbs (/ (:GraphStorageUsage %) 1024 1024 1024)
-                         :limit-gbs (/ (:GraphStorageLimit %) 1024 1024 1024)
-                         :used-percent (/ (:GraphStorageUsage %) (:GraphStorageLimit %) 0.01)))
-         (map #(assoc % :free-gbs (- (:limit-gbs %) (:used-gbs %))))
-         (vec))))
-
-(defn delete-remote-graph!
-  [repo]
-  (let [remove-repo! (fn [repos]
-                       (remove #(and
-                                 (:GraphUUID repo)
-                                 (:GraphUUID %)
-                                 (= (:GraphUUID repo) (:GraphUUID %))) repos))]
-    (if (:rtc-graph? repo)
-      (swap! state update :rtc/graphs remove-repo!)
-      (swap! state update-in [:file-sync/remote-graphs :graphs] remove-repo!))))
-
-(defn add-remote-graph!
-  [repo]
-  (swap! state update-in [:file-sync/remote-graphs :graphs]
-         (fn [repos]
-           (->> (conj repos repo)
-                (distinct)))))
+  nil)
 
 (defn get-repos
   []
@@ -2168,44 +2107,6 @@ Similar to re-frame subscriptions"
 
 (defn get-auth-refresh-token []
   (:auth/refresh-token @state))
-
-(defn set-file-sync-manager [graph-uuid v]
-  (when (and graph-uuid v)
-    (set-state! [:file-sync/graph-state graph-uuid :file-sync/sync-manager] v)))
-
-(defn get-file-sync-manager [graph-uuid]
-  (get-in @state [:file-sync/graph-state graph-uuid :file-sync/sync-manager]))
-
-(defn clear-file-sync-state! [graph-uuid]
-  (set-state! [:file-sync/graph-state graph-uuid] nil))
-
-(defn clear-file-sync-progress! [graph-uuid]
-  (set-state! [:file-sync/graph-state
-               graph-uuid
-               :file-sync/progress]
-              nil))
-
-(defn set-file-sync-state [graph-uuid v]
-  (when v (s/assert :frontend.fs.sync/sync-state v))
-  (set-state! [:file-sync/graph-state graph-uuid :file-sync/sync-state] v))
-
-(defn get-current-file-sync-graph-uuid
-  []
-  (get-in @state [:file-sync/graph-state :current-graph-uuid]))
-
-(defn sub-current-file-sync-graph-uuid
-  []
-  (sub [:file-sync/graph-state :current-graph-uuid]))
-
-(defn get-file-sync-state
-  ([]
-   (get-file-sync-state (get-current-file-sync-graph-uuid)))
-  ([graph-uuid]
-   (get-in @state [:file-sync/graph-state graph-uuid :file-sync/sync-state])))
-
-(defn sub-file-sync-state
-  [graph-uuid]
-  (sub [:file-sync/graph-state graph-uuid :file-sync/sync-state]))
 
 (defn reset-parsing-state!
   []

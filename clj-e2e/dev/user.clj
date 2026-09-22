@@ -9,14 +9,10 @@
             [logseq.e2e.graph :as graph]
             [logseq.e2e.keyboard :as k]
             [logseq.e2e.locator :as loc]
-            [logseq.e2e.multi-tabs-basic-test]
             [logseq.e2e.outliner-basic-test]
             [logseq.e2e.plugins-basic-test]
             [logseq.e2e.property-basic-test]
             [logseq.e2e.reference-basic-test]
-            [logseq.e2e.rtc-basic-test]
-            [logseq.e2e.rtc-extra-part2-test]
-            [logseq.e2e.rtc-extra-test]
             [logseq.e2e.tag-basic-test]
             [logseq.e2e.util :as util]
             [wally.main :as w]
@@ -50,16 +46,6 @@
   (->> (future (run-tests 'logseq.e2e.outliner-basic-test))
        (swap! *futures assoc :outliner-test)))
 
-(defn run-rtc-basic-test
-  []
-  (->> (future (run-tests 'logseq.e2e.rtc-basic-test))
-       (swap! *futures assoc :rtc-basic-test)))
-
-(defn run-multi-tabs-test
-  []
-  (->> (future (run-tests 'logseq.e2e.multi-tabs-basic-test))
-       (swap! *futures assoc :multi-tabs-test)))
-
 (defn run-reference-test
   []
   (->> (future (run-tests 'logseq.e2e.reference-basic-test))
@@ -69,21 +55,6 @@
   []
   (->> (future (run-tests 'logseq.e2e.plugins-basic-test))
        (swap! *futures assoc :plugins-test)))
-
-(defn run-rtc-extra-test
-  []
-  (->> (future (run-tests 'logseq.e2e.rtc-extra-test))
-       (swap! *futures assoc :rtc-extra-test)))
-
-(defn run-rtc-extra-test2
-  [& _args]
-  (run-tests 'logseq.e2e.rtc-extra-test)
-  (System/exit 0))
-
-(defn run-rtc-extra-part2-test2
-  [& _args]
-  (run-tests 'logseq.e2e.rtc-extra-part2-test)
-  (System/exit 0))
 
 (defn run-editor-basic-test
   []
@@ -99,9 +70,7 @@
   [& _]
   (run-tests 'logseq.e2e.editor-basic-test
              'logseq.e2e.commands-basic-test
-             'logseq.e2e.multi-tabs-basic-test
              'logseq.e2e.outliner-basic-test
-             'logseq.e2e.rtc-basic-test
              'logseq.e2e.plugins-basic-test
              'logseq.e2e.reference-basic-test
              'logseq.e2e.property-basic-test
@@ -133,9 +102,7 @@
                 {:state :detached}))
 
   (run-tests 'logseq.e2e.commands-basic-test
-             'logseq.e2e.multi-tabs-basic-test
-             'logseq.e2e.outliner-basic-test
-             'logseq.e2e.rtc-basic-test)
+             'logseq.e2e.outliner-basic-test)
 
   (do
     (reset! config/*headless true)

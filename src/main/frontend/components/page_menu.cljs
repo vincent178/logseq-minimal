@@ -7,11 +7,9 @@
             [frontend.db :as db]
             [frontend.handler.common.developer :as dev-common-handler]
             [frontend.handler.db-based.page :as db-page-handler]
-            [frontend.handler.file-sync :as file-sync-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.shell :as shell]
-            [frontend.handler.user :as user-handler]
             [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.util :as util]
@@ -60,13 +58,7 @@
           _favorites-updated? (state/sub :favorites/updated?)
           favorited? (page-handler/favorited? page-title)
           developer-mode? (state/sub [:ui/developer-mode?])
-          file-rpath (when (util/electron?) (page-util/get-page-file-rpath page-name))
-          _ (state/sub :auth/id-token)
-          file-sync-graph-uuid (and (user-handler/logged-in?)
-                                    (file-sync-handler/enable-sync?)
-                                    ;; FIXME: Sync state is not cleared when switching to a new graph
-                                    (file-sync-handler/current-graph-sync-on?)
-                                    (file-sync-handler/get-current-graph-uuid))]
+          file-rpath (when (util/electron?) (page-util/get-page-file-rpath page-name))]
       (when (not block?)
         (->>
          [(when-not config/publishing?
@@ -79,19 +71,10 @@
                            (page-handler/<unfavorite-page! page-title)
                            (page-handler/<favorite-page! page-title)))}})
 
-          (when (and (or (util/electron?) file-sync-graph-uuid) (not db-based?))
+          (when (and (util/electron?) (not db-based?))
             {:title   (t :page/version-history)
              :options {:on-click
-                       (fn []
-                         (cond
-                           file-sync-graph-uuid
-                           (state/pub-event! [:graph/pick-page-histories file-sync-graph-uuid page-name])
-
-                           (util/electron?)
-                           (shell/get-file-latest-git-log page 100)
-
-                           :else
-                           nil))
+                       (fn [] (shell/get-file-latest-git-log page 100))
                        :class "cp__btn_history_version"}})
 
           (when (or (util/electron?)
@@ -135,8 +118,7 @@
                           page
                           (if public? false true)))}})
 
-          (when (and (util/electron?) file-rpath
-                     (not (file-sync-handler/synced-file-graph? repo)))
+          (when (and (util/electron?) file-rpath)
             {:title   (t :page/open-backup-directory)
              :options {:on-click
                        (fn []

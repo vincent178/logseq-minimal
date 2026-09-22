@@ -8,15 +8,12 @@
             [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.db.file-based.model :as file-model]
-            [frontend.fs.sync :as sync]
             [frontend.fs.watcher-handler :as watcher-handler]
-            [frontend.handler.file-sync :as file-sync-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
             [frontend.handler.search :as search-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.user :as user]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [logseq.common.path :as path]
@@ -38,14 +35,7 @@
                          path (common-util/path-normalize (:path payload))
                          dir (:dir payload)
                          payload (assoc payload :path (path/relative-path dir path))]
-                     (watcher-handler/handle-changed! type payload)
-                     (when (file-sync-handler/enable-sync?)
-                       (sync/file-watch-handler type payload)))))
-
-  (safe-api-call "file-sync-progress"
-                 (fn [data]
-                   (let [payload (bean/->clj data)]
-                     (state/set-state! [:file-sync/graph-state (:graphUUID payload) :file-sync/progress (:file payload)] payload))))
+                     (watcher-handler/handle-changed! type payload))))
 
   (safe-api-call "notification"
                  (fn [data]
@@ -106,10 +96,6 @@
                      (dom/remove-style! (dom/by-id "search-in-page-input") :visibility)
                      (dom/set-text! (dom/by-id "search-in-page-placeholder") "")
                      (ui/focus-element "search-in-page-input"))))
-
-  (safe-api-call "loginCallback"
-                 (fn [code]
-                   (user/login-callback code)))
 
   (safe-api-call "quickCapture"
                  (fn [args]

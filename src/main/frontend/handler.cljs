@@ -9,7 +9,6 @@
             [frontend.components.editor :as editor]
             [frontend.components.page :as page]
             [frontend.components.reference :as reference]
-            [frontend.components.user.login :as user.login]
             [frontend.components.whiteboard :as whiteboard]
             [frontend.config :as config]
             [frontend.context.i18n :as i18n]
@@ -18,9 +17,7 @@
             [frontend.error :as error]
             [frontend.handler.command-palette :as command-palette]
             [frontend.handler.db-based.vector-search-flows :as vector-search-flows]
-            [frontend.handler.e2ee]
             [frontend.handler.events :as events]
-            [frontend.handler.events.rtc]
             [frontend.handler.events.ui]
             [frontend.handler.file-based.events]
             [frontend.handler.file-based.file :as file-handler]
@@ -31,7 +28,6 @@
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.idb :as idb]
             [frontend.mobile.util :as mobile-util]
             [frontend.modules.instrumentation.core :as instrument]
@@ -149,8 +145,6 @@
     (set-global-error-notification!)
 
     (register-components-fns!)
-    (user-handler/restore-tokens-from-localstorage)
-    (user.login/setup-configure!)
     (state/set-db-restoring! true)
     (when (util/electron?)
       (el/listen!))

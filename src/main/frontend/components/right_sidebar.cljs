@@ -9,12 +9,10 @@
             [frontend.components.profiler :as profiler]
             [frontend.components.shortcut-help :as shortcut-help]
             [frontend.components.vector-search.sidebar :as vector-search]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
-            [frontend.db.rtc.debug-ui :as rtc-debug-ui]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
@@ -143,10 +141,6 @@
         :shortcut-settings
         [[:.flex.items-center (ui/icon "command" {:class "text-md mr-2"}) (t :help/shortcuts)]
          (shortcut-settings)]
-        :rtc
-        [[:.flex.items-center (ui/icon "cloud" {:class "text-md mr-2"}) "(Dev) RTC"]
-         (rtc-debug-ui/rtc-debug-ui)]
-
         :profiler
         [[:.flex.items-center (ui/icon "cloud" {:class "text-md mr-2"}) "(Dev) Profiler"]
          (profiler/profiler)]
@@ -443,11 +437,6 @@
                                                                      (state/sidebar-add-block! repo "help" :help))}
           (t :right-side-bar/help)]]
 
-        (when (and (state/sub [:ui/developer-mode?]) (not config/publishing?))
-          [:div.text-sm
-           [:button.button.cp__right-sidebar-settings-btn {:on-click (fn [_e]
-                                                                       (state/sidebar-add-block! repo "rtc" :rtc))}
-            "(Dev) RTC"]])
         (when (state/sub [:ui/developer-mode?])
           [:div.text-sm
            [:button.button.cp__right-sidebar-settings-btn

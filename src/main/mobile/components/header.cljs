@@ -3,27 +3,22 @@
   (:require ["@capacitor/dialog" :refer [Dialog]]
             [clojure.string :as string]
             [frontend.components.repo :as repo]
-            [frontend.components.rtc.indicator :as rtc-indicator]
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.db.conn :as db-conn]
-            [frontend.flows :as flows]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [goog.date :as gdate]
             [logseq.common.util :as common-util]
-            [logseq.db :as ldb]
             [logseq.db.frontend.entity-util :as entity-util]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
-            [missionary.core :as m]
             [mobile.components.settings :as mobile-settings]
             [mobile.components.ui :as ui-component]
             [promesa.core :as p]
@@ -129,9 +124,6 @@
                       "add-graph" (state/pub-event! [:graph/new-db-graph])
                       "home-setting" (open-home-settings-actions!)
                       "graph-setting" (open-graph-settings-actions!)
-                      "sync" (shui/popup-show! nil
-                                               (rtc-indicator/details)
-                                               {})
                       "favorite" (when-let [id (state/get-current-page)]
                                    (when (common-util/uuid-string? id)
                                      (when-let [block (db/entity [:block/uuid (uuid id)])]
@@ -152,13 +144,10 @@
     (reset! native-top-bar-listener? true)))
 
 (defn- configure-native-top-bar!
-  [repo {:keys [tab title route-name route-view sync-color favorited?]}]
+  [_repo {:keys [tab title route-name route-view favorited?]}]
   (when (and (mobile-util/native-platform?)
              mobile-util/native-top-bar)
     (let [hidden? (and (mobile-util/native-ios?) (= tab "search"))
-          rtc-indicator? (and repo
-                              (ldb/get-graph-rtc-uuid (db/get-db))
-                              (user-handler/logged-in?))
           base (cond->
                 {:hidden hidden?}
                  (not (mobile-util/native-ipad?))
@@ -178,10 +167,7 @@
                           (= tab "home")
                           (cond-> []
                             (nil? route-view)
-                            (conj {:id "home-setting" :systemIcon "ellipsis"})
-                            (and rtc-indicator? (not page?))
-                            (conj {:id "sync" :systemIcon "circle.fill" :color sync-color
-                                   :size "small"}))
+                            (conj {:id "home-setting" :systemIcon "ellipsis"}))
 
                           (= tab "graphs")
                           [{:id "graph-setting" :systemIcon "ellipsis"}
@@ -208,21 +194,7 @@
                           "Select a Graph")
         route-name (get-in route-match [:data :name])
         route-view (get-in route-match [:data :view])
-        [*configure-top-bar-f _] (hooks/use-state (atom nil))
-        detail-info (hooks/use-flow-state (m/watch rtc-indicator/*detail-info))
-        _ (hooks/use-flow-state flows/current-login-user-flow)
-        online? (hooks/use-flow-state flows/network-online-event-flow)
-        rtc-state (:rtc-state detail-info)
-        unpushed-block-update-count (:pending-local-ops detail-info)
-        pending-asset-ops           (:pending-asset-ops detail-info)
-        sync-color (if (and online?
-                            (= :open rtc-state)
-                            (zero? unpushed-block-update-count)
-                            (zero? pending-asset-ops))
-                     ;; green
-                     "#16A34A"
-                     ;; yellow
-                     "#CA8A04")]
+        [*configure-top-bar-f _] (hooks/use-state (atom nil))]
     (hooks/use-effect!
      (fn []
        (when (and (mobile-util/native-platform?)
@@ -249,12 +221,11 @@
                        :title title
                        :route-name route-name
                        :route-view route-view
-                       :sync-color sync-color
                        :favorited? favorited?}))]
            (reset! *configure-top-bar-f f)
            (f favorited?)))
        nil)
-     [tab short-repo-name route-match sync-color])
+     [tab short-repo-name route-match])
 
     [:<>]))
 

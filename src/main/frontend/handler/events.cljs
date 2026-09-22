@@ -6,10 +6,8 @@
   (:require ["@sentry/react" :as Sentry]
             [cljs-bean.core :as bean]
             [clojure.core.async :as async]
-            [clojure.core.async.interop :refer [p->c]]
             [clojure.string :as string]
             [frontend.commands :as commands]
-            [frontend.components.rtc.indicator :as indicator]
             [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db :as db]
@@ -18,14 +16,11 @@
             [frontend.db.react :as react]
             [frontend.extensions.fsrs :as fsrs]
             [frontend.fs :as fs]
-            [frontend.fs.sync :as sync]
             [frontend.fs.watcher-handler :as fs-watcher]
             [frontend.handler.assets :as assets-handler]
             [frontend.handler.code :as code-handler]
             [frontend.handler.common.page :as page-common-handler]
             [frontend.handler.db-based.property :as db-property-handler]
-            [frontend.handler.db-based.rtc :as rtc-handler]
-            [frontend.handler.db-based.rtc-flows :as rtc-flows]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.export :as export]
             [frontend.handler.graph :as graph-handler]
@@ -47,40 +42,29 @@
             [frontend.quick-capture :as quick-capture]
             [frontend.state :as state]
             [frontend.util :as util]
-            [frontend.util.persist-var :as persist-var]
             [goog.dom :as gdom]
             [lambdaisland.glogi :as log]
             [logseq.db.frontend.schema :as db-schema]
-            [logseq.shui.ui :as shui]
             [promesa.core :as p]))
 
 ;; TODO: should we move all events here?
 
 (defmulti handle first)
 
-(defn file-sync-restart! []
-  (async/go (async/<! (p->c (persist-var/load-vars)))
-            (async/<! (sync/<sync-stop))
-            (some-> (sync/<sync-start) async/<!)))
-
-(defn file-sync-stop! []
-  (async/go (async/<! (p->c (persist-var/load-vars)))
-            (async/<! (sync/<sync-stop))))
 
 (defmethod handle :graph/added [[_ repo {:keys [empty-graph?]}]]
   (search-handler/rebuild-indices!)
   (plugin-handler/hook-plugin-app :graph-after-indexed {:repo repo :empty-graph? empty-graph?})
   (route-handler/redirect-to-home!)
   (when-let [dir-name (and (not (config/db-based-graph? repo)) (config/get-repo-dir repo))]
-    (fs/watch-dir! dir-name))
-  (file-sync-restart!))
+    (fs/watch-dir! dir-name)))
 
 (defmethod handle :init/commands [_]
   (page-handler/init-commands!))
 
 (defmethod handle :graph/unlinked [repo current-repo]
   (when (= (:url repo) current-repo)
-    (file-sync-restart!)))
+    nil))
 
 (defn- graph-switch
   [graph]
@@ -92,10 +76,6 @@
     (repo-config-handler/restore-repo-config! graph)
     (when-not (= :draw (state/get-current-route))
       (route-handler/redirect-to-home!))
-    (when-not db-based?
-           ;; graph-switch will trigger a rtc-start automatically
-           ;; (rtc-handler/<rtc-start! graph)
-      (file-sync-restart!))
     (when-let [dir-name (and (not db-based?) (config/get-repo-dir graph))]
       (fs/watch-dir! dir-name))
     (graph-handler/settle-metadata-to-local! {:last-seen-at (js/Date.now)})))
@@ -197,14 +177,10 @@
   (posthog/capture type payload))
 
 (defmethod handle :capture-error [[_ {:keys [error payload extra]}]]
-  (let [[user-uuid graph-uuid tx-id] @sync/graphs-txid
-        payload (merge
+  (let [payload (merge
                  {:schema-version (str db-schema/version)
                   :db-schema-version (when-let [db (db/get-db)]
                                        (str (:kv/value (db/entity db :logseq.kv/schema-version))))
-                  :user-id user-uuid
-                  :graph-id graph-uuid
-                  :tx-id tx-id
                   :db-based (config/db-based-graph? (state/get-current-repo))}
                  payload)]
     (Sentry/captureException error
@@ -266,7 +242,6 @@
   (when graph (assets-handler/ensure-assets-dir! graph))
   (state/pub-event! [:graph/sync-context])
   (export/auto-db-backup! graph)
-  (rtc-flows/trigger-rtc-start graph)
   (fsrs/update-due-cards-count)
   (when-not (mobile-util/native-platform?)
     (state/pub-event! [:graph/ready graph])))
@@ -371,43 +346,6 @@
 
 (defmethod handle :vector-search/sync-state [[_ state]]
   (state/set-state! :vector-search/state state))
-
-(defmethod handle :rtc/sync-state [[_ state]]
-  (state/update-state! :rtc/state (fn [old] (merge old state))))
-
-(defmethod handle :rtc/log [[_ data]]
-  (state/set-state! :rtc/log data))
-
-(defmethod handle :rtc/remote-graph-gone [_]
-  (p/do!
-   (notification/show! "This graph has been removed from Logseq Sync." :warning false)
-   (rtc-handler/<get-remote-graphs)))
-
-(defmethod handle :rtc/download-remote-graph [[_ graph-name graph-uuid graph-schema-version]]
-  (assert (= (:major (db-schema/parse-schema-version db-schema/version))
-             (:major (db-schema/parse-schema-version graph-schema-version)))
-          {:app db-schema/version
-           :remote-graph graph-schema-version})
-  (->
-   (p/do!
-    (when (util/mobile?)
-      (shui/popup-show!
-       nil
-       (fn []
-         [:div.flex.flex-col.items-center.justify-center.mt-8.gap-4
-          [:div (str "Downloading " graph-name " ...")]
-          (indicator/downloading-logs)])
-       {:id :download-rtc-graph}))
-    (rtc-handler/<rtc-download-graph! graph-name graph-uuid graph-schema-version 60000)
-    (rtc-handler/<get-remote-graphs)
-    (when (util/mobile?)
-      (shui/popup-hide! :download-rtc-graph)))
-   (p/catch (fn [e]
-              (println "RTC download graph failed, error:")
-              (log/error :rtc-download-graph-failed e)
-              (shui/popup-hide! :download-rtc-graph)
-              ;; TODO: notify error
-              ))))
 
 ;; db-worker -> UI
 (defmethod handle :db/sync-changes [[_ data]]

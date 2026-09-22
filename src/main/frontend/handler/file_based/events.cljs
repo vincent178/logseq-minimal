@@ -1,29 +1,23 @@
 (ns frontend.handler.file-based.events
   "Events that are only for file graphs"
-  (:require [clojure.core.async :as async]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
             [clojure.string :as string]
             [frontend.components.diff :as diff]
-            [frontend.components.encryption :as encryption]
             [frontend.components.file-based.git :as git-component]
-            [frontend.components.file-sync :as file-sync]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.fs :as fs]
-            [frontend.fs.sync :as sync]
             [frontend.handler.common :as common-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
             [frontend.handler.file-based.file :as file-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
-            [frontend.handler.file-sync :as file-sync-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.property :as property-handler]
             [frontend.handler.repo :as repo-handler]
-            [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.handler.user :as user-handler]
             [frontend.mobile.graph-picker :as graph-picker]
@@ -62,12 +56,9 @@
 (defmethod events/handle :graph/re-index [[_]]
   ;; Ensure the graph only has ONE window instance
   (when (config/local-file-based-graph? (state/get-current-repo))
-    (async/go
-      (async/<! (sync/<sync-stop))
-      (repo-handler/re-index!
-       nfs-handler/rebuild-index!
-       #(do (page-handler/create-today-journal!)
-            (events/file-sync-restart!))))))
+    (repo-handler/re-index!
+     nfs-handler/rebuild-index!
+     #(page-handler/create-today-journal!))))
 
 (defn set-block-query-properties!
   [block-id all-properties key add?]
@@ -152,67 +143,6 @@
 (defmethod events/handle :modal/display-file-version-selector  [[_ versions path  get-content]]
   (shui/dialog-open!
    #(git-component/file-version-selector versions path get-content)))
-
-(defmethod events/handle :modal/remote-encryption-input-pw-dialog [[_ repo-url remote-graph-info type opts]]
-  (shui/dialog-open!
-   (encryption/input-password
-    repo-url nil (merge
-                  (assoc remote-graph-info
-                         :type (or type :create-pwd-remote)
-                         :repo repo-url)
-                  opts))
-   {:center? true :close-btn? false :close-backdrop? false}))
-
-(defmethod events/handle :graph/pull-down-remote-graph [[_ graph dir-name]]
-  (if (mobile-util/native-ios?)
-    (when-let [graph-name (or dir-name (:GraphName graph))]
-      (let [graph-name (util/safe-sanitize-file-name graph-name)]
-        (if (string/blank? graph-name)
-          (notification/show! "Illegal graph folder name.")
-
-          ;; Create graph directory under Logseq document folder (local)
-          (when-let [root (state/get-local-container-root-url)]
-            (let [graph-path (graph-picker/validate-graph-dirname root graph-name)]
-              (->
-               (p/let [exists? (fs/dir-exists? graph-path)]
-                 (let [overwrite? (if exists?
-                                    (js/confirm (str "There's already a directory with the name \"" graph-name "\", do you want to overwrite it? Make sure to backup it first if you're not sure about it."))
-                                    true)]
-                   (if overwrite?
-                     (p/let [_ (fs/mkdir-if-not-exists graph-path)]
-                       (nfs-handler/ls-dir-files-with-path!
-                        graph-path
-                        {:ok-handler (fn []
-                                       (file-sync-handler/init-remote-graph graph-path graph)
-                                       (js/setTimeout (fn [] (repo-handler/refresh-repos!)) 200))}))
-                     (let [graph-name (-> (js/prompt "Please specify a new directory name to download the graph:")
-                                          str
-                                          string/trim)]
-                       (when-not (string/blank? graph-name)
-                         (state/pub-event! [:graph/pull-down-remote-graph graph graph-name]))))))
-               (p/catch (fn [^js e]
-                          (notification/show! (str e) :error)
-                          (js/console.error e)))))))))
-    (when (:GraphName graph)
-      (shui/dialog-open!
-       (file-sync/pick-dest-to-sync-panel graph)))))
-
-(defmethod events/handle :graph/pick-page-histories [[_ graph-uuid page-name]]
-  (shui/dialog-open!
-   (file-sync/pick-page-histories-panel graph-uuid page-name)
-   {:id :page-histories :label "modal-page-histories"}))
-
-(defmethod events/handle :file-sync/maybe-onboarding-show [[_ type]]
-  (when-not util/web-platform?
-    (file-sync/maybe-onboarding-show type)))
-
-(defmethod events/handle :file-sync/storage-exceed-limit [[_]]
-  (notification/show! "file sync storage exceed limit" :warning false)
-  (events/file-sync-stop!))
-
-(defmethod events/handle :file-sync/graph-count-exceed-limit [[_]]
-  (notification/show! "file sync graph count exceed limit" :warning false)
-  (events/file-sync-stop!))
 
 (defmethod events/handle :graph/dir-gone [[_ dir]]
   (state/pub-event! [:notification/show
@@ -323,39 +253,6 @@
                        [:p "Don't forget to re-index your graph when all the conflicts are resolved."]]
                       :status :error}]))
 
-(defmethod events/handle :file-sync-graph/restore-file [[_ graph page-entity content]]
-  (when (db/get-db graph)
-    (let [file (:block/file page-entity)]
-      (when-let [path (:file/path file)]
-        (when (and (not= content (:file/content file))
-                   (:file/content file))
-          (sync/add-new-version-file graph path (:file/content file)))
-        (p/let [_ (file-handler/alter-file graph
-                                           path
-                                           content
-                                           {:re-render-root? true
-                                            :skip-compare? true})]
-          (state/close-modal!)
-          (route-handler/redirect! {:to :page
-                                    :path-params {:name (:block/name page-entity)}}))))))
-
-(defmethod events/handle :sync/create-remote-graph [[_ current-repo]]
-  (let [graph-name (js/decodeURI (util/node-path.basename current-repo))]
-    (async/go
-      (async/<! (sync/<sync-stop))
-      (state/set-state! [:ui/loading? :graph/create-remote?] true)
-      (when-let [GraphUUID (get (async/<! (file-sync-handler/create-graph graph-name)) 2)]
-        (async/<! (sync/<sync-start))
-        (state/set-state! [:ui/loading? :graph/create-remote?] false)
-        ;; update existing repo
-        (state/set-repos! (map (fn [r]
-                                 (if (= (:url r) current-repo)
-                                   (assoc r
-                                          :GraphUUID GraphUUID
-                                          :GraphName graph-name
-                                          :remote? true)
-                                   r))
-                               (state/get-repos)))))))
 
 (defmethod events/handle :journal/insert-template [[_ page-name]]
   (let [page-name (util/page-name-sanity-lc page-name)]
