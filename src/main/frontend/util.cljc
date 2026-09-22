@@ -5,9 +5,6 @@
   #?(:cljs (:require
             ["/frontend/selection" :as selection]
             ["/frontend/utils" :as utils]
-            ["@capacitor/status-bar" :refer [^js StatusBar Style]]
-            ["@capacitor/core" :refer [Capacitor]]
-            ["@capacitor/clipboard" :as CapacitorClipboard]
             ["grapheme-splitter" :as GraphemeSplitter]
             ["sanitize-filename" :as sanitizeFilename]
             ["check-password-strength" :refer [passwordStrength]]
@@ -208,14 +205,14 @@
 #?(:cljs
    (defn set-theme-light
      []
-     (p/do!
-      (.setStyle StatusBar (clj->js {:style (.-Light Style)})))))
+     ;; mobile removed: no native status bar
+     nil))
 
 #?(:cljs
    (defn set-theme-dark
      []
-     (p/do!
-      (.setStyle StatusBar (clj->js {:style (.-Dark Style)})))))
+     ;; mobile removed: no native status bar
+     nil))
 
 (defn find-first
   [pred coll]
@@ -768,9 +765,7 @@
    (defn write-clipboard
      ([data] (write-clipboard data nil))
      ([data owner-window]
-      (if (.isNativePlatform ^js Capacitor)
-        (.write (gobj/get CapacitorClipboard "Clipboard") #js {:string (gobj/get data "text")})
-        (utils/writeClipboard data owner-window)))))
+      (utils/writeClipboard data owner-window))))
 
 #?(:cljs
    (defn copy-to-clipboard!
@@ -1364,7 +1359,7 @@
        (set! (.-src image) data-url))))
 
 #?(:cljs
-   (def native-clipboard (gobj/get CapacitorClipboard "Clipboard")))
+   (def native-clipboard nil))
 
 #?(:cljs
    (do

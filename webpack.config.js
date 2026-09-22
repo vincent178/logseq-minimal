@@ -41,20 +41,6 @@ var AppConfig = Object.assign({}, config, {
   },
 });
 
-var MobileConfig = Object.assign({}, config, {
-  name: "mobile",
-  entry: {
-    "db-worker" : "./target/db-worker.js",
-  },
-
-  output: {
-    path: path.resolve(__dirname, 'static/mobile/js'),
-    filename: '[name]-bundle.js',
-    clean: false,
-    chunkLoading: false,
-  },
-});
-
 module.exports = [
-  AppConfig, MobileConfig,
+  AppConfig,
 ];

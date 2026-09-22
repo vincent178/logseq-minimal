@@ -201,12 +201,6 @@
           _ (fs/mkdir-if-not-exists (path/path-join repo-dir assets-dir))]
     [repo-dir assets-dir]))
 
-(defn get-asset-path
-  "Get asset path from filename, ensure assets dir exists"
-  [filename]
-  (p/let [[repo-dir assets-dir] (ensure-assets-dir! (state/get-current-repo))]
-    (path/path-join repo-dir assets-dir filename)))
-
 (defn <get-all-asset-file-paths
   [repo]
   (when-let [path (config/get-repo-assets-root repo)]

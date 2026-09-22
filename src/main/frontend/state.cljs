@@ -2155,16 +2155,6 @@ Similar to re-frame subscriptions"
   []
   (get-in @state [:whiteboard/onboarding-whiteboard?]))
 
-(defn get-local-container-root-url
-  []
-  (when (mobile-util/native-ios?)
-    (get-in @state [:mobile/container-urls :localContainerUrl])))
-
-(defn get-icloud-container-root-url
-  []
-  (when (mobile-util/native-ios?)
-    (get-in @state [:mobile/container-urls :iCloudContainerUrl])))
-
 (defn get-current-pdf
   []
   (:pdf/current @state))

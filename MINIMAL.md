@@ -18,6 +18,8 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
   no DB-graph import/export. File-based markdown/org only.
 - ❌ **Login / accounts** — no `user/login`, no token restore, no auth UI,
   no e2ee password flows
+- ❌ **Mobile clients** — no iOS/Android (Capacitor) apps, no native shells,
+  no `src/main/mobile`, no `@capacitor/*` deps. Desktop (Electron) + web only.
 - ❌ Anything requiring a Logseq server
 
 ## Why this matters for reliability

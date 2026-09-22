@@ -19,9 +19,6 @@
             [frontend.handler.property :as property-handler]
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.user :as user-handler]
-            [frontend.mobile.graph-picker :as graph-picker]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.core :as st]
             [frontend.state :as state]
             [frontend.ui :as ui]
@@ -184,14 +181,9 @@
    false))
 
 (defmethod events/handle :graph/setup-a-repo [[_ opts]]
-  (let [opts' (merge {:picked-root-fn #(state/close-modal!)
-                      :native-icloud? (not (string/blank? (state/get-icloud-container-root-url)))
-                      :logged?        (user-handler/logged-in?)} opts)]
-    (if (mobile-util/native-ios?)
-      (shui/dialog-open!
-       #(graph-picker/graph-picker-cp opts')
-       {:label "graph-setup"})
-      (page-handler/ls-dir-files! st/refresh! opts'))))
+  (let [opts' (merge {:picked-root-fn #(state/close-modal!)} opts)]
+    ;; mobile removed: always use the desktop folder picker
+    (page-handler/ls-dir-files! st/refresh! opts')))
 
 (defmethod events/handle :file/alter [[_ repo path content]]
   (p/let [_ (file-handler/alter-file repo path content {:from-disk? true})]
