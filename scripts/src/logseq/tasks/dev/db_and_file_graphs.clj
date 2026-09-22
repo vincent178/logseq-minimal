@@ -19,8 +19,7 @@
          "logseq.cli"
          "electron.db"
          "frontend.handler.db-based."
-         "frontend.inference-worker"
-         "frontend.components.property" "frontend.components.class" "frontend.components.quick-add" "frontend.components.vector-search"
+         "frontend.components.property" "frontend.components.class" "frontend.components.quick-add"
          "frontend.components.db-based" "frontend.components.objects" "frontend.components.query.view"]))
 
 (def file-graph-ns
@@ -62,10 +61,8 @@
          "src/main/frontend/components/property"
          "src/main/frontend/components/objects.cljs"
          "src/main/frontend/components/quick_add.cljs"
-         "src/main/frontend/components/vector_search"
          "src/main/frontend/components/db_based"
          "src/main/frontend/components/query/view.cljs"
-         "src/main/frontend/inference_worker"
          "src/main/logseq/api/db_based.cljs"
          "src/main/logseq/api/db_based"
          "src/electron/electron/db.cljs"]))

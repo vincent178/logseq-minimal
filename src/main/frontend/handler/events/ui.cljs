@@ -6,7 +6,6 @@
             [frontend.components.plugins :as plugin]
             [frontend.components.property.dialog :as property-dialog]
             [frontend.components.quick-add :as quick-add]
-            [frontend.components.repo :as repo]
             [frontend.components.select :as select]
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
@@ -234,14 +233,6 @@
     (p/do!
      (editor-handler/save-current-block!)
      (editor-new-property block target opts))))
-
-(defmethod events/handle :graph/new-db-graph [[_ _opts]]
-  (shui/dialog-open!
-   repo/new-db-graph
-   {:id :new-db-graph
-    :title [:h2 "Create a new graph"]
-    :align (if (util/mobile?) :top :center)
-    :style {:max-width "500px"}}))
 
 (defmethod events/handle :dialog-select/graph-open []
   (select/dialog-select! :graph-open))

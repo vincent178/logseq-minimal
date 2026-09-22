@@ -6,7 +6,6 @@
             [clojure.string :as string]
             [datascript.core :as d]
             [frontend.common.search-fuzzy :as fuzzy]
-            [frontend.worker.embedding :as embedding]
             [goog.object :as gobj]
             [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
@@ -385,21 +384,8 @@ DROP TRIGGER IF EXISTS blocks_au;
                            (->> (fuzzy-search repo @conn q option)
                                 (map (fn [result]
                                        (assoc result :keyword-score (fuzzy/score q (:title result)))))))
-            semantic-search-result* (m/? (embedding/task--search repo q 10))
-            semantic-search-result (->> semantic-search-result*
-                                        (map (fn [{:keys [block distance]}]
-                                               (let [page-id (when-let [id (:block/uuid (:block/page block))] (str id))]
-                                                 (cond->
-                                                  {:id (str (:block/uuid block))
-                                                   :title (:block/title block)
-                                                   :semantic-score (/ 1.0 (+ 1.0 distance))}
-                                                   page-id
-                                                   (assoc :page page-id))))))
-            ;; _ (doseq [item (concat fuzzy-result matched-result)]
-            ;;     (prn :debug :keyword-search-result item))
-            ;; _ (doseq [item semantic-search-result]
-            ;;     (prn :debug :semantic-search-item item))
-            combined-result (combine-results @conn (concat fuzzy-result matched-result non-match-result) semantic-search-result)
+            ;; semantic (vector) search removed; keyword/fuzzy results only
+            combined-result (combine-results @conn (concat fuzzy-result matched-result non-match-result) nil)
             result (->> combined-result
                         (common-util/distinct-by :id)
                         (keep (fn [result]

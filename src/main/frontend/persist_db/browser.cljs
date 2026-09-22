@@ -8,7 +8,6 @@
             [frontend.common.thread-api :as thread-api]
             [frontend.config :as config]
             [frontend.date :as date]
-            [frontend.db :as db]
             [frontend.db.transact :as db-transact]
             [frontend.handler.notification :as notification]
             [frontend.handler.worker :as worker-handler]
@@ -159,36 +158,6 @@
                                       (assoc tx-meta :client-id (:client-id @state/state))))))
            (p/catch (fn [error]
                       (log/error :init-sqlite-wasm-error ["Can't init SQLite wasm" error]))))))))
-
-(defn <check-webgpu-available?
-  []
-  (if (some? js/navigator.gpu)
-    (p/chain (js/navigator.gpu.requestAdapter) some?)
-    (p/promise false)))
-
-(defn start-inference-worker!
-  []
-  (when-not util/node-test?
-    (let [worker-url "js/inference-worker.js"
-          ^js worker (js/SharedWorker.
-                      (str worker-url
-                           "?electron=" (util/electron?)
-                           "&capacitor=" (util/capacitor?)
-                           "&publishing=" config/publishing?))
-          ^js port (.-port worker)
-          wrapped-worker (Comlink/wrap port)
-          t1 (util/time-ms)]
-      (worker-handler/handle-message! port wrapped-worker)
-      (reset! state/*infer-worker wrapped-worker)
-      (p/do!
-       (let [embedding-model-name (ldb/get-key-value (db/get-db) :logseq.kv/graph-text-embedding-model-name)]
-         (.init wrapped-worker embedding-model-name))
-       (log/info "init infer-worker spent:" (str (- (util/time-ms) t1) "ms"))))))
-
-(defn <connect-db-worker-and-infer-worker!
-  []
-  (assert (and @state/*infer-worker @state/*db-worker))
-  (state/<invoke-db-worker-direct-pass :thread-api/set-infer-worker-proxy (Comlink/proxy @state/*infer-worker)))
 
 (defn <export-db!
   [repo data]

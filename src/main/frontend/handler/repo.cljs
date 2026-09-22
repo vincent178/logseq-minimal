@@ -5,25 +5,21 @@
             [clojure.string :as string]
             [electron.ipc :as ipc]
             [frontend.config :as config]
-            [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.persist :as db-persist]
             [frontend.db.react :as react]
             [frontend.db.restore :as db-restore]
             [frontend.handler.global-config :as global-config-handler]
-            [frontend.handler.graph :as graph-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
-            [frontend.persist-db :as persist-db]
             [frontend.search :as search]
             [frontend.state :as state]
             [frontend.undo-redo :as undo-redo]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
-            [logseq.common.config :as common-config]
             [logseq.db :as ldb]
             [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
@@ -183,47 +179,7 @@
   (when (util/electron?)
     (ipc/ipc "graphReady" graph)))
 
-(defn graph-already-exists?
-  "Checks to see if given db graph name already exists"
-  [graph-name]
-  (let [full-graph-name (string/lower-case (str config/db-version-prefix graph-name))]
-    (some #(= (some-> (:url %) string/lower-case) full-graph-name) (state/get-repos))))
-
-(defn- create-db [full-graph-name {:keys [file-graph-import?]}]
-  (->
-   (p/let [config (common-config/create-config-for-db-graph config/config-default-content)
-           _ (persist-db/<new full-graph-name
-                              (cond-> {:config config
-                                       :graph-git-sha config/revision}
-                                file-graph-import? (assoc :import-type :file-graph)))
-           _ (start-repo-db-if-not-exists! full-graph-name)
-           _ (state/add-repo! {:url full-graph-name :root (config/get-local-dir full-graph-name)})
-           _ (restore-and-setup-repo! full-graph-name {:file-graph-import? file-graph-import?})
-           _ (when-not file-graph-import? (route-handler/redirect-to-home!))
-           _ (repo-config-handler/set-repo-config-state! full-graph-name config/config-default-content)
-          ;; TODO: handle global graph
-           _ (state/pub-event! [:init/commands])
-           _ (when-not file-graph-import? (state/pub-event! [:page/create (date/today) {:redirect? false}]))]
-     (state/pub-event! [:shortcut/refresh])
-     (route-handler/redirect-to-home!)
-     (ui-handler/re-render-root!)
-     (graph-handler/settle-metadata-to-local! {:created-at (js/Date.now)})
-     (prn "New db created: " full-graph-name)
-     full-graph-name)
-   (p/catch (fn [error]
-              (notification/show! "Create graph failed." :error)
-              (js/console.error error)))))
-
-(defn new-db!
-  "Handler for creating a new database graph"
-  ([graph] (new-db! graph {}))
-  ([graph opts]
-   (let [full-graph-name (str config/db-version-prefix graph)]
-     (if (graph-already-exists? graph)
-       (state/pub-event! [:notification/show
-                          {:content (str "The graph '" graph "' already exists. Please try again with another name.")
-                           :status :error}])
-       (create-db full-graph-name opts)))))
+;; DB-graph creation removed (minimal build is file-graphs only).
 
 (defn gc-graph!
   [graph]

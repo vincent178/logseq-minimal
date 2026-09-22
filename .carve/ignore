@@ -190,3 +190,7 @@ frontend.flows/current-login-user-flow
 frontend.util/base64string-to-unit8array
 frontend.util/safe-sanitize-file-name
 frontend.util.fs/file-name-sanity
+;; DB-graph import fns, unreachable now (DB-graph import UI removed); physical removal in the DB-graph cleanup cut
+frontend.handler.db-based.import/import-from-sqlite-db!
+frontend.handler.db-based.import/import-from-debug-transit!
+frontend.handler.db-based.import/import-from-edn-file!

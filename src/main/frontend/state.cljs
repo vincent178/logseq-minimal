@@ -60,7 +60,6 @@
   [qkw & args]
   (<invoke-db-worker* qkw true args))
 
-(defonce *infer-worker (atom nil))
 
 ;; Stores main application state
 (defonce ^:large-vars/data-var state

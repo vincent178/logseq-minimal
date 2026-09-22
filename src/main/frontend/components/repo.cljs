@@ -1,21 +1,17 @@
 (ns frontend.components.repo
-  (:require [clojure.string :as string]
-            [frontend.config :as config]
+  (:require            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler.file-based.native-fs :as nfs-handler]
             [frontend.handler.graph :as graph]
-            [frontend.handler.notification :as notification]
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.route :as route-handler]
             [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
-            [frontend.util.fs :as fs-util]
             [frontend.util.text :as text-util]
             [goog.object :as gobj]
-            [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
             [medley.core :as medley]
             [promesa.core :as p]
@@ -275,69 +271,4 @@
       [:strong short-repo-name]
       (shui/tabler-icon "selector" {:size 18})]]))
 
-(defn invalid-graph-name-warning
-  []
-  (notification/show!
-   [:div
-    [:p "Graph name can't contain following reserved characters:"]
-    [:ul
-     [:li "< (less than)"]
-     [:li "> (greater than)"]
-     [:li ": (colon)"]
-     [:li "\" (double quote)"]
-     [:li "/ (forward slash)"]
-     [:li "\\ (backslash)"]
-     [:li "| (vertical bar or pipe)"]
-     [:li "? (question mark)"]
-     [:li "* (asterisk)"]
-     [:li "# (hash)"]
-      ;; `+` is used to encode path that includes `:` or `/`
-     [:li "+ (plus)"]]]
-   :warning false))
-
-(defn invalid-graph-name?
-  "Returns boolean indicating if DB graph name is invalid. Must be kept in sync with invalid-graph-name-warning"
-  [graph-name]
-  (or (fs-util/include-reserved-chars? graph-name)
-      (string/includes? graph-name "+")
-      (string/includes? graph-name "/")))
-
-(rum/defc new-db-graph
-  []
-  (let [[creating-db? set-creating-db?] (hooks/use-state false)
-        input-ref (hooks/create-ref)
-        new-db-f (fn new-db-f
-                   [graph-name]
-                   (when-not (or (string/blank? graph-name)
-                                 creating-db?)
-                     (if (invalid-graph-name? graph-name)
-                       (invalid-graph-name-warning)
-                       (do
-                         (set-creating-db? true)
-                         (p/let [_repo (repo-handler/new-db! graph-name)]
-                           (set-creating-db? false)
-                           (shui/dialog-close!))))))
-        submit! (fn submit!
-                  [^js e click?]
-                  (when-let [value (and (or click? (= (gobj/get e "key") "Enter"))
-                                        (util/trim-safe (.-value (rum/deref input-ref))))]
-                    (new-db-f value)))]
-    (hooks/use-effect!
-     (fn []
-       (when-let [^js input (hooks/deref input-ref)]
-         (js/setTimeout #(.focus input) 32)))
-     [])
-
-    [:div.new-graph.flex.flex-col.gap-4.p-1.pt-2
-     (shui/input
-      {:disabled creating-db?
-       :ref input-ref
-       :placeholder "your graph name"
-       :on-key-down submit!
-       :autoComplete "off"})
-     (shui/button
-      {:on-click #(submit! % true)
-       :on-key-down submit!}
-      (if creating-db?
-        (ui/loading "Creating graph")
-        "Submit"))]))
+;; DB-graph creation UI removed (minimal build is file-graphs only).

@@ -40,7 +40,6 @@
  :on-boarding/importing-desc "Se elas estiverem em formato JSON, EDN ou Markdown, o Logseq pode trabalhar com elas."
  :on-boarding/importing-roam-desc "Importar uma exportação JSON do seu grafo Roam"
  :on-boarding/importing-lsq-desc "Importar uma exportação EDN ou JSON do seu grafo Logseq"
- :on-boarding/importing-sqlite-desc "Importar uma exportação de DB SQLite do seu grafo Logseq para um novo grafo DB"
  :on-boarding/importing-opml-desc "Importar arquivos OPML"
  :on-boarding/main-title (fn [] ["Bem-vindo ao " [:strong "Logseq!"]])
  :on-boarding/main-desc "Primeiro, você precisa escolher uma pasta onde o Logseq armazenará seus pensamentos, ideias, notas."
@@ -204,10 +203,6 @@
  :context-menu/input-template-name "Qual é o nome do modelo?"
  :context-menu/template-include-parent-block "Incluir o bloco pai no modelo?"
  :context-menu/template-exists-warning "Modelo já existe!"
- :settings-page/ai "IA"
- :settings-page/tab-ai "IA"
- :settings-page/enable-mcp-server "Servidor MCP"
- :settings-page/enable-mcp-server-desc "Habilitar Servidor MCP para permitir comunicação com aplicações locais de IA. O Servidor MCP depende do servidor HTTP API."
  :settings-page/git-tip "Se você tiver a Sincronização do Logseq ativada, você pode visualizar o histórico de edições de uma página diretamente. Esta seção é apenas para usuários técnicos."
  :settings-page/git-desc-1 "Para visualizar o histórico de edições de uma página, clique nos três pontos horizontais no canto superior direito e selecione \"Ver histórico da página\"."
  :settings-page/git-desc-2 "Para usuários avançados, o Logseq também oferece suporte para uso do "
