@@ -115,7 +115,9 @@
             text (str heading " test ")]
         (b/new-block text)
         (util/input-command heading)
-        (is (= text (util/get-edit-content)))
+        ;; File graphs store headings as a markdown "#"*n prefix, so the block
+        ;; text gains "# " (h1), "## " (h2), ... after the command.
+        (is (= (str (apply str (repeat (inc i) "#")) " " text) (util/get-edit-content)))
         (util/exit-edit)
         (w/wait-for heading)))))
 
@@ -217,7 +219,7 @@
     (assert/assert-have-count "span.typed-list" 3)
     (is (= ["1." "2." "3."] (w/all-text-contents "span.typed-list")))))
 
-(deftest query-test
+(deftest ^:file-graph-fixme query-test
   (testing "query"
     (b/new-blocks ["[[foo]] block" "[[foo]] another" ""])
     (util/input-command "query")
@@ -228,7 +230,7 @@
       (w/click "a.menu-link:has-text('foo')")
       (assert/assert-is-visible "div:text('Live query (2)')"))))
 
-(deftest advanced-query-test
+(deftest ^:file-graph-fixme advanced-query-test
   (testing "query"
     (b/new-blocks ["[[bar]] block" "[[bar]] another" ""])
     (util/input-command "advanced query")

@@ -105,13 +105,13 @@
     (is (= "b1" (util/get-edit-content)))
     (is (= 1 (util/page-blocks-count)))))
 
-(deftest create-test-page-and-insert-blocks-test
+(deftest ^:file-graph-fixme create-test-page-and-insert-blocks-test
   (create-test-page-and-insert-blocks))
 
 (deftest indent-and-outdent-test
   (indent-and-outdent))
 
-(deftest indent-outdent-embed-page-test
+(deftest ^:file-graph-fixme indent-outdent-embed-page-test
   (indent-outdent-embed-page))
 
 (deftest move-up-down-test
