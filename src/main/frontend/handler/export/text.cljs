@@ -1,7 +1,6 @@
 (ns frontend.handler.export.text
   "export blocks/pages as text"
   (:require [clojure.string :as string]
-            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.db.conn :as conn]
             [frontend.extensions.zip :as zip]
@@ -71,9 +70,7 @@
   (p/let [files* (util/profile :get-file-content (common/<get-file-contents repo "md"))]
     (when (seq files*)
       (let [files (export-files-as-markdown files* nil)
-            repo' (if (config/db-based-graph? repo)
-                    (string/replace repo config/db-version-prefix "")
-                    (path/basename repo))
+            repo' (path/basename repo)
             zip-file-name (str repo' "_markdown_" (quot (util/time-ms) 1000))]
         (p/let [zipfile (zip/make-zip zip-file-name files repo')]
           (when-let [anchor (gdom/getElement "export-as-markdown")]

@@ -12,7 +12,6 @@
             [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.common.page :as page-common-handler]
-            [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
             [frontend.handler.file-based.page :as file-page-handler]
@@ -151,16 +150,6 @@
 (defn file-based-save-filter!
   [page filter-state]
   (property-handler/add-page-property! page :filters filter-state))
-
-(defn db-based-save-filter!
-  [page filter-page-id {:keys [include? add?]}]
-  (let [repo (state/get-current-repo)
-        property-id (if include?
-                      :logseq.property.linked-references/includes
-                      :logseq.property.linked-references/excludes)]
-    (if add?
-      (property-handler/set-block-property! repo (:db/id page) property-id filter-page-id)
-      (db-property-handler/delete-property-value! (:db/id page) property-id filter-page-id))))
 
 ;; Editor
 (defn page-not-exists-handler

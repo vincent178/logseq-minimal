@@ -11,7 +11,6 @@
             [frontend.components.macro :as component-macro]
             [frontend.components.select :as component-select]
             [frontend.components.svg :as svg]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.date :as date]
             [frontend.db :as db]
@@ -263,7 +262,7 @@
      (let [result (if (string/blank? query-string)
                     (:block/_refs (db/get-page card-hash-tag))
                     (let [query-string (template/resolve-dynamic-template! query-string)
-                          {query* :query :keys [sort-by rules]} (query-dsl/parse query-string {:db-graph? (config/db-based-graph? repo)})]
+                          {query* :query :keys [sort-by rules]} (query-dsl/parse query-string {:db-graph? false})]
                       (when-let [query' (query-dsl/query-wrapper query*
                                                                  {:blocks? true
                                                                   :block-attrs [:db/id :block/properties]})]
