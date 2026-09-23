@@ -1,6 +1,5 @@
 (ns ^:no-doc frontend.handler.export
   (:require
-   ["/frontend/utils" :as utils]
    [cljs-bean.core :as bean]
    [cljs.pprint :as pprint]
    [clojure.set :as s]
@@ -11,12 +10,10 @@
    [frontend.extensions.zip :as zip]
    [frontend.external.roam-export :as roam-export]
    [frontend.handler.export.common :as export-common-handler]
-   [frontend.idb :as idb]
    [frontend.persist-db :as persist-db]
    [frontend.state :as state]
    [frontend.util :as util]
    [goog.dom :as gdom]
-   [logseq.db :as ldb]
    [logseq.publishing.html :as publish-html]
    [promesa.core :as p])
   (:import
@@ -154,17 +151,6 @@
       (.setAttribute anchor "download" filename)
       (.click anchor))))
 
-(defn export-repo-as-debug-transit!
-  [repo]
-  (p/let [result (export-common-handler/<get-debug-datoms repo)
-          filename (file-name (str repo "-debug-datoms") :transit)
-          data-str (str "data:text/transit;charset=utf-8,"
-                        (js/encodeURIComponent (ldb/write-transit-str result)))]
-    (when-let [anchor (gdom/getElement "download-as-transit-debug")]
-      (.setAttribute anchor "href" data-str)
-      (.setAttribute anchor "download" filename)
-      (.click anchor))))
-
 (defn export-repo-as-sqlite-db!
   [repo]
   (->
@@ -206,17 +192,6 @@
       (.setAttribute anchor "href" data-str)
       (.setAttribute anchor "download" (file-name (str repo "_roam") :json))
       (.click anchor))))
-
-(defn choose-backup-folder
-  [repo]
-  (p/let [result (utils/openDirectory #js {:mode "readwrite"})
-          handle (first result)
-          folder-name (.-name handle)]
-    (js/console.dir handle)
-    (idb/set-item!
-     (str "handle/" (js/btoa repo) "/" folder-name) handle)
-    (db/transact! [(ldb/kv :logseq.kv/graph-backup-folder folder-name)])
-    [folder-name handle]))
 
 (defn backup-db-graph
   "No-op on file graphs (DB-graph backup only)."

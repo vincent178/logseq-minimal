@@ -35,10 +35,6 @@
   [repo]
   (state/<invoke-db-worker :thread-api/export-get-all-pages repo))
 
-(defn <get-debug-datoms
-  [repo]
-  (state/<invoke-db-worker :thread-api/export-get-debug-datoms repo))
-
 (defn <get-all-page->content
   [repo options]
   (state/<invoke-db-worker :thread-api/export-get-all-page->content repo options))
