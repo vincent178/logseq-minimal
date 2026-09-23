@@ -51,11 +51,9 @@
   []
   (let [f (fn []
             (let [repo (state/get-current-repo)]
-              (when (or
-                     (config/db-based-graph? repo)
-                     (and (not (state/nfs-refreshing?))
-                          (not (contains? (:file/unlinked-dirs @state/state)
-                                          (config/get-repo-dir repo)))))
+              (when (and (not (state/nfs-refreshing?))
+                         (not (contains? (:file/unlinked-dirs @state/state)
+                                         (config/get-repo-dir repo))))
                 ;; Don't create the journal file until user writes something
                 (page-handler/create-today-journal!))))]
     (f)
@@ -90,7 +88,7 @@
            (page-handler/init-commands!)
 
            (watch-for-date!)
-           (when (and (not (config/db-based-graph? repo)) (util/electron?))
+           (when (util/electron?)
              (file-handler/watch-for-current-graph-dir!))))
         (p/catch (fn [error]
                    (log/error :exception error))))))

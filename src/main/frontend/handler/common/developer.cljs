@@ -1,8 +1,6 @@
 (ns frontend.handler.common.developer
   "Common fns for developer related functionality"
   (:require [cljs.pprint :as pprint]
-            [datascript.impl.entity :as de]
-            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.format.mldoc :as mldoc]
             [frontend.handler.notification :as notification]
@@ -10,28 +8,14 @@
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util.page :as page-util]
-            [logseq.db.frontend.property :as db-property]
             [promesa.core :as p]))
 
 ;; Fns used between menus and commands
 (defn show-entity-data
   [eid]
   (let [result* (db/pull eid)
-        entity (db/entity eid)
+        _entity (db/entity eid)
         result (cond-> result*
-                 (and (seq (:block/properties entity)) (config/db-based-graph? (state/get-current-repo)))
-                 (assoc :block.debug/properties
-                        (->> (:block/properties entity)
-                             (map (fn [[k v]]
-                                    [k
-                                     (cond
-                                       (de/entity? v)
-                                       (db-property/property-value-content v)
-                                       (and (set? v) (every? de/entity? v))
-                                       (set (map db-property/property-value-content v))
-                                       :else
-                                       v)]))
-                             (into {})))
                  (seq (:block/refs result*))
                  (assoc :block.debug/refs
                         (mapv #(or (:block/title (db/entity (:db/id %))) %) (:block/refs result*))))
@@ -81,14 +65,12 @@
     (notification/show! "No page found" :warning)))
 
 (defn ^:export show-page-ast []
-  (if (config/db-based-graph? (state/get-current-repo))
-    (notification/show! "Command not available yet for DB graphs" :warning)
-    (let [page-data (db/pull '[:block/format {:block/file [:file/content]}]
-                             (page-util/get-current-page-id))]
-      (if (get-in page-data [:block/file :file/content])
-        (show-content-ast (get-in page-data [:block/file :file/content])
-                          (get page-data :block/format :markdown))
-        (notification/show! "No page found" :warning)))))
+  (let [page-data (db/pull '[:block/format {:block/file [:file/content]}]
+                           (page-util/get-current-page-id))]
+    (if (get-in page-data [:block/file :file/content])
+      (show-content-ast (get-in page-data [:block/file :file/content])
+                        (get page-data :block/format :markdown))
+      (notification/show! "No page found" :warning))))
 
 (defn ^:export validate-db []
   (state/<invoke-db-worker :thread-api/validate-db (state/get-current-repo)))
