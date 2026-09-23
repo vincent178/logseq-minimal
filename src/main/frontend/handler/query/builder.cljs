@@ -23,17 +23,6 @@
                     "full text search"
                     "between"
                     "sample"])
-(def db-based-block-filters
-  ["tags"
-   "page reference"
-   "property"
-   "task"
-   "priority"
-   "page"
-   "full text search"
-   "between"
-   "sample"])
-
 (defn- vec-dissoc-item
   [vec idx]
   (into (subvec vec 0 idx) (subvec vec (inc idx))))

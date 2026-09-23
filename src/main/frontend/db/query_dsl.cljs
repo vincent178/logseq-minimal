@@ -6,13 +6,11 @@
             [clojure.set :as set]
             [clojure.string :as string]
             [clojure.walk :as walk]
-            [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db.conn :as db-conn]
             [frontend.db.file-based.model :as file-model]
             [frontend.db.query-react :as query-react]
             [frontend.db.utils :as db-utils]
-            [frontend.state :as state]
             [frontend.template :as template]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
@@ -22,7 +20,6 @@
             [logseq.db :as ldb]
             [logseq.db.file-based.rules :as file-rules]
             [logseq.db.frontend.class :as db-class]
-            [logseq.db.frontend.property :as db-property]
             [logseq.db.frontend.rules :as rules]
             [logseq.graph-parser.text :as text]))
 
@@ -238,23 +235,18 @@
                    (string/lower-case)
                    (string/replace "_" "-")
                    keyword)]
-        (if (and (config/db-based-graph?) (db-property/property? k'))
-          k'
-          (case k'
-            :created-at
-            :block/created-at
-            :updated-at
-            :block/updated-at
-            nil))))))
+        (case k'
+          :created-at
+          :block/created-at
+          :updated-at
+          :block/updated-at
+          nil)))))
 
 (defn get-timestamp-property
   [e]
   (when-let [k (resolve-timestamp-property e)]
-    (if (config/db-based-graph?)
-      (when (keyword? k)
-        k)
-      (when (contains? #{:block/created-at :block/updated-at} k)
-        k))))
+    (when (contains? #{:block/created-at :block/updated-at} k)
+      k)))
 
 (defn- build-journal-between-two-arg
   [e]
@@ -851,17 +843,12 @@ Some bindings in this fn:
   ([q] (parse-query q {}))
   ([q options]
    (let [q' (template/resolve-dynamic-template! q)]
-     (parse q' (merge {:db-graph? (config/db-based-graph? (state/get-current-repo))} options)))))
+     (parse q' (merge {:db-graph? false} options)))))
 
 (defn pre-transform-query
   [q]
   (let [q' (template/resolve-dynamic-template! q)]
     (pre-transform q')))
-
-(def db-block-attrs
-  "Block attributes for db graph queries"
-  ;; only needs :db/id for query/view
-  [:db/id])
 
 (defn query
   "Runs a dsl query with query as a string. Primary use is from '/query' or '{{query }}'"
@@ -869,22 +856,13 @@ Some bindings in this fn:
    (query repo query-string {}))
   ([repo query-string query-opts]
    (when (and (string? query-string) (not= "\"\"" query-string))
-     (let [db-graph? (config/db-based-graph? repo)
-           {query* :query :keys [rules sort-by blocks? sample]} (parse-query query-string {:cards? (:cards? query-opts)})
-           query* (if (:cards? query-opts)
-                    (let [card-id (:db/id (db-utils/entity :logseq.class/Card))]
-                      (util/concat-without-nil
-                       [['?b :block/tags card-id]]
-                       (if (coll? (first query*)) query* [query*])))
-                    query*)
-           blocks? (if db-graph? true blocks?)]
-       (when-let [query' (some-> query* (query-wrapper {:blocks? blocks?
-                                                        :block-attrs (when db-graph? db-block-attrs)}))]
+     (let [{query* :query :keys [rules sort-by blocks? sample]} (parse-query query-string {:cards? (:cards? query-opts)})]
+       (when-let [query' (some-> query* (query-wrapper {:blocks? blocks?}))]
          (let [random-samples (if (and sample @sample)
                                 (fn [col]
                                   (take @sample (shuffle col)))
                                 identity)
-               sort-by' (if (and sort-by (not (config/db-based-graph? repo)))
+               sort-by' (if sort-by
                           #(sort-by % (fn [m prop] (get-in m [:block/properties prop])))
                           identity)
                transform-fn (comp sort-by' random-samples)]
@@ -901,10 +879,8 @@ Some bindings in this fn:
   [repo query-m query-opts]
   (when (seq (:query query-m))
     (let [query-string (template/resolve-dynamic-template! (pr-str (:query query-m)))
-          db-graph? (config/db-based-graph? repo)
-          {query* :query :keys [sort-by blocks? rules]} (parse query-string {:db-graph? db-graph?})]
-      (when-let [query' (some-> query* (query-wrapper {:blocks? blocks?
-                                                       :block-attrs (when db-graph? db-block-attrs)}))]
+          {query* :query :keys [sort-by blocks? rules]} (parse query-string {:db-graph? false})]
+      (when-let [query' (some-> query* (query-wrapper {:blocks? blocks?}))]
         (last (query-react/react-query repo
                                        (merge
                                         query-m
@@ -914,9 +890,7 @@ Some bindings in this fn:
                                         query-opts
                                         (when sort-by
                                           {:transform-fn
-                                           (if db-graph?
-                                             identity
-                                             #(sort-by % (fn [m prop] (get-in m [:block/properties prop]))))}))))))))
+                                           #(sort-by % (fn [m prop] (get-in m [:block/properties prop])))}))))))))
 
 (defn query-contains-filter?
   [query' filter-name]
