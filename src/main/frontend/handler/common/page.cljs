@@ -11,7 +11,6 @@
             [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.config :as config-handler]
-            [frontend.handler.db-based.editor :as db-editor-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
@@ -49,7 +48,7 @@
              title (if (and db-based? (string/includes? title " #")) ; tagged page
                      (wrap-tags title)
                      title)
-             parsed-result (when db-based? (db-editor-handler/wrap-parse-block {:block/title title}))
+             parsed-result nil ; db-based-graph? is pinned off; DB parse removed
              has-tags? (and db-based? (seq (:block/tags parsed-result)))
              title' (if has-tags?
                       (some-> (first

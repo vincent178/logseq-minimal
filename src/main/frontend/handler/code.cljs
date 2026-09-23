@@ -8,8 +8,7 @@
             [frontend.state :as state]
             [goog.object :as gobj]
             [logseq.graph-parser.utf8 :as utf8]
-            [logseq.common.path :as path]
-            [frontend.handler.db-based.editor :as db-editor-handler]))
+            [logseq.common.path :as path]))
 
 (defn save-code-editor!
   []
@@ -45,12 +44,7 @@
               (state/set-edit-content! (state/get-edit-input-id) new-content)
               (editor-handler/save-block-if-changed! block new-content))
 
-            (and (not-empty (:file-path config))
-                 (config/db-based-graph? repo))
-            (db-editor-handler/save-file! (:file-path config) value)
-
-            (and (not-empty (:file-path config))
-                 (not (config/db-based-graph? repo)))
+            (not-empty (:file-path config))
             (let [path (:file-path config)
                   repo-dir (config/get-repo-dir repo)
                   rpath (when (string/starts-with? path repo-dir)

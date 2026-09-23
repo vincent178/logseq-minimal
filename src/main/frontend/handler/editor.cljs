@@ -22,7 +22,6 @@
             [frontend.handler.block :as block-handler]
             [frontend.handler.common :as common-handler]
             [frontend.handler.common.editor :as editor-common-handler]
-            [frontend.handler.db-based.editor :as db-editor-handler]
             [frontend.handler.export.html :as export-html]
             [frontend.handler.export.text :as export-text]
             [frontend.handler.file-based.editor :as file-editor-handler]
@@ -259,9 +258,7 @@
 
 (defn wrap-parse-block
   [block]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-editor-handler/wrap-parse-block block)
-    (file-editor-handler/wrap-parse-block block)))
+  (file-editor-handler/wrap-parse-block block))
 
 (defn- save-block-inner!
   [block value opts]
@@ -4013,10 +4010,7 @@
 
 (defn batch-set-heading!
   [block-ids heading]
-  (let [repo (state/get-current-repo)]
-    (if (config/db-based-graph? repo)
-      (db-editor-handler/batch-set-heading! repo block-ids heading)
-      (file-editor-handler/batch-set-heading! block-ids heading))))
+  (file-editor-handler/batch-set-heading! block-ids heading))
 
 (defn set-heading!
   [block-id heading]

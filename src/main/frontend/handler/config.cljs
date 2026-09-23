@@ -2,9 +2,7 @@
   "Fns for setting repo config"
   (:require [borkdude.rewrite-edn :as rewrite]
             [clojure.string :as string]
-            [frontend.config :as config]
             [frontend.db :as db]
-            [frontend.handler.db-based.editor :as db-editor-handler]
             [frontend.handler.file-based.file :as file-handler]
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.state :as state]))
@@ -26,9 +24,7 @@
                 (reduce-kv (fn [a k v] (rewrite/assoc a k v)) (rewrite/parse-string "{}")))
             new-result (rewrite/assoc-in result ks v)
             new-content (str new-result)]
-        (if (config/db-based-graph? repo)
-          (db-editor-handler/save-file! path new-content)
-          (file-handler/set-file-content! repo path new-content)) nil))))
+        (file-handler/set-file-content! repo path new-content) nil))))
 
 (defn set-config!
   [k v]
