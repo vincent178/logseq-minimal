@@ -66,12 +66,12 @@
         (-> res (.code 200) (.send #js {:ok true})))
       (-> res (.status 400) (.send res "Invalid or missing session ID")))))
 
-(defn mcp-error-response [msg]
+(defn- mcp-error-response [msg]
   #js {:content
        #js [#js {:type "text"
                  :text msg}]})
 
-(defn mcp-success-response [data]
+(defn- mcp-success-response [data]
   (clj->js {:content
             [{:type "text"
               :text (js/JSON.stringify (clj->js data))}]}))
@@ -214,7 +214,7 @@
 
 ;; Server fns
 ;; ==========
-(defn create-mcp-server []
+(defn- create-mcp-server []
   (McpServer. #js {:name "Logseq MCP Server"
                    :version "0.1.0"}))
 

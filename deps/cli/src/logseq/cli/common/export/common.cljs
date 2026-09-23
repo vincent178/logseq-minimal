@@ -54,10 +54,10 @@
 
 ;; Global vars that are not explicitly passed in all fns
 ;; These vars must be bound in order to use most fns in this namespace
-(def ^:dynamic *current-db* nil)
-(def ^:dynamic *current-repo* nil)
+(def ^:api ^:dynamic *current-db* nil)
+(def ^:api ^:dynamic *current-repo* nil)
 ;; Config used by logseq.cli.common.file fns
-(def ^:dynamic *content-config* nil)
+(def ^:api ^:dynamic *content-config* nil)
 
 ;;; internal utils
 (defn ^:api get-blocks-contents
