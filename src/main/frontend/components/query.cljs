@@ -4,7 +4,6 @@
             [frontend.components.file-based.query-table :as query-table]
             [frontend.components.query.result :as query-result]
             [frontend.components.query.view :as query-view]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
@@ -198,38 +197,33 @@
 
 (rum/defcs custom-query < rum/static
   {:init (fn [state]
-           (let [db-graph? (config/db-based-graph? (state/get-current-repo))
-                 [{:keys [dsl-query? built-in-query?] :as config}
+           (let [[{:keys [dsl-query? built-in-query?] :as config}
                   {:keys [collapsed?]}] (:rum/args state)]
-             ;; collapsed? not needed for db graphs
-             (when (not db-graph?)
-               (when-not (or built-in-query? dsl-query?)
-                 (when collapsed?
-                   (editor-handler/collapse-block! (or (:block/uuid (:block config))
-                                                       (:block/uuid config)))))))
+             (when-not (or built-in-query? dsl-query?)
+               (when collapsed?
+                 (editor-handler/collapse-block! (or (:block/uuid (:block config))
+                                                     (:block/uuid config))))))
            (assoc state :query-error (atom nil)))}
   [state {:keys [built-in-query?] :as config}
    {:keys [query collapsed?] :as q}]
   (ui/catch-error
    (ui/block-error "Query Error:" {:content (:query q)})
    (let [*query-error (:query-error state)
-         db-graph? (config/db-based-graph? (state/get-current-repo))
          current-block-uuid (or (:block/uuid (:block config))
                                 (:block/uuid config))
          current-block (db/entity [:block/uuid current-block-uuid])
         ;; Get query result
-         collapsed?' (calculate-collapsed? current-block current-block-uuid {:collapsed? (if-not db-graph? collapsed? false)})
+         collapsed?' (calculate-collapsed? current-block current-block-uuid {:collapsed? collapsed?})
          built-in-collapsed? (and collapsed? built-in-query?)
-         table? (when-not db-graph?
-                  (or (get-in current-block [:block/properties :query-table])
-                      (and (string? query) (string/ends-with? (string/trim query) "table"))))
+         table? (or (get-in current-block [:block/properties :query-table])
+                    (and (string? query) (string/ends-with? (string/trim query) "table")))
          config' (assoc config
-                        :db-graph? db-graph?
+                        :db-graph? false
                         :current-block current-block
                         :current-block-uuid current-block-uuid
                         :collapsed? collapsed?'
                         :table? table?
                         :built-in-query? (built-in-custom-query? (:title q))
                         :*query-error *query-error)]
-     (when (or built-in-collapsed? (not db-graph?) (not collapsed?'))
+     (when (or built-in-collapsed? (not collapsed?'))
        (custom-query* config' q)))))

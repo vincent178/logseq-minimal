@@ -47,8 +47,8 @@
   [page recent?]
   (when-let [id (:db/id page)]
     (let [page (db/sub-block id)
-          repo (state/get-current-repo)
-          db-based? (config/db-based-graph? repo)
+          _repo (state/get-current-repo)
+          db-based? false
           icon (icon/get-node-icon-cp page {:size 16})
           title (:block/title page)
           untitled? (db-model/untitled-page? title)
@@ -364,7 +364,7 @@
         [el-rect set-el-rect!] (rum/use-state nil)
         ref-el (rum/use-ref nil)
         ref-open? (rum/use-ref left-sidebar-open?)
-        db-based? (config/db-based-graph? (state/get-current-repo))
+        db-based? false
         default-home (get-default-home-if-valid)
         route-name (get-in route-match [:data :name])
         on-contents-scroll #(when-let [^js el (.-target %)]
