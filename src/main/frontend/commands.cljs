@@ -5,8 +5,6 @@
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.extensions.video.youtube :as youtube]
-            [frontend.handler.db-based.property :as db-property-handler]
-            [frontend.handler.db-based.property.util :as db-pu]
             [frontend.handler.draw :as draw]
             [frontend.handler.file-based.property :as file-property-handler]
             [frontend.handler.file-based.status :as file-based-status]
@@ -123,11 +121,6 @@
       ["LATER" "NOW" "TODO" "DOING" "DONE" "WAITING" "CANCELED"]
       ["TODO" "DOING" "LATER" "NOW" "DONE" "WAITING" "CANCELED"])))
 
-(defn db-based-statuses
-  []
-  (map (fn [e] (:block/title e))
-       (db-pu/get-closed-property-values :logseq.property/status)))
-
 (defn db-based-embed-page
   []
   [[:editor/input "[[]]" {:last-pattern command-trigger
@@ -194,20 +187,9 @@
 
 (defn- advanced-query-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    [[:editor/input "" {:last-pattern command-trigger}]
-     [:editor/set-property :block/tags :logseq.class/Query]
-     [:editor/set-property :logseq.property/query ""]
-     [:editor/set-property-on-block-property :logseq.property/query :logseq.property.node/display-type :code]
-     [:editor/set-property-on-block-property :logseq.property/query :logseq.property.code/lang "clojure"]
-     [:editor/exit]]
-    (->block "query")))
-
-(defn db-based-code-block
-  []
-  [[:editor/input "" {:last-pattern command-trigger}]
-   [:editor/upsert-type-block :code]
-   [:editor/exit]])
+  ;; File graphs only: insert a {{query ...}} block. The DB structured-query
+  ;; steps (set-property on :logseq.property/query) are removed with DB graphs.
+  (->block "query"))
 
 (defn file-based-code-block
   []
@@ -218,39 +200,21 @@
 
 (defn code-block-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-based-code-block)
-    (file-based-code-block)))
+  (file-based-code-block))
 
 (defn quote-block-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    [[:editor/input "" {:last-pattern command-trigger}]
-     [:editor/set-property :logseq.property.node/display-type :quote]]
-    (->block "quote")))
+  (->block "quote"))
 
 (defn math-block-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    [[:editor/input "" {:last-pattern command-trigger}]
-     [:editor/set-property :logseq.property.node/display-type :math]]
-    (->block "export" "latex")))
+  (->block "export" "latex"))
 
 (defn get-statuses
   []
-  (let [db-based? (config/db-based-graph? (state/get-current-repo))
-        result (->>
-                (if db-based?
-                  (db-based-statuses)
-                  (file-based-statuses))
-                (mapv (fn [command]
-                        (let [icon (if db-based?
-                                     (case command
-                                       "Canceled" "Cancelled"
-                                       "Doing" "InProgress50"
-                                       command)
-                                     "square-asterisk")]
-                          [command (->marker command) (str "Set status to " command) icon]))))]
+  (let [result (->> (file-based-statuses)
+                     (mapv (fn [command]
+                             [command (->marker command) (str "Set status to " command) "square-asterisk"])))]
     (when (seq result)
       (map (fn [v] (conj v "TASK STATUS")) result))))
 
@@ -258,30 +222,15 @@
   []
   ["A" "B" "C"])
 
-(defn db-based-priorities
-  []
-  (map (fn [e] (str "Priority " (:block/title e)))
-       (db-pu/get-closed-property-values :logseq.property/priority)))
-
 (defn get-priorities
   []
-  (let [db-based? (config/db-based-graph? (state/get-current-repo))
-        with-no-priority #(if db-based? (cons ["No priority" (->priority nil) "" :icon/priorityLvlNone] %) %)
-        result (->>
-                (if db-based?
-                  (db-based-priorities)
-                  (file-based-priorities))
-                (mapv (fn [item]
-                        (let [command item
-                              item (string/replace item #"^Priority " "")]
-                          [command
-                           (->priority item)
-                           (str "Set priority to " item)
-                           (if db-based?
-                             (str "priorityLvl" item)
-                             (str "circle-letter-" (util/safe-lower-case item)))])))
-                (with-no-priority)
-                (vec))]
+  (let [result (->> (file-based-priorities)
+                     (mapv (fn [item]
+                             [item
+                              (->priority item)
+                              (str "Set priority to " item)
+                              (str "circle-letter-" (util/safe-lower-case item))]))
+                     (vec))]
     (when (seq result)
       (map (fn [v] (into v ["PRIORITY"])) result))))
 
@@ -748,34 +697,8 @@
           ;; TODO: any performance issue?
           (js/setTimeout #(cursor/move-cursor-to current-input new-pos) 10))))))
 
-(defn- db-based-set-status
-  [status]
-  (when-let [block (state/get-edit-block)]
-    (db-property-handler/batch-set-property-closed-value! [(:block/uuid block)] :logseq.property/status status)))
-
 (defmethod handle-step :editor/set-status [[_ status] format]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-based-set-status status)
-    (file-based-set-status status format)))
-
-(defmethod handle-step :editor/set-property [[_ property-id value]]
-  (when (config/db-based-graph? (state/get-current-repo))
-    (when-let [block (state/get-edit-block)]
-      (db-property-handler/set-block-property! (:db/id block) property-id value))))
-
-(defmethod handle-step :editor/set-property-on-block-property [[_ block-property-id property-id value]]
-  (let [repo (state/get-current-repo)]
-    (when (config/db-based-graph? repo)
-      (let [updated-block (when-let [block-uuid (:block/uuid (state/get-edit-block))]
-                            (db/entity [:block/uuid block-uuid]))
-            block-property-value (get updated-block block-property-id)]
-        (when block-property-value
-          (db-property-handler/set-block-property! (:db/id block-property-value) property-id value))))))
-
-(defmethod handle-step :editor/upsert-type-block [[_ type lang]]
-  (when (config/db-based-graph? (state/get-current-repo))
-    (when-let [block (state/get-edit-block)]
-      (state/pub-event! [:editor/upsert-type-block {:block block :type type :lang lang}]))))
+  (file-based-set-status status format))
 
 (defn- file-based-set-priority
   [priority]
@@ -787,27 +710,14 @@
             new-value (string/trim (priority/add-or-update-priority edit-content format new-priority))]
         (state/set-edit-content! input-id new-value)))))
 
-(defn- db-based-set-priority
-  [priority]
-  (when-let [block (state/get-edit-block)]
-    (if (nil? priority)
-      (db-property-handler/set-block-property! (:block/uuid block) :logseq.property/priority :logseq.property/empty-placeholder)
-      (db-property-handler/batch-set-property-closed-value! [(:block/uuid block)] :logseq.property/priority priority))))
-
 (defmethod handle-step :editor/set-priority [[_ priority] _format]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-based-set-priority priority)
-    (file-based-set-priority priority)))
+  (file-based-set-priority priority))
 
 (defmethod handle-step :editor/set-scheduled [[_]]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (state/pub-event! [:editor/new-property {:property-key "Scheduled"}])
-    (handle-step [:editor/show-date-picker :scheduled])))
+  (handle-step [:editor/show-date-picker :scheduled]))
 
 (defmethod handle-step :editor/set-deadline [[_]]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (state/pub-event! [:editor/new-property {:property-key "Deadline"}])
-    (handle-step [:editor/show-date-picker :deadline])))
+  (handle-step [:editor/show-date-picker :deadline]))
 
 (defmethod handle-step :editor/run-query-command [[_]]
   (state/pub-event! [:editor/run-query-command]))

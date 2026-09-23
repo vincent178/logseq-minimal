@@ -14,5 +14,6 @@
                   ;; as their dead DB call-sites are peeled off, and the whole
                   ;; namespace is deleted at the end of the layer.
                   frontend.handler.db-based.property
+                  frontend.handler.db-based.property.util
                   frontend.handler.db-based.page]
  :report {:format :ignore}}
