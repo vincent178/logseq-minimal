@@ -4,11 +4,9 @@
   is still some file-specific tech debt to remove from create!"
   (:require [clojure.set :as set]
             [clojure.string :as string]
-            [datascript.core :as d]
             [dommy.core :as dom]
             [frontend.config :as config]
             [frontend.db :as db]
-            [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.config :as config-handler]
             [frontend.handler.notification :as notification]
@@ -17,7 +15,6 @@
             [frontend.modules.outliner.op :as outliner-op]
             [frontend.modules.outliner.ui :as ui-outliner-tx]
             [frontend.state :as state]
-            [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
             [logseq.common.util.page-ref :as page-ref]
             [logseq.db :as ldb]
@@ -119,41 +116,6 @@
       (when-not (= old-favorites new-favorites)
         (config-handler/set-config! :favorites new-favorites)))))
 
-(defn- find-block-in-favorites-page
-  [page-block-uuid]
-  (let [db (conn/get-db)]
-    (when-let [page (db/get-page common-config/favorites-page-name)]
-      (let [blocks (ldb/get-page-blocks db (:db/id page))]
-        (when-let [page-block-entity (d/entity db [:block/uuid page-block-uuid])]
-          (some (fn [block]
-                  (when (= (:db/id (:block/link block)) (:db/id page-block-entity))
-                    block))
-                blocks))))))
-
-(defn db-favorited?
-  [page-block-uuid]
-  {:pre [(uuid? page-block-uuid)]}
-  (some? (find-block-in-favorites-page page-block-uuid)))
-
-(defn <db-favorite-page!
-  [page-block-uuid]
-  {:pre [(uuid? page-block-uuid)]}
-  (when (d/entity (conn/get-db) [:block/uuid page-block-uuid])
-    (p/do!
-     (ui-outliner-tx/transact!
-      {:outliner-op :insert-blocks}
-      (outliner-op/insert-blocks! [(ldb/build-favorite-tx page-block-uuid)]
-                                  (db/get-page common-config/favorites-page-name)
-                                  {})))))
-
-(defn <db-unfavorite-page!
-  [page-block-uuid]
-  {:pre [(uuid? page-block-uuid)]}
-  (when-let [block (find-block-in-favorites-page page-block-uuid)]
-    (ui-outliner-tx/transact!
-     {:outliner-op :delete-blocks}
-     (outliner-op/delete-blocks! [block] {}))))
-
 ;; favorites fns end ================
 
 (defn <delete!
@@ -191,10 +153,7 @@
   [repo page-name file-path tx-meta]
   (let [repo-dir (config/get-repo-dir repo)]
       ;; TODO: move favorite && unfavorite to worker too
-    (if (config/db-based-graph? repo)
-      (when-let [page-block-uuid (:block/uuid (db/get-page page-name))]
-        (<db-unfavorite-page! page-block-uuid))
-      (file-unfavorite-page! page-name))
+    (file-unfavorite-page! page-name)
 
     (when (and (not= :rename-page (:real-outliner-op tx-meta))
                (= (some-> (state/get-current-page) common-util/page-name-sanity-lc)
