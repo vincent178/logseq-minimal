@@ -486,10 +486,7 @@
   (fn [id]
     (p/let [block (<get-block id {:children? false})]
       (when block
-        (let [properties (if false
-                           (api-block/into-readable-db-properties (:block/properties block))
-                           (:block/properties block))]
-          (sdk-utils/result->js properties))))))
+        (sdk-utils/result->js (:block/properties block))))))
 
 (defn get_page_properties
   [id-or-page-name]

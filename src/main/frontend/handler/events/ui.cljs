@@ -1,19 +1,15 @@
 (ns frontend.handler.events.ui
   "UI events"
-  (:require [frontend.components.assets :as assets]
-            [frontend.components.cmdk.core :as cmdk]
+  (:require [frontend.components.cmdk.core :as cmdk]
             [frontend.components.page :as component-page]
             [frontend.components.plugins :as plugin]
-            [frontend.components.property.dialog :as property-dialog]
             [frontend.components.quick-add :as quick-add]
             [frontend.components.select :as select]
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
             [frontend.components.shell :as shell]
             [frontend.components.whiteboard :as whiteboard]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
-            [frontend.db :as db]
             [frontend.extensions.srs :as srs]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
@@ -26,9 +22,7 @@
             [frontend.ui :as ui]
             [frontend.util :as util]
             [goog.dom :as gdom]
-            [logseq.common.util :as common-util]
-            [logseq.shui.ui :as shui]
-            [promesa.core :as p]))
+            [logseq.shui.ui :as shui]))
 
 (defmethod events/handle :go/search [_]
   (when-not (editor-handler/dialog-exists? :ls-dialog-cmdk)
@@ -167,71 +161,6 @@
                   (shui/dialog-close!)
                   (nfs-handler/refresh! (state/get-current-repo) refresh-cb)))]]))
 
-(defn- editor-new-property [block target {:keys [selected-blocks popup-id] :as opts}]
-  (let [editing-block (state/get-edit-block)
-        pos (state/get-edit-pos)
-        edit-block-or-selected (cond
-                                 editing-block
-                                 [editing-block]
-                                 (seq selected-blocks)
-                                 selected-blocks
-                                 :else
-                                 (seq (keep #(db/entity [:block/uuid %]) (state/get-selection-block-ids))))
-        current-block (when-let [s (state/get-current-page)]
-                        (when (util/uuid-string? s)
-                          (db/entity [:block/uuid (uuid s)])))
-        blocks (or (when block [block])
-                   edit-block-or-selected
-                   (when current-block [current-block]))
-        opts' (cond-> opts
-                editing-block
-                (assoc :original-block editing-block
-                       :edit-original-block
-                       (fn [{:keys [editing-default-property?]}]
-                         (when editing-block
-                           (let [content (:block/title (db/entity (:db/id editing-block)))
-                                 esc? (= "Escape" (state/get-ui-last-key-code))
-                                 [content' pos] (cond
-                                                  esc?
-                                                  [nil pos]
-                                                  (and (>= (count content) pos)
-                                                       (>= pos 2)
-                                                       (= (util/nth-safe content (dec pos))
-                                                          (util/nth-safe content (- pos 2))
-                                                          ";"))
-                                                  [(str (common-util/safe-subs content 0 (- pos 2))
-                                                        (common-util/safe-subs content pos))
-                                                   (- pos 2)]
-                                                  :else
-                                                  [nil pos])]
-                             (when content'
-                               (if editing-default-property?
-                                 (editor-handler/save-block! (state/get-current-repo) (:block/uuid editing-block) content')
-                                 (editor-handler/edit-block! editing-block (or pos :max)
-                                                             (cond-> {}
-                                                               content'
-                                                               (assoc :custom-content content'))))))))))]
-    (when (seq blocks)
-      (let [target' (or target
-                        (some-> (state/get-edit-input-id)
-                                (gdom/getElement))
-                        (first (state/get-selection-blocks)))]
-        (if target'
-          (shui/popup-show! target'
-                            #(property-dialog/dialog blocks opts')
-                            (cond-> {:align "start"}
-                              popup-id
-                              (assoc :id popup-id)))
-          (shui/dialog-open! #(property-dialog/dialog blocks opts')
-                             {:id :property-dialog
-                              :align "start"}))))))
-
-(defmethod events/handle :editor/new-property [[_ {:keys [block target] :as opts}]]
-  (when-not config/publishing?
-    (p/do!
-     (editor-handler/save-current-block!)
-     (editor-new-property block target opts))))
-
 (defmethod events/handle :dialog-select/graph-open []
   (select/dialog-select! :graph-open))
 
@@ -281,13 +210,6 @@
    (merge {:close-btn?      false
            :center?         true
            :close-backdrop? false} opts)))
-
-(defmethod events/handle :asset/dialog-edit-external-url [[_ asset-block pdf-current]]
-  (shui/dialog-open!
-   (assets/edit-external-url-content asset-block pdf-current)
-   {:id :edit-external-asset-source-dialog
-    :title (str (if asset-block "Edit" "Create") " asset")
-    :center? true}))
 
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
   ;; no accounts or remote graphs in the minimal build

@@ -1,10 +1,8 @@
 (ns ^:no-doc frontend.handler.editor
-  (:require ["path" :as node-path]
-            [clojure.set :as set]
+  (:require            [clojure.set :as set]
             [clojure.string :as string]
             [clojure.walk :as w]
             [dommy.core :as dom]
-            [electron.ipc :as ipc]
             [frontend.commands :as commands]
             [frontend.config :as config]
             [frontend.date :as date]
@@ -18,7 +16,6 @@
             [frontend.format.block :as block]
             [frontend.format.mldoc :as mldoc]
             [frontend.fs :as fs]
-            [frontend.handler.assets :as assets-handler]
             [frontend.handler.block :as block-handler]
             [frontend.handler.common :as common-handler]
             [frontend.handler.common.editor :as editor-common-handler]
@@ -60,7 +57,6 @@
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.file-based.schema :as file-schema]
-            [logseq.db.frontend.asset :as db-asset]
             [logseq.db.frontend.db :as db-db]
             [logseq.graph-parser.block :as gp-block]
             [logseq.graph-parser.mldoc :as gp-mldoc]
@@ -1443,103 +1439,6 @@
                                (path/resolve-relative-path block-file-rpath href)))]
             (fs/unlink! repo asset-fpath nil)))))))
 
-(defn db-based-write-asset!
-  [repo dir file file-rpath]
-  (p/let [buffer (.arrayBuffer file)]
-    (if (util/electron?)
-      (ipc/ipc "writeFile" repo (path/path-join dir file-rpath) buffer)
-      ;; web
-      (p/let [buffer (.arrayBuffer file)
-              content (js/Uint8Array. buffer)]
-        ;; actually, writing binary using memory fs
-        (fs/write-plain-text-file! repo dir file-rpath content nil)))))
-
-(defn- new-asset-block
-  [repo ^js file {:keys [repo-dir asset-dir-rpath external-url]}]
-  ;; WARN file name maybe fully qualified path when paste file
-  (p/let [[file title] (if (map? file) [(:src file) (:title file)] [file nil])
-          [file external-url] (if (string? file) [nil file] [file external-url])
-          file-name (node-path/basename (or (some-> file (.-name)) (str external-url)))
-          file-name-without-ext* (db-asset/asset-name->title file-name)
-          file-name-without-ext (if (= file-name-without-ext* "image")
-                                  (date/get-date-time-string-2)
-                                  file-name-without-ext*)
-          checksum (some-> (or file external-url) (assets-handler/get-file-checksum))
-          size (or (some-> file (.-size)) 0)
-          existing-asset (some->> checksum (db-async/<get-asset-with-checksum repo))]
-    (if existing-asset
-      (do
-        (notification/show! (str "Asset exists already, title: " (:block/title existing-asset)
-                                 ", node reference: [[" (:block/uuid existing-asset) "]]")
-                            :warning
-                            false)
-        nil)
-      ;; new asset block
-      (let [block-id (ldb/new-block-id)
-            ext (when file-name (db-asset/asset-path->type file-name))
-            _ (when (string/blank? ext)
-                (throw (ex-info "File doesn't have a valid ext."
-                                {:file-name file-name})))
-            _ (when (some-> file (assets-handler/exceed-limit-size?))
-                (notification/show! [:div "Asset size shouldn't be larger than 100M"]
-                                    :warning
-                                    false)
-                (throw (ex-info "Asset size shouldn't be larger than 100M" {:file-name file-name})))
-            asset (db/entity :logseq.class/Asset)]
-        (p/do!
-         (when file
-           (let [file-path (str block-id "." ext)
-                 file-rpath (str asset-dir-rpath "/" file-path)
-                 dir repo-dir]
-             (db-based-write-asset! repo dir file file-rpath)))
-         {:block/title (or title file-name-without-ext)
-          :block/uuid block-id
-          :logseq.property.asset/type ext
-          :logseq.property.asset/external-url external-url
-          :logseq.property.asset/size size
-          :logseq.property.asset/checksum checksum
-          :block/tags #{(:db/id asset)}})))))
-
-(defn db-based-save-assets!
-  "Save incoming(pasted) assets to assets directory.
-
-   Returns: asset entities"
-  [repo files & {:keys [pdf-area? last-edit-block save-to-page]}]
-  (p/let [[repo-dir asset-dir-rpath] (assets-handler/ensure-assets-dir! repo)
-          today-page-name (date/today)
-          today-page-e (db-model/get-journal-page today-page-name)
-          today-page (if (nil? today-page-e)
-                       (state/pub-event! [:page/create today-page-name])
-                       today-page-e)
-          blocks* (p/all
-                   (for [^js file files]
-                     (new-asset-block repo file
-                                      {:repo-dir repo-dir
-                                       :asset-dir-rpath asset-dir-rpath})))
-          blocks (remove nil? blocks*)
-          edit-block (or (state/get-edit-block) last-edit-block)
-          insert-to-current-block-page? (and (:block/uuid edit-block) (not pdf-area?))
-          target (cond
-                   insert-to-current-block-page?
-                   edit-block
-                   save-to-page
-                   save-to-page
-                   :else
-                   today-page)]
-    (when-not target
-      (throw (ex-info "invalid target" {:files files
-                                        :today-page today-page
-                                        :edit-block edit-block})))
-    (when (seq blocks)
-      (p/do!
-       (ui-outliner-tx/transact!
-        {:outliner-op :insert-blocks}
-        (outliner-op/insert-blocks! blocks target {:keep-uuid? true
-                                                   :bottom? true
-                                                   :sibling? (= edit-block target)
-                                                   :replace-empty-target? true}))
-       (map (fn [b] (db/entity [:block/uuid (:block/uuid b)])) blocks)))))
-
 (def insert-command! editor-common-handler/insert-command!)
 
 (defn upload-asset!
@@ -1793,12 +1692,6 @@
     nil)
 
   (handle-command-input-close id))
-
-(defn restore-last-saved-cursor!
-  ([] (restore-last-saved-cursor! (state/get-input)))
-  ([input]
-   (when-let [saved-cursor (and input (state/get-editor-last-pos))]
-     (cursor/move-cursor-to input saved-cursor true))))
 
 (defn- close-autocomplete-if-outside
   [input]
