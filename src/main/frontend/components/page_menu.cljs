@@ -6,7 +6,6 @@
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler.common.developer :as dev-common-handler]
-            [frontend.handler.db-based.page :as db-page-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.shell :as shell]
@@ -129,16 +128,6 @@
               {:title label
                :options {:on-click #(commands/exec-plugin-simple-command!
                                      pid (assoc cmd :page page-name) action)}}))
-
-          (when (and db-based? (ldb/internal-page? page) (not (:logseq.property/built-in? page)))
-            {:title (t :page/convert-to-tag)
-             :options {:on-click (fn []
-                                   (db-page-handler/convert-page-to-tag! page))}})
-
-          (when (and db-based? (ldb/class? page) (not (:logseq.property/built-in? page)))
-            {:title (t :page/convert-tag-to-page)
-             :options {:on-click (fn []
-                                   (db-page-handler/convert-tag-to-page! page))}})
 
           (when developer-mode?
             {:title   (t :dev/show-page-data)
