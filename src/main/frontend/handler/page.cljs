@@ -1,7 +1,6 @@
 (ns frontend.handler.page
   "Provides util handler fns for pages"
   (:require [clojure.string :as string]
-            [datascript.core :as d]
             [datascript.impl.entity :as de]
             [electron.ipc :as ipc]
             [frontend.commands :as commands]
@@ -47,49 +46,29 @@
 (defn <unfavorite-page!
   [page-name]
   (p/do!
-   (let [repo (state/get-current-repo)]
-     (if (config/db-based-graph? repo)
-       (when-let [page-block-uuid (:block/uuid (db/get-page page-name))]
-         (page-common-handler/<db-unfavorite-page! page-block-uuid))
-       (page-common-handler/file-unfavorite-page! page-name)))
+   (page-common-handler/file-unfavorite-page! page-name)
    (state/update-favorites-updated!)))
 
 (defn <favorite-page!
   [page-name]
   (p/do!
-   (let [repo (state/get-current-repo)]
-     (if (config/db-based-graph? repo)
-       (when-let [page-block-uuid (:block/uuid (db/get-page page-name))]
-         (page-common-handler/<db-favorite-page! page-block-uuid))
-       (page-common-handler/file-favorite-page! page-name)))
+   (page-common-handler/file-favorite-page! page-name)
    (state/update-favorites-updated!)))
 
 (defn favorited?
   [page-name]
-  (let [repo (state/get-current-repo)]
-    (if (config/db-based-graph? repo)
-      (boolean
-       (when-let [page-block-uuid (:block/uuid (db/get-page page-name))]
-         (page-common-handler/db-favorited? page-block-uuid)))
-      (page-common-handler/file-favorited? page-name))))
+  (page-common-handler/file-favorited? page-name))
 
 (defn get-favorites
   "return page-block entities"
   []
-  (when-let [db (conn/get-db)]
-    (let [repo (state/get-current-repo)]
-      (if (config/db-based-graph? repo)
-        (when-let [page (ldb/get-page db common-config/favorites-page-name)]
-          (let [blocks (ldb/sort-by-order (:block/_parent page))]
-            (keep (fn [block]
-                    (when-let [block-db-id (:db/id (:block/link block))]
-                      (d/entity db block-db-id))) blocks)))
-        (let [page-names (->> (:favorites (state/sub-config))
-                              (remove string/blank?)
-                              (filter string?)
-                              (mapv util/safe-page-name-sanity-lc)
-                              (distinct))]
-          (keep (fn [page-name] (db/get-page page-name)) page-names))))))
+  (when (conn/get-db)
+    (let [page-names (->> (:favorites (state/sub-config))
+                          (remove string/blank?)
+                          (filter string?)
+                          (mapv util/safe-page-name-sanity-lc)
+                          (distinct))]
+      (keep (fn [page-name] (db/get-page page-name)) page-names))))
 
 (defn toggle-favorite! []
   ;; NOTE: in journals or settings, current-page is nil
