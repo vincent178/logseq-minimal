@@ -80,8 +80,37 @@ jobs:
         run: |
           yarn gulp:build && clojure -M:cljs release app db-worker --config-merge "{:closure-defines {frontend.config/DEV-RELEASE true}}" --debug && yarn webpack-app-build
 
+      # The e2e suite only ever drives Chromium (wally hard-codes .chromium), but
+      # Playwright Java's first Playwright.create() downloads every browser
+      # (chromium+firefox+webkit+ffmpeg ~440MB) and warns about webkit/firefox's
+      # missing system libs. Pre-install just Chromium and skip the auto-download.
+      - name: Cache Playwright Chromium
+        uses: actions/cache@v4
+        id: playwright-browsers
+        with:
+          path: ~/.cache/ms-playwright
+          # Keyed to the playwright-java version (wally pins 1.50.0) so a version
+          # bump invalidates the cache and re-installs the matching browser build.
+          key: ${{ runner.os }}-playwright-chromium-1.50.0
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-browsers.outputs.cache-hit != 'true'
+        run: |
+          set -e
+          # Ensure the playwright-java driver jar is on disk (the main project's
+          # 'Fetch Clojure deps' only fetches the root deps.edn, not clj-e2e's).
+          (cd clj-e2e && clojure -P)
+          JAR=$(ls ~/.m2/repository/com/microsoft/playwright/driver-bundle/*/driver-bundle-*.jar | head -1)
+          TMPDIR=$(mktemp -d)
+          unzip -q "$JAR" "driver/linux/package/*" -d "$TMPDIR"
+          # Install only chromium (+ headless shell + ffmpeg), not firefox/webkit.
+          node "$TMPDIR/driver/linux/package/cli.js" install chromium
+
       - name: Run e2e tests
         run: cd clj-e2e && timeout 30m bb dev
+        env:
+          # Browsers are pre-installed above; don't let the driver re-download all.
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
         # env:
         #   DEBUG: "pw:api"
 
