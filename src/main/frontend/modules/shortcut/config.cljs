@@ -211,8 +211,7 @@
 
    :editor/new-whiteboard                   {:binding "n w"
                                              :fn      (fn []
-                                                        (when-not (config/db-based-graph? (state/get-current-repo))
-                                                          (whiteboard-handler/<create-new-whiteboard-and-redirect!)))}
+                                                        (whiteboard-handler/<create-new-whiteboard-and-redirect!))}
 
    :editor/follow-link                      {:binding "mod+o"
                                              :fn      editor-handler/follow-link-under-cursor!}
@@ -664,22 +663,16 @@
       (throw (ex-info (str "Unable to resolve " keyword-fn " to a fn") {})))))
 
 (defn- wrap-fn-with-db-graph-only-warning
-  "Wraps DB graph only commands so they are only run in DB graphs and warned
-   when in file graphs"
-  [f]
+  "DB-graph-only commands: never execute on file graphs (always warn)."
+  [_f]
   (fn []
-    (if (config/db-based-graph? (state/get-current-repo))
-      (f)
-      (notification/show! "This command is only for DB graphs." :warning true nil 3000))))
+    (notification/show! "This command is only for DB graphs." :warning true nil 3000)))
 
 (defn- wrap-fn-with-file-graph-only-warning
-  "Wraps file graph only commands so they are only run in file graphs and warned
-   when in DB graphs"
+  "File-graph-only commands: always execute on file graphs."
   [f]
   (fn []
-    (if (config/db-based-graph? (state/get-current-repo))
-      (notification/show! "This command is only for file graphs." :warning true nil 3000)
-      (f))))
+    (f)))
 
 (defn build-category-map [ks]
   (->> (if (sequential? ks)

@@ -18,7 +18,6 @@
             [frontend.handler.page :as page-handler]
             [frontend.handler.property :as property-handler]
             [frontend.handler.property.util :as pu]
-            [frontend.handler.route :as route-handler]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -73,16 +72,11 @@
   [img-stamp current {:keys [page id] :as _hl}]
   (when-let [key (:key current)]
     (-> common-config/local-assets-dir
-        (str (if (config/db-based-graph?)
-               (let [image-id (some-> id (db-utils/entity) :logseq.property.pdf/hl-image :block/uuid)]
-                 (util/format "/%s.png" image-id))
-               (util/format "/%s/%s_%s_%s.png" key page id img-stamp))))))
+        (str (util/format "/%s/%s_%s_%s.png" key page id img-stamp)))))
 
 (defn file-based-ensure-ref-page!
   [pdf-current]
-  ;; db version doesn't need a page for highlights data
-  (when-not (config/db-based-graph? (state/get-current-repo))
-    (when-let [page-name (util/trim-safe (:key pdf-current))]
+  (when-let [page-name (util/trim-safe (:key pdf-current))]
       (p/let [page-name (str "hls__" page-name)
               repo (state/get-current-repo)
               page (db-async/<get-block repo page-name)
@@ -118,7 +112,7 @@
                                 (:block/properties)
                                 :file-path))
               (property-handler/add-page-property! page-name :file-path url))
-            page))))))
+            page)))))
 
 (defn file-based-ensure-ref-block!
   [pdf-current {:keys [id content page properties] :as _hl} insert-opts]
@@ -149,53 +143,9 @@
                             :properties properties}
                            insert-opts)))))))))
 
-(defn db-based-ensure-ref-block!
-  [pdf-current {:keys [id content page properties] :as hl} insert-opts]
-  (when-let [pdf-block (:block pdf-current)]
-    (let [ref-block (db-model/query-block-by-uuid id)]
-      (if (:block/title ref-block)
-        (do
-          (println "[existed ref block]" ref-block)
-          ref-block)
-        (let [ref-asset-id (:image content)
-              image? (not (nil? ref-asset-id))
-              text (if image? (.toLocaleString (js/Date.))
-                       (:text content))
-              colors (:property/closed-values (db/entity :logseq.property.pdf/hl-color))
-              color-id (some (fn [color] (when (= (:block/title color) (:color properties))
-                                           (:db/id color))) colors)]
-          (when color-id
-            (let [properties (cond->
-                              {:block/tags #{(:db/id (db/entity :logseq.class/Pdf-annotation))}
-                               :block/collapsed? image?
-                               :logseq.property/ls-type  :annotation
-                               :logseq.property.pdf/hl-color color-id
-                               :logseq.property/asset (:db/id pdf-block)
-                               :logseq.property.pdf/hl-page  page
-                               :logseq.property.pdf/hl-value hl}
-
-                               image?
-                               (assoc :logseq.property.pdf/hl-type :area
-                                      :logseq.property.pdf/hl-image ref-asset-id))]
-              (when (string? text)
-                (editor-handler/api-insert-new-block!
-                 text (merge {:block-uuid (:block/uuid pdf-block)
-                              :sibling? false
-                              :custom-uuid id
-                              :properties properties}
-                             (assoc insert-opts :edit-block? false)))))))))))
-
 (defn ensure-ref-block!
   [pdf-current hl insert-opts]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (p/let [ref-block (db-based-ensure-ref-block! pdf-current hl insert-opts)
-            asset-block (:logseq.property.pdf/hl-image ref-block)]
-      ;; try to move the asset block to the ref block
-      (p/do!
-       (when asset-block
-         (editor-handler/move-blocks! [asset-block] ref-block {:sibling? false}))
-       ref-block))
-    (file-based-ensure-ref-block! pdf-current hl insert-opts)))
+  (file-based-ensure-ref-block! pdf-current hl insert-opts))
 
 (defn file-based-load-hls-data$
   [{:keys [hls-file]}]
@@ -221,17 +171,6 @@
   (when-let [hls-file (and target-key (str common-config/local-assets-dir "/" target-key ".edn"))]
     (file-based-load-hls-data$ {:hls-file hls-file})))
 
-(defn db-based-load-hls-data$
-  [{:keys [block]}]
-  (p/let [ref-id (:db/id block)
-          data (db-async/<q (state/get-current-repo) {:transact-db? false}
-                            '[:find (pull ?e [*])
-                              :in $ ?ref-id
-                              :where [?e :logseq.property/asset ?ref-id]]
-                            ref-id)]
-    (let [highlights (some->> data (flatten) (map #(:logseq.property.pdf/hl-value %)) (vec))]
-      {:highlights highlights})))
-
 (defn area-highlight?
   [hl]
   (and hl (not (nil? (get-in hl [:content :image])))))
@@ -254,17 +193,9 @@
 
     (js/console.timeEnd :write-area-image)))
 
-(defn- db-based-persist-hl-area-image
-  [repo png]
-  (let [file (js/File. #js [png] "pdf area highlight.png")]
-    (editor-handler/db-based-save-assets! repo [file] {:pdf-area? true})))
-
 (defn- persist-hl-area-image
   [repo-url repo-dir current new-hl old-hl png]
-  (if (config/db-based-graph?)
-    (p/let [result (db-based-persist-hl-area-image repo-url png)]
-      (first result))
-    (file-based-persist-hl-area-image repo-url repo-dir current new-hl old-hl png)))
+  (file-based-persist-hl-area-image repo-url repo-dir current new-hl old-hl png))
 
 (defn persist-hl-area-image$
   "Save pdf highlight area image"
@@ -303,11 +234,7 @@
   (when-let [block (db-model/get-block-by-uuid (:id highlight))]
     (when-let [color (get-in highlight [:properties :color])]
       (let [k (pu/get-pid :logseq.property.pdf/hl-color)
-            color' (if (config/db-based-graph?)
-                     (let [colors     (:property/closed-values (db/entity :logseq.property.pdf/hl-color))]
-                       (some (fn [color-block] (when (= (:block/title color-block) color)
-                                                 (:db/id color-block))) colors))
-                     color)]
+            color' color]
         (property-handler/set-block-property! (state/get-current-repo) (:block/uuid block) k color')))))
 
 (defn unlink-hl-area-image$
@@ -356,27 +283,9 @@
             (state/set-current-pdf! (inflate-asset file-path)))
           (js/console.debug "[Unmatched highlight ref]" block))))))
 
-(defn db-based-open-block-ref!
-  [block]
-  (let [hl-value (:logseq.property.pdf/hl-value block)
-        asset (:logseq.property/asset block)
-        external-url (:logseq.property.asset/external-url asset)
-        file-path (or external-url (str "../assets/" (:block/uuid asset) ".pdf"))]
-    (if asset
-      (->
-       (p/let [href (assets-handler/<make-asset-url file-path)]
-         (state/set-state! :pdf/ref-highlight hl-value)
-         ;; open pdf viewer
-         (state/set-current-pdf! (inflate-asset file-path {:href href :block asset})))
-       (p/catch (fn [error]
-                  (js/console.error error))))
-      (js/console.error "Pdf asset no longer exists"))))
-
 (defn open-block-ref!
   [block]
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-based-open-block-ref! block)
-    (file-based-open-block-ref! block)))
+  (file-based-open-block-ref! block))
 
 (defn goto-block-ref!
   [{:keys [id] :as hl}]
@@ -390,10 +299,8 @@
   ([current] (goto-annotations-page! current nil))
   ([current id]
    (when current
-     (if (config/db-based-graph?)
-       (rfe/push-state :page {:name (:block/uuid (:block current))} (if id {:anchor (str "block-content-" + id)} nil))
-       (when-let [e (some->> (:key current) (str "hls__") (db-model/get-page))]
-         (rfe/push-state :page {:name (str (:block/uuid e))} (if id {:anchor (str "block-content-" + id)} nil)))))))
+     (when-let [e (some->> (:key current) (str "hls__") (db-model/get-page))]
+       (rfe/push-state :page {:name (str (:block/uuid e))} (if id {:anchor (str "block-content-" + id)} nil))))))
 
 (defn open-lightbox!
   [e]
@@ -434,15 +341,6 @@
            [:div.asset-container
             {:style {:width (if style "100%" "auto")}}
             [:span.asset-action-bar
-             (when-let [asset-uuid (and (config/db-based-graph?)
-                                        (some-> asset-block (:block/uuid)))]
-               [:button.asset-action-btn
-                {:title (t :asset/ref-block)
-                 :tabIndex "-1"
-                 :on-pointer-down util/stop
-                 :on-click (fn [] (route-handler/redirect-to-page! asset-uuid))}
-                (ui/icon "file-symlink")])
-
              (when-not config/publishing?
                [:button.asset-action-btn
                 {:title (t :asset/copy)
