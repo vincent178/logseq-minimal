@@ -1,10 +1,8 @@
 (ns frontend.db.async
   "Async queries"
-  (:require [cljs-time.coerce :as tc]
-            [cljs-time.core :as t]
+  (:require             [cljs-time.core :as t]
             [cljs-time.format :as tf]
             [datascript.core :as d]
-            [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.async.util :as db-async-util]
@@ -59,19 +57,16 @@
   "Returns all public properties as property maps including their
   :block/title and :db/ident. For file graphs the map only contains
   :block/title"
-  [& {:as opts}]
+  [& {:as _opts}]
   (when-let [graph (state/get-current-repo)]
-    (if (config/db-based-graph? graph)
-      (db-model/get-all-properties graph opts)
-      (p/let [properties (file-async/<file-based-get-all-properties graph)
-              hidden-properties (set (map name (property-util/hidden-properties)))]
-        (remove #(hidden-properties (:block/title %)) properties)))))
+    (p/let [properties (file-async/<file-based-get-all-properties graph)
+            hidden-properties (set (map name (property-util/hidden-properties)))]
+      (remove #(hidden-properties (:block/title %)) properties))))
 
 (defn <file-get-property-values
   "For file graphs, returns property value names for given property name"
   [graph property]
-  (when-not (config/db-based-graph? graph)
-    (file-async/<get-file-based-property-values graph property)))
+  (file-async/<get-file-based-property-values graph property))
 
 (defn <get-property-values
   "For db graphs, returns a vec of property value maps for given property
@@ -205,46 +200,28 @@
           future-date (t/plus current-day (t/days future-days))
           future-day (some->> future-date
                               (tf/unparse yyyyMMdd-formatter)
-                              (parse-long))
-          start-time (date/journal-day->utc-ms date)
-          future-time (tc/to-long future-date)]
+                              (parse-long))]
       (when-let [repo (and future-day (state/get-current-repo))]
         (p/let [result
-                (if (config/db-based-graph? repo)
-                  (<q repo {}
-                      '[:find [(pull ?block ?block-attrs) ...]
-                        :in $ ?start-time ?end-time ?block-attrs
-                        :where
-                        (or [?block :logseq.property/scheduled ?n]
-                            [?block :logseq.property/deadline ?n])
-                        [(>= ?n ?start-time)]
-                        [(<= ?n ?end-time)]
-                        [?block :logseq.property/status ?status]
-                        [?status :db/ident ?status-ident]
-                        [(not= ?status-ident :logseq.property/status.done)]
-                        [(not= ?status-ident :logseq.property/status.canceled)]]
-                      start-time
-                      future-time
-                      '[*])
-                  (<q repo {}
-                      '[:find [(pull ?block ?block-attrs) ...]
-                        :in $ ?day ?future ?block-attrs
-                        :where
-                        (or
-                         [?block :block/scheduled ?d]
-                         [?block :block/deadline ?d])
-                        [(get-else $ ?block :block/repeated? false) ?repeated]
-                        [(get-else $ ?block :block/marker "NIL") ?marker]
-                        [(not= ?marker "DONE")]
-                        [(not= ?marker "CANCELED")]
-                        [(not= ?marker "CANCELLED")]
-                        [(<= ?d ?future)]
-                        (or-join [?repeated ?d ?day]
-                                 [(true? ?repeated)]
-                                 [(>= ?d ?day)])]
-                      date
-                      future-day
-                      file-model/file-graph-block-attrs))]
+                (<q repo {}
+                    '[:find [(pull ?block ?block-attrs) ...]
+                      :in $ ?day ?future ?block-attrs
+                      :where
+                      (or
+                       [?block :block/scheduled ?d]
+                       [?block :block/deadline ?d])
+                      [(get-else $ ?block :block/repeated? false) ?repeated]
+                      [(get-else $ ?block :block/marker "NIL") ?marker]
+                      [(not= ?marker "DONE")]
+                      [(not= ?marker "CANCELED")]
+                      [(not= ?marker "CANCELLED")]
+                      [(<= ?d ?future)]
+                      (or-join [?repeated ?d ?day]
+                               [(true? ?repeated)]
+                               [(>= ?d ?day)])]
+                    date
+                    future-day
+                    file-model/file-graph-block-attrs)]
           (->> result
                db-model/sort-by-order-recursive
                db-utils/group-by-page))))))
@@ -272,17 +249,11 @@
 
 (defn <get-whiteboards
   [graph]
-  (p/let [result (if (config/db-based-graph? graph)
-                   (<q graph {:transact-db? false}
-                       '[:find [(pull ?page [:db/id :block/uuid :block/name :block/title :block/created-at :block/updated-at]) ...]
-                         :where
-                         [?page :block/tags :logseq.class/Whiteboard]
-                         [?page :block/name]])
-                   (<q graph {:transact-db? false}
-                       '[:find [(pull ?page [:db/id :block/uuid :block/name :block/title :block/created-at :block/updated-at]) ...]
-                         :where
-                         [?page :block/type "whiteboard"]
-                         [?page :block/name]]))]
+  (p/let [result (<q graph {:transact-db? false}
+                     '[:find [(pull ?page [:db/id :block/uuid :block/name :block/title :block/created-at :block/updated-at]) ...]
+                       :where
+                       [?page :block/type "whiteboard"]
+                       [?page :block/name]])]
     (->> result
          (sort-by :block/updated-at)
          reverse)))

@@ -4,7 +4,6 @@
             [clojure.walk :as walk]
             [datascript.core :as d]
             [frontend.common.graph-view :as graph-view]
-            [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db.conn :as conn]
             [frontend.db.react :as react]
@@ -14,9 +13,8 @@
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
             [logseq.db.frontend.class :as db-class]
-            [logseq.db.frontend.content :as db-content]
             [logseq.db.frontend.property :as db-property]
-            [logseq.db.frontend.rules :as rules]))
+            ))
 
 ;; TODO: extract to specific models and move data transform logic to the
 ;; corresponding handlers.
@@ -82,60 +80,36 @@ independent of format as format specific heading characters are stripped"
   name must match the content of a page's block header"
   [repo page-uuid-str route-name]
   (let [db (conn/get-db repo)]
-    (if (config/db-based-graph? repo)
-      (->> (d/q '[:find (pull ?b [:block/uuid])
-                  :in $ ?page-uuid ?route-name ?content-matches %
-                  :where
-                  [?page :block/uuid ?page-uuid]
-                  [?b :block/page ?page]
-                  (has-property ?b :logseq.property/heading)
-                  [?b :block/title ?content]
-                  [(?content-matches ?content ?route-name ?b)]]
-                db
-                (uuid page-uuid-str)
-                route-name
-                (fn content-matches? [block-content external-content block-id]
-                  (let [block (db-utils/entity repo block-id)
-                        ref-tags (distinct (concat (:block/tags block) (:block/refs block)))]
-                    (= (-> (db-content/id-ref->title-ref block-content ref-tags)
-                           (db-content/content-id-ref->page ref-tags)
-                           heading-content->route-name)
-                       (string/lower-case external-content))))
-                (rules/extract-rules rules/db-query-dsl-rules [:has-property]))
-           ffirst)
-
-      (->> (d/q '[:find (pull ?b [:block/uuid])
-                  :in $ ?page-uuid ?route-name ?content-matches
-                  :where
-                  [?page :block/uuid ?page-uuid]
-                  [?b :block/page ?page]
-                  [?b :block/properties ?prop]
-                  [(get ?prop :heading) _]
-                  [?b :block/title ?content]
-                  [(?content-matches ?content ?route-name)]]
-                db
-                (uuid page-uuid-str)
-                route-name
-                (fn content-matches? [block-content external-content]
-                  (= (heading-content->route-name block-content)
-                     (string/lower-case external-content))))
-           ffirst))))
+    (->> (d/q '[:find (pull ?b [:block/uuid])
+                :in $ ?page-uuid ?route-name ?content-matches
+                :where
+                [?page :block/uuid ?page-uuid]
+                [?b :block/page ?page]
+                [?b :block/properties ?prop]
+                [(get ?prop :heading) _]
+                [?b :block/title ?content]
+                [(?content-matches ?content ?route-name)]]
+              db
+              (uuid page-uuid-str)
+              route-name
+              (fn content-matches? [block-content external-content]
+                (= (heading-content->route-name block-content)
+                   (string/lower-case external-content))))
+         ffirst)))
 
 (defn get-page-format
   [page-name]
   {:post [(keyword? %)]}
-  (if (config/db-based-graph? (state/get-current-repo))
-    :markdown
-    (keyword
-     (or
-      (let [page (some->> page-name (ldb/get-page (conn/get-db)))]
-        (or
-         (get page :block/format :markdown)
-         (when-let [file (:block/file page)]
-           (when-let [path (:file/path (db-utils/entity (:db/id file)))]
-             (common-util/get-format path)))))
-      (state/get-preferred-format)
-      :markdown))))
+  (keyword
+   (or
+    (let [page (some->> page-name (ldb/get-page (conn/get-db)))]
+      (or
+       (get page :block/format :markdown)
+       (when-let [file (:block/file page)]
+         (when-let [path (:file/path (db-utils/entity (:db/id file)))]
+           (common-util/get-format path)))))
+    (state/get-preferred-format)
+    :markdown)))
 
 (defn page-alias-set
   [repo-url page-id]
@@ -424,42 +398,25 @@ independent of format as format specific heading characters are stripped"
 
 (defn get-all-whiteboards
   [repo]
-  (if (config/db-based-graph?)
-    (d/q
-     '[:find [(pull ?page [:db/id
-                           :block/uuid
-                           :block/name
-                           :block/title
-                           :block/created-at
-                           :block/updated-at]) ...]
-       :where
-       [?page :block/name]
-       [?page :block/tags :logseq.class/Whiteboard]]
-     (conn/get-db repo))
-    (d/q
-     '[:find [(pull ?page [:db/id
-                           :block/uuid
-                           :block/name
-                           :block/title
-                           :block/created-at
-                           :block/updated-at]) ...]
-       :where
-       [?page :block/name]
-       [?page :block/type "whiteboard"]]
-     (conn/get-db repo))))
+  (d/q
+   '[:find [(pull ?page [:db/id
+                         :block/uuid
+                         :block/name
+                         :block/title
+                         :block/created-at
+                         :block/updated-at]) ...]
+     :where
+     [?page :block/name]
+     [?page :block/type "whiteboard"]]
+   (conn/get-db repo)))
 
 (defn get-whiteboard-id-nonces
-  [repo page-id]
-  (let [db-based? (config/db-based-graph? repo)
-        key (if db-based?
-              :logseq.property.tldraw/shape
-              :logseq.tldraw.shape)
+  [_repo page-id]
+  (let [key :logseq.tldraw.shape
         page (db-utils/entity page-id)]
     (->> (:block/_page page)
          (keep (fn [{:block/keys [uuid] :as b}]
-                 (when-let [shape (if db-based?
-                                    (get b key)
-                                    (get (:block/properties b) key))]
+                 (when-let [shape (get (:block/properties b) key)]
                    {:id (str uuid)
                     :nonce (:nonce shape)}))))))
 
