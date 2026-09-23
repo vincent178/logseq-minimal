@@ -54,7 +54,7 @@
   (search-handler/rebuild-indices!)
   (plugin-handler/hook-plugin-app :graph-after-indexed {:repo repo :empty-graph? empty-graph?})
   (route-handler/redirect-to-home!)
-  (when-let [dir-name (and (not (config/db-based-graph? repo)) (config/get-repo-dir repo))]
+  (when-let [dir-name (config/get-repo-dir repo)]
     (fs/watch-dir! dir-name)))
 
 (defmethod handle :init/commands [_]
@@ -67,16 +67,15 @@
 (defn- graph-switch
   [graph]
   (react/clear-query-state!)
-  (let [db-based? (config/db-based-graph? graph)]
-    (state/set-current-repo! graph)
-    (page-handler/init-commands!)
-         ;; load config
-    (repo-config-handler/restore-repo-config! graph)
-    (when-not (= :draw (state/get-current-route))
-      (route-handler/redirect-to-home!))
-    (when-let [dir-name (and (not db-based?) (config/get-repo-dir graph))]
-      (fs/watch-dir! dir-name))
-    (graph-handler/settle-metadata-to-local! {:last-seen-at (js/Date.now)})))
+  (state/set-current-repo! graph)
+  (page-handler/init-commands!)
+       ;; load config
+  (repo-config-handler/restore-repo-config! graph)
+  (when-not (= :draw (state/get-current-route))
+    (route-handler/redirect-to-home!))
+  (when-let [dir-name (config/get-repo-dir graph)]
+    (fs/watch-dir! dir-name))
+  (graph-handler/settle-metadata-to-local! {:last-seen-at (js/Date.now)}))
 
 ;; Parameters for the `persist-db` function, to show the notification messages
 (defn- graph-switch-on-persisted
@@ -97,16 +96,14 @@
          (persist-db/export-current-graph!)
          (state/set-state! :db/async-queries {})
          (st/refresh!)
-         (if (config/db-based-graph?)
-           (graph-switch-on-persisted graph opts)
-           (p/let [writes-finished? (state/<invoke-db-worker :thread-api/file-writes-finished? (state/get-current-repo))]
-             (if (not writes-finished?) ; TODO: test (:sync-graph/init? @state/state)
-               (do
-                 (log/info :graph/switch {:file-writes-finished? writes-finished?})
-                 (notification/show!
-                  "Please wait seconds until all changes are saved for the current graph."
-                  :warning))
-               (graph-switch-on-persisted graph opts)))))]
+         (p/let [writes-finished? (state/<invoke-db-worker :thread-api/file-writes-finished? (state/get-current-repo))]
+           (if (not writes-finished?) ; TODO: test (:sync-graph/init? @state/state)
+             (do
+               (log/info :graph/switch {:file-writes-finished? writes-finished?})
+               (notification/show!
+                "Please wait seconds until all changes are saved for the current graph."
+                :warning))
+             (graph-switch-on-persisted graph opts))))]
     (p/then switch-promise
             (fn [_]
               (export/backup-db-graph (state/get-current-repo))))))
@@ -161,13 +158,11 @@
       (when (and (not dir-exists?)
                  (not util/nfs?))
         (state/pub-event! [:graph/dir-gone dir]))))
-  (let [db-based? (config/db-based-graph? repo)]
-    ;; FIXME: an ugly implementation for redirecting to page on new window is restored
-    (repo-handler/graph-ready! repo)
+  ;; FIXME: an ugly implementation for redirecting to page on new window is restored
+  (repo-handler/graph-ready! repo)
 
-    (when-not config/publishing?
-      (when-not db-based?
-        (fs-watcher/load-graph-files! repo)))))
+  (when-not config/publishing?
+    (fs-watcher/load-graph-files! repo)))
 
 (defmethod handle :instrument [[_ {:keys [type payload] :as opts}]]
   (when-not (empty? (dissoc opts :type :payload))
@@ -179,7 +174,7 @@
                  {:schema-version (str db-schema/version)
                   :db-schema-version (when-let [db (db/get-db)]
                                        (str (:kv/value (db/entity db :logseq.kv/schema-version))))
-                  :db-based (config/db-based-graph? (state/get-current-repo))}
+                  :db-based false}
                  payload)]
     (Sentry/captureException error
                              (bean/->js {:tags payload

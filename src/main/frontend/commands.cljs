@@ -1,7 +1,6 @@
 (ns frontend.commands
   "Provides functionality for commands and advanced commands"
   (:require [clojure.string :as string]
-            [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.extensions.video.youtube :as youtube]
@@ -121,22 +120,6 @@
       ["LATER" "NOW" "TODO" "DOING" "DONE" "WAITING" "CANCELED"]
       ["TODO" "DOING" "LATER" "NOW" "DONE" "WAITING" "CANCELED"])))
 
-(defn db-based-embed-page
-  []
-  [[:editor/input "[[]]" {:last-pattern command-trigger
-                          :backward-pos 2}]
-   [:editor/search-page :embed]])
-
-(defn db-based-embed-block
-  []
-  [[:editor/input "" {:last-pattern command-trigger}]
-   [:editor/search-block :embed]])
-
-(defn db-based-query
-  []
-  [[:editor/input "" {:last-pattern command-trigger}]
-   [:editor/run-query-command]])
-
 (defn file-based-query
   []
   [[:editor/input (str macro-util/query-macro " }}") {:backward-pos 2}]
@@ -144,19 +127,13 @@
 
 (defn query-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    (db-based-query)
-    (file-based-query)))
+  (file-based-query))
 
 (defn- calc-steps
   []
-  (if (config/db-based-graph? (state/get-current-repo))
-    [[:editor/input "" {:last-pattern command-trigger}]
-     [:editor/upsert-type-block :code "calc"]
-     [:codemirror/focus]]
-    [[:editor/input "```calc\n\n```" {:type "block"
-                                      :backward-pos 4}]
-     [:codemirror/focus]]))
+  [[:editor/input "```calc\n\n```" {:type "block"
+                                    :backward-pos 4}]
+   [:codemirror/focus]])
 
 (defn ->block
   ([type]
@@ -260,27 +237,24 @@
 
 (defn ^:large-vars/cleanup-todo commands-map
   [get-page-ref-text]
-  (let [db? (config/db-based-graph? (state/get-current-repo))
-        embed-page (if db? db-based-embed-page file-based-embed-page)
-        embed-block (if db? db-based-embed-block file-based-embed-block)]
+  (let [embed-page file-based-embed-page
+        embed-block file-based-embed-block]
     (->>
      (concat
         ;; basic
-      [[(if db? "Node reference" "Page reference")
+      [["Page reference"
         [[:editor/input page-ref/left-and-right-brackets {:backward-pos 2}]
          [:editor/search-page]]
-        (if db? "Create a backlink to a node (a page or a block)"
-            "Create a backlink to a BLOCK")
+        "Create a backlink to a BLOCK"
         :icon/pageRef
         "BASIC"]
-       (when-not db? ["Page embed" (embed-page) "Embed a page here" :icon/pageEmbed])
-       (when-not db?
-         ["Block reference" [[:editor/input block-ref/left-and-right-parens {:backward-pos 2}]
-                             [:editor/search-block :reference]]
-          "Create a backlink to a block" :icon/blockRef])
-       [(if db? "Node embed" "Block embed")
+       ["Page embed" (embed-page) "Embed a page here" :icon/pageEmbed]
+       ["Block reference" [[:editor/input block-ref/left-and-right-parens {:backward-pos 2}]
+                           [:editor/search-block :reference]]
+        "Create a backlink to a block" :icon/blockRef]
+       ["Block embed"
         (embed-block)
-        (if db? "Embed a node here" "Embed a block here")
+        "Embed a block here"
         :icon/blockEmbed]]
 
         ;; format
@@ -350,9 +324,8 @@
         :icon/numberedChildren]]
 
       ;; https://orgmode.org/manual/Structure-Templates.html
-      (when-not db?
-        (cond->
-         [;; Should this be replaced by "Code block"?
+      (cond->
+       [;; Should this be replaced by "Code block"?
           ["Src" (->block "src") "Create a code block"]
           ["Math block" (->block "export" "latex") "Create a latex block"]
           ["Note" (->block "note") "Create a note block"]
@@ -368,26 +341,24 @@
           ["Center" (->block "center") "Create a center block"]]
 
         ;; FIXME: current page's format
-          (= :org (state/get-preferred-format))
-          (conj ["Properties" (->properties)])))
+        (= :org (state/get-preferred-format))
+        (conj ["Properties" (->properties)]))
 
       ;; advanced
       [["Query" (query-steps) query-doc :icon/query "ADVANCED"]
        ["Advanced Query" (advanced-query-steps) "Create an advanced query block" :icon/query]
-       (when-not db?
-         ["Zotero" (zotero-steps) "Import Zotero journal article" :icon/circle-letter-z])
+       ["Zotero" (zotero-steps) "Import Zotero journal article" :icon/circle-letter-z]
        ["Query function" [[:editor/input "{{function }}" {:backward-pos 2}]] "Create a query function" :icon/queryCode]
        ["Calculator"
         (calc-steps)
         "Insert a calculator" :icon/calculator]
-       (when-not db?
-         ["Draw" (fn []
-                   (let [file (draw/file-name)
-                         path (str common-config/default-draw-directory "/" file)
-                         text (ref/->page-ref path)]
-                     (p/let [_ (draw/create-draw-with-default-content path)]
-                       (println "draw file created, " path))
-                     text)) "Draw a graph with Excalidraw"])
+       ["Draw" (fn []
+                 (let [file (draw/file-name)
+                       path (str common-config/default-draw-directory "/" file)
+                       text (ref/->page-ref path)]
+                   (p/let [_ (draw/create-draw-with-default-content path)]
+                     (println "draw file created, " path))
+                   text)) "Draw a graph with Excalidraw"]
 
        ["Upload an asset"
         [[:editor/click-hidden-file-input :id]]
@@ -408,17 +379,9 @@
 
        ["Embed Twitter tweet" [[:editor/input "{{tweet }}" {:last-pattern command-trigger
                                                             :backward-pos 2}]] ""
-        :icon/xEmbed]
+        :icon/xEmbed]]
 
-       (when db?
-         ["Add new property" [[:editor/clear-current-slash]
-                              [:editor/new-property]] ""
-          :icon/cube-plus])]
-
-      (let [commands (cond->> @*extend-slash-commands
-                       db?
-                       (remove (fn [command] (when (map? (last command))
-                                               (false? (:db-graph? (last command)))))))]
+      (let [commands @*extend-slash-commands]
         commands)
 
 ;; Allow user to modify or extend, should specify how to extend.
@@ -751,13 +714,11 @@
     (when-let [current-input (gdom/getElement input-id)]
       (let [current-block (state/get-edit-block)
             format (get current-block :block/format :markdown)]
-        (if (config/db-based-graph?)
-          (state/pub-event! [:editor/set-heading current-block heading])
-          (if (= format :markdown)
-            (let [edit-content (gobj/get current-input "value")
-                  new-content (file-based-set-markdown-heading edit-content heading)]
-              (state/set-edit-content! input-id new-content))
-            (state/pub-event! [:editor/set-heading current-block heading])))))))
+        (if (= format :markdown)
+          (let [edit-content (gobj/get current-input "value")
+                new-content (file-based-set-markdown-heading edit-content heading)]
+            (state/set-edit-content! input-id new-content))
+          (state/pub-event! [:editor/set-heading current-block heading]))))))
 
 (defmethod handle-step :editor/search-page [_]
   (state/set-editor-action! :page-search))
@@ -765,10 +726,7 @@
 (defmethod handle-step :editor/search-page-hashtag [[_]]
   (state/set-editor-action! :page-search-hashtag))
 
-(defmethod handle-step :editor/search-block [[_ type]]
-  (when (and (= type :embed) (config/db-based-graph? (state/get-current-repo)))
-    (reset! *current-command "Block embed")
-    (state/set-editor-action-data! {:pos (cursor/get-caret-pos (state/get-input))}))
+(defmethod handle-step :editor/search-block [[_ _type]]
   (state/set-editor-action! :block-search))
 
 (defmethod handle-step :editor/search-template [[_]]
