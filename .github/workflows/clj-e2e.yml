@@ -78,7 +78,11 @@ jobs:
       # NOTE: require the app to be build with DEV-RELEASE flag
       - name: Prepare E2E test build
         run: |
-          yarn gulp:build && clojure -M:cljs release app db-worker --config-merge "{:closure-defines {frontend.config/DEV-RELEASE true}}" --debug && yarn webpack-app-build
+          yarn gulp:build && clojure -M:cljs release app db-worker --config-merge "{:closure-defines {frontend.config/DEV-RELEASE true} :compiler-options {:optimizations :simple}}" --debug && yarn webpack-app-build
+        # Use :optimizations :simple for the e2e build. The production release
+        # uses :advanced (whole-program optimization, slow); the e2e build only
+        # needs a runnable app, and :simple compiles significantly faster.
+        # DEV-RELEASE behavior is independent of the optimization level.
 
       # The e2e suite only ever drives Chromium (wally hard-codes .chromium), but
       # Playwright Java's first Playwright.create() downloads every browser
