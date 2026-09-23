@@ -287,17 +287,6 @@
          (sort-by :block/updated-at)
          reverse)))
 
-(defn <get-views
-  [graph class-id view-feature-type]
-  (<q graph {:transact-db? true}
-      '[:find [(pull ?b [*]) ...]
-        :in $ ?class-id ?view-feature-type
-        :where
-        [?b :logseq.property/view-for ?class-id]
-        [?b :logseq.property.view/feature-type ?view-feature-type]]
-      class-id
-      view-feature-type))
-
 (defn <get-asset-with-checksum
   [graph checksum]
   (p/let [result (<q graph {:transact-db? true}
