@@ -266,8 +266,6 @@
 
  :page/add-to-favorites "Zu Favoriten hinzufügen"
  :page/copy-page-url "Seiten-URL kopieren"
- :page/convert-tag-to-page "Tag zu Seite konvertieren"
- :page/convert-to-tag "Zu Tag konvertieren"
  :page/created-at "Erstellt am"
  :page/db-delete-confirmation "Diese Seite wirklich entfernen?"
  :page/delete "Seite löschen"

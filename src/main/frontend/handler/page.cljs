@@ -13,7 +13,6 @@
             [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.common.page :as page-common-handler]
-            [frontend.handler.db-based.page :as db-page-handler]
             [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
@@ -209,15 +208,11 @@
       (cursor/move-cursor-forward input (+ 2 (count current-selected))))))
 
 (defn- tag-on-chosen-handler
-  [input id pos format current-pos edit-content q db-based?]
+  [input id pos format _current-pos edit-content q db-based?]
   (fn [chosen-result ^js e]
     (util/stop e)
     (state/clear-editor-action!)
-    (p/let [_ (when (:convert-page-to-tag? chosen-result)
-                (let [entity (db/entity (:db/id chosen-result))]
-                  (when (and (ldb/page? entity) (not (ldb/class? entity)))
-                    (db-page-handler/convert-page-to-tag! entity))))
-            chosen-result (if (:block/uuid chosen-result)
+    (p/let [chosen-result (if (:block/uuid chosen-result)
                             (db/entity [:block/uuid (:block/uuid chosen-result)])
                             chosen-result)
             target (first (:block/_alias chosen-result))
@@ -244,8 +239,7 @@
                            (if (= \# (first q))
                              (subs q 1)
                              q))
-            last-pattern (str "#" (when wrapped? page-ref/left-brackets) last-pattern)
-            tag-in-page-auto-complete? (= page-ref/right-brackets (common-util/safe-subs edit-content current-pos (+ current-pos 2)))]
+            last-pattern (str "#" (when wrapped? page-ref/left-brackets) last-pattern)]
       (p/do!
        (editor-handler/insert-command! id
                                        (if (and class? (not inline-tag?)) "" (str "#" wrapped-tag))
@@ -253,8 +247,6 @@
                                        {:last-pattern last-pattern
                                         :end-pattern (when wrapped? page-ref/right-brackets)
                                         :command :page-ref})
-       (when (and db-based? (not tag-in-page-auto-complete?))
-         (db-page-handler/tag-on-chosen-handler chosen chosen-result class? edit-content current-pos last-pattern))
        (when input (.focus input))))))
 
 (defn- page-on-chosen-handler

@@ -147,8 +147,6 @@
  :page/copy-page-url "Copiar URL da página"
  :page/illegal-page-name "Nome de página inválido!"
  :page/page-already-exists "Página “{1}” já existe!"
- :page/convert-to-tag "Converter para Tag"
- :page/convert-tag-to-page "Converter Tag para Página"
  :page/whiteboard-to-journal-error "Páginas whiteboard não podem ser renomeadas para títulos de diário!"
  :file/name "Nome do arquivo"
  :file/last-modified-at "Última modificação em"
