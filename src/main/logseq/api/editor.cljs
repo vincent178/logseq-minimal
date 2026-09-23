@@ -25,7 +25,6 @@
             [goog.date :as gdate]
             [goog.dom :as gdom]
             [logseq.api.block :as api-block]
-            [logseq.api.db-based :as db-based-api]
             [logseq.common.util.date-time :as date-time-util]
             [logseq.common.path :as path]
             [logseq.db :as ldb]
@@ -191,10 +190,10 @@
 
 (defn insert_block
   [id content ^js opts]
-  (this-as this
+  (this-as _this
     (p/let [block (<get-block id)]
       (when-let [block-uuid (:block/uuid block)]
-        (p/let [{:keys [before start end sibling customUUID properties autoOrderedList schema]} (bean/->clj opts)
+        (p/let [{:keys [before start end sibling customUUID properties autoOrderedList _schema]} (bean/->clj opts)
                 custom-uuid (or customUUID (:id properties))
                 custom-uuid (when custom-uuid (sdk-utils/uuid-or-throw-error custom-uuid))
                 _ (when (and custom-uuid (db-model/query-block-by-uuid custom-uuid))
@@ -226,41 +225,36 @@
                        :properties (when (not db-based?)
                                      (merge properties
                                             (when custom-uuid {:id custom-uuid})))}]
-          (if db-based?
-            (db-based-api/insert-block this content properties schema opts')
-            (p/let [new-block (editor-handler/api-insert-new-block! content opts')]
-              (bean/->js (sdk-utils/normalize-keyword-for-json new-block)))))))))
+          (p/let [new-block (editor-handler/api-insert-new-block! content opts')]
+            (bean/->js (sdk-utils/normalize-keyword-for-json new-block))))))))
 
 (def insert_batch_block
   (fn [block-uuid ^js batch-blocks-js ^js opts-js]
     (this-as
-     this
+     _this
      (p/let [block (<ensure-page-loaded block-uuid)]
        (when block
          (when-let [blocks (bean/->clj batch-blocks-js)]
-           (let [db-based? false
-                 blocks' (if-not (vector? blocks) (vector blocks) blocks)
+           (let [blocks' (if-not (vector? blocks) (vector blocks) blocks)
                  opts (bean/->clj opts-js)
-                 {:keys [sibling before _schema keepUUID]} opts]
-             (if db-based?
-               (db-based-api/insert-batch-blocks this block blocks' opts)
-               (let [keep-uuid? (or keepUUID false)
-                     _ (when keep-uuid? (doseq
-                                         [block (outliner-core/tree-vec-flatten blocks' :children)]
-                                          (let [uuid (:id (:properties block))]
-                                            (when (and uuid (db-model/query-block-by-uuid (sdk-utils/uuid-or-throw-error uuid)))
-                                              (throw (js/Error.
-                                                      (util/format "Custom block UUID already exists (%s)." uuid)))))))
-                     block (if before
-                             (db/pull (:db/id (ldb/get-left-sibling (db/entity (:db/id block))))) block)
-                     sibling? (if (ldb/page? block) false sibling)]
-                 (p/let [result (editor-handler/insert-block-tree-after-target
-                                 (:db/id block) sibling? blocks' (get block :block/format :markdown) keep-uuid?)
-                         blocks (:blocks result)]
-                   (let [blocks' (map (fn [b] (db/entity [:block/uuid (:block/uuid b)])) blocks)]
-                     (-> blocks'
-                         sdk-utils/normalize-keyword-for-json
-                         bean/->js))))))))))))
+                 {:keys [sibling before _schema keepUUID]} opts
+                 keep-uuid? (or keepUUID false)
+                   _ (when keep-uuid? (doseq
+                                       [block (outliner-core/tree-vec-flatten blocks' :children)]
+                                        (let [uuid (:id (:properties block))]
+                                          (when (and uuid (db-model/query-block-by-uuid (sdk-utils/uuid-or-throw-error uuid)))
+                                            (throw (js/Error.
+                                                    (util/format "Custom block UUID already exists (%s)." uuid)))))))
+                   block (if before
+                           (db/pull (:db/id (ldb/get-left-sibling (db/entity (:db/id block))))) block)
+                   sibling? (if (ldb/page? block) false sibling)]
+               (p/let [result (editor-handler/insert-block-tree-after-target
+                               (:db/id block) sibling? blocks' (get block :block/format :markdown) keep-uuid?)
+                       blocks (:blocks result)]
+                 (let [blocks' (map (fn [b] (db/entity [:block/uuid (:block/uuid b)])) blocks)]
+                   (-> blocks'
+                       sdk-utils/normalize-keyword-for-json
+                       bean/->js))))))))))
 
 (def remove_block
   (fn [id ^js _opts]
@@ -273,16 +267,12 @@
 (def update_block
   (fn [id content ^js opts]
     (this-as
-     this
+     _this
      (p/let [repo (state/get-current-repo)
-             db-based? false
              block (<get-block id {:children? false})
              opts' (bean/->clj opts)]
        (when-let [block-uuid (:block/uuid block)]
-         (if db-based?
-           (db-based-api/update-block this block content opts')
-           (editor-handler/save-block! repo block-uuid content
-                                       (if db-based? (dissoc opts' :properties) opts'))))))))
+         (editor-handler/save-block! repo block-uuid content opts'))))))
 
 (def move_block
   (fn [src-block-uuid target-block-uuid ^js opts]
@@ -450,28 +440,21 @@
 ;; block properties
 (defn upsert_block_property
   [id key ^js value ^js options]
-  (this-as this
+  (this-as _this
     (p/let [key' (api-block/sanitize-user-property-name key)
-            opts (bean/->clj options)
+            _opts (bean/->clj options)
             repo (state/get-current-repo)
             block (<get-block id {:children? false})
-            db-based? false
             value (bean/->clj value)]
       (when-let [block-uuid (:block/uuid block)]
-        (if db-based?
-          (db-based-api/upsert-block-property this block key' value opts)
-          (property-handler/set-block-property! repo block-uuid key' value))))))
+        (property-handler/set-block-property! repo block-uuid key' value)))))
 
 (defn remove_block_property
   [id key]
-  (this-as this
+  (this-as _this
     (p/let [block (<get-block id {:children? false})]
       (when-let [block-uuid (:block/uuid block)]
-        (let [db-based? false
-              key (api-block/sanitize-user-property-name key)
-              key (if db-based?
-                    (api-block/get-db-ident-from-property-name key this)
-                    key)]
+        (let [key (api-block/sanitize-user-property-name key)]
           (property-handler/remove-block-property!
             (state/get-current-repo)
             block-uuid key))))))

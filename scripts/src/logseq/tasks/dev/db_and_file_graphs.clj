@@ -60,8 +60,6 @@
          "src/main/frontend/components/property"
          "src/main/frontend/components/quick_add.cljs"
          "src/main/frontend/components/query/view.cljs"
-         "src/main/logseq/api/db_based.cljs"
-         "src/main/logseq/api/db_based"
          "src/electron/electron/db.cljs"]))
 
 (def file-graph-paths

@@ -1,11 +1,14 @@
 ;; Lazy loaded
-logseq.cli.commands.export-edn/export
-logseq.cli.commands.graph/show-graph
-logseq.cli.commands.graph/list-graphs
-logseq.cli.commands.query/query
-logseq.cli.commands.search/search
-logseq.cli.commands.export/export
 logseq.cli.commands.append/append
 logseq.cli.commands.mcp-server/start
-logseq.cli.commands.import-edn/import-edn
-logseq.cli.commands.validate/validate
+;; Shared with src/main (frontend) — deps/cli carve can't see those call-sites
+logseq.cli.common.export.text/export-helper
+logseq.cli.common.file/get-all-page->content
+logseq.cli.common.graph/get-db-based-graphs
+logseq.cli.common.mcp.tools/list-properties
+logseq.cli.common.mcp.tools/list-tags
+logseq.cli.common.mcp.tools/get-page-data
+logseq.cli.common.mcp.tools/list-pages
+logseq.cli.common.mcp.tools/upsert-nodes
+logseq.cli.common.util/make-export-zip
+logseq.cli.text-util/cut-by
