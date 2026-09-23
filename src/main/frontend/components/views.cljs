@@ -22,7 +22,6 @@
             [frontend.db-mixins :as db-mixins]
             [frontend.db.async :as db-async]
             [frontend.db.react :as react]
-            [frontend.handler.db-based.export :as db-export-handler]
             [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.property :as property-handler]
@@ -495,7 +494,7 @@
        option)))))
 
 (rum/defc more-actions
-  [view-entity columns {:keys [column-visible? rows column-toggle-visibility]} {:keys [group-by-property-ident]}]
+  [view-entity columns {:keys [column-visible? column-toggle-visibility]} {:keys [group-by-property-ident]}]
   (let [display-type (:db/ident (:logseq.property.view/type view-entity))
         table? (= display-type :logseq.property.view/type.table)
         group-by-columns (concat (when (or
@@ -556,11 +555,7 @@
        (when group-by-page?
          (groups-sort view-entity (:logseq.property.view/sort-groups-by-property view-entity)))
        (when group-by-property-ident
-         (groups-sort-order view-entity (:logseq.property.view/sort-groups-desc? view-entity)))
-       (shui/dropdown-menu-item
-        {:key "export-edn"
-         :on-click #(db-export-handler/export-view-nodes-data rows {:group-by? (some? group-by-property-ident)})}
-        "Export EDN"))))))
+         (groups-sort-order view-entity (:logseq.property.view/sort-groups-desc? view-entity))))))))
 
 (defn- get-column-size
   [column sized-columns]

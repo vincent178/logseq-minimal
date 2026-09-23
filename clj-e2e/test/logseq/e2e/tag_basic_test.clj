@@ -22,5 +22,5 @@
   (b/new-block (str title-prefix 2))
   (util/set-tag (str title-prefix 2)))
 
-(deftest new-tag-test
+(deftest ^:db-graph new-tag-test
   (add-new-tags "tag-test-"))

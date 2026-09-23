@@ -47,6 +47,6 @@
                  (util/input (str title-prefix "-Node-value"))
                  (w/click (w/get-by-text "New option:")))))))
 
-(deftest new-property-test
+(deftest ^:db-graph new-property-test
   (let [title-prefix "new-property-test"]
     (add-new-properties title-prefix)))

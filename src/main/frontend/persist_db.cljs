@@ -25,10 +25,6 @@
   [repo opts]
   (when repo (protocol/<export-db (get-impl) repo opts)))
 
-(defn <import-db
-  [repo data]
-  (when repo (protocol/<import-db (get-impl) repo data)))
-
 (defn <fetch-init-data
   ([repo]
    (<fetch-init-data repo {}))

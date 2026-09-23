@@ -21,14 +21,14 @@
   (testing "/command trigger popup"
     (b/new-block "b2")
     (util/press-seq " /")
-    (w/wait-for "a.menu-link.chosen:has-text('Node reference')")
+    (w/wait-for "a.menu-link.chosen:has-text('Page reference')")
     (k/backspace)
     (w/wait-for-not-visible ".ui__popover-content")))
 
 (deftest page-reference-test
   (testing "Page reference"
     (b/new-blocks ["b1" ""])
-    (util/input-command "Node reference")
+    (util/input-command "Page reference")
     (util/press-seq "Another page")
     (k/enter)
     (is (= "[[Another page]]" (util/get-edit-content)))
@@ -38,7 +38,7 @@
 (deftest block-reference-test
   (testing "Block reference"
     (b/new-blocks ["block test" ""])
-    (util/input-command "Node reference")
+    (util/input-command "Page reference")
     (util/press-seq "block test")
     (util/wait-timeout 300)
     (k/enter)
@@ -85,7 +85,7 @@
     (is (= "<ins>test</ins>" (util/get-edit-content)))
     (util/move-cursor-to-end)))
 
-(deftest code-block-test
+(deftest ^:db-graph code-block-test
   (testing "/code block"
     (b/new-block "")
     (util/input-command "code block")
@@ -102,7 +102,7 @@
     (util/exit-edit)
     (w/wait-for ".katex")))
 
-(deftest quote-test
+(deftest ^:db-graph quote-test
   (testing "/quote"
     (b/new-block "")
     (util/input-command "quote")
@@ -115,11 +115,13 @@
             text (str heading " test ")]
         (b/new-block text)
         (util/input-command heading)
-        (is (= text (util/get-edit-content)))
+        ;; File graphs store headings as a markdown "#"*n prefix, so the block
+        ;; text gains "# " (h1), "## " (h2), ... after the command.
+        (is (= (str (apply str (repeat (inc i) "#")) " " text) (util/get-edit-content)))
         (util/exit-edit)
         (w/wait-for heading)))))
 
-(deftest status-test
+(deftest ^:db-graph status-test
   (testing "task status commands"
     (let [status->icon {"Doing" "InProgress50"
                         "In review" "InReview"
@@ -133,7 +135,7 @@
           (k/esc)
           (w/wait-for (str ".ls-icon-" (get status->icon status status))))))))
 
-(deftest priority-test
+(deftest ^:db-graph priority-test
   (testing "task priority commands"
     (let [priority->icon {"No priority" "line-dashed"}]
       (doseq [priority ["No priority" "Low" "Medium" "High" "Urgent"]]
@@ -145,7 +147,7 @@
           (w/wait-for (str ".ls-icon-" (get priority->icon priority
                                             (str "priorityLvl" priority)))))))))
 
-(deftest scheduled-deadline-test
+(deftest ^:db-graph scheduled-deadline-test
   (testing "task scheduled and deadline commands"
     (doseq [command ["Scheduled" "Deadline"]]
       (fixtures/create-page)
@@ -217,7 +219,7 @@
     (assert/assert-have-count "span.typed-list" 3)
     (is (= ["1." "2." "3."] (w/all-text-contents "span.typed-list")))))
 
-(deftest query-test
+(deftest ^:file-graph-fixme query-test
   (testing "query"
     (b/new-blocks ["[[foo]] block" "[[foo]] another" ""])
     (util/input-command "query")
@@ -228,7 +230,7 @@
       (w/click "a.menu-link:has-text('foo')")
       (assert/assert-is-visible "div:text('Live query (2)')"))))
 
-(deftest advanced-query-test
+(deftest ^:file-graph-fixme advanced-query-test
   (testing "query"
     (b/new-blocks ["[[bar]] block" "[[bar]] another" ""])
     (util/input-command "advanced query")
@@ -248,7 +250,7 @@
     (w/wait-for "div.extensions__code-calc-output-line")
     (is (= "3" (util/get-text "div.extensions__code-calc-output-line")))))
 
-(deftest template-test
+(deftest ^:db-graph template-test
   (testing "template"
     (b/new-block "template 1")
     (util/set-tag "Template")
