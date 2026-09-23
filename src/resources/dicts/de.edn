@@ -76,7 +76,6 @@
  :asset/maximize "Bild maximieren"
  :asset/open-in-browser "Bild im Browser öffnen"
  :asset/physical-delete "Datei ebenfalls entfernen (Achtung: die Datei kann nicht wiederhergestellt werden)"
- :asset/ref-block "Anlagen-Verweis-Block"
  :asset/show-in-folder "Bild im Ordner anzeigen"
 
  :block/name "Seitenname"

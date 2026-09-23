@@ -164,7 +164,6 @@
  :asset/delete "Excluir imagem"
  :asset/copy "Copiar imagem"
  :asset/maximize "Maximizar imagem"
- :asset/ref-block "Bloco de referência de imagem"
  :asset/confirm-delete "Tem certeza de que deseja excluir este {1}?"
  :asset/physical-delete "Remover também o arquivo (observe que ele não pode ser restaurado)"
  :color/gray "Cinza"

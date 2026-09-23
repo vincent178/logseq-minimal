@@ -27,17 +27,8 @@ and handles unexpected failure."
                                              :db (db/get-db repo)
                                              :date-formatter (state/get-date-formatter)
                                              :page-name page-name
-                                             :db-graph-mode? (config/db-based-graph? repo)})]
-        (if (config/db-based-graph? repo)
-          (map (fn [block]
-                 (cond-> (dissoc block :block/format :block/properties :block/macros :block/properties-order)
-                   (:block/properties block)
-                   (merge (update-keys (:block/properties block)
-                                       (fn [k]
-                                         (or ({:heading :logseq.property/heading} k)
-                                             (throw (ex-info (str "Don't know how to save graph-parser property " (pr-str k)) {}))))))))
-               blocks)
-          blocks))
+                                             :db-graph-mode? false})]
+        blocks)
       (catch :default e
         (log/error :exception e)
         (state/pub-event! [:capture-error {:error e
@@ -80,18 +71,12 @@ and handles unexpected failure."
           parse-config (mldoc/get-default-config format)
           ;; Disable extraction for display-type blocks as there isn't a reason to have
           ;; it enabled yet and can cause visible bugs when '#' is used
-          db-based? (config/db-based-graph? (state/get-current-repo))
-          blocks (if (and db-based?
-                          (:logseq.property.node/display-type block))
-                   [block]
-                   (let [ast (format/to-edn title format parse-config)]
-                     (extract-blocks ast title format {})))
+          blocks (let [ast (format/to-edn title format parse-config)]
+                   (extract-blocks ast title format {}))
           new-block (first blocks)
           block (cond-> (merge block new-block)
                   (> (count blocks) 1)
-                  (assoc :block/warning :multiple-blocks)
-                  db-based?
-                  (dissoc :block/format))
+                  (assoc :block/warning :multiple-blocks))
           block (dissoc block :block.temp/ast-body :block/level)]
       (if uuid (assoc block :block/uuid uuid) block))))
 
