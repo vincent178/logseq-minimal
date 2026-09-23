@@ -7,7 +7,6 @@
             [frontend.db.model :as db-model]
             [frontend.db.react :as react]
             [frontend.fs :as fs]
-            [frontend.handler.assets :as assets-handler]
             [frontend.loader :refer [load]]
             [frontend.state :as state]
             [frontend.storage :as storage]
@@ -112,11 +111,8 @@
   []
   (when-let [style (or (state/get-custom-css-link)
                        (db-model/get-custom-css))]
-    (if (config/db-based-graph? (state/get-current-repo))
-      (p/let [style (assets-handler/<expand-assets-links-for-db-graph style)]
-        (util/add-style! style))
-      (some-> (config/expand-relative-assets-path style)
-              (util/add-style!)))))
+    (some-> (config/expand-relative-assets-path style)
+            (util/add-style!))))
 
 (defn reset-custom-css!
   []
@@ -162,10 +158,6 @@
           (when (or (not should-ask?)
                     (ask-allow))
             (load href #(do (js/console.log "[custom js]" href) (execed))))
-
-          (config/db-based-graph? (state/get-current-repo))
-          (when-let [script (db/get-file href)]
-            (exec-fn script))
 
           :else
           (let [repo-dir (config/get-repo-dir (state/get-current-repo))

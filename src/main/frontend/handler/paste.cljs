@@ -2,7 +2,6 @@
   (:require ["/frontend/utils" :as utils]
             [clojure.string :as string]
             [frontend.commands :as commands]
-            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.extensions.html-parser :as html-parser]
             [frontend.format.block :as block]
@@ -18,7 +17,6 @@
             [lambdaisland.glogi :as log]
             [logseq.common.util :as common-util]
             [logseq.common.util.block-ref :as block-ref]
-            [logseq.db.frontend.content :as db-content]
             [logseq.graph-parser.block :as gp-block]
             [promesa.core :as p]))
 
@@ -30,16 +28,7 @@
                   (mldoc/->edn text format)
                   text format
                   {:page-name (:block/name (db/entity page-id))})
-          db-based? (config/db-based-graph? (state/get-current-repo))
-          blocks' (cond->> (gp-block/with-parent-and-order page-id blocks)
-                    db-based?
-                    (map (fn [block]
-                           (let [refs (:block/refs block)]
-                             (-> block
-                                 (dissoc :block/tags)
-                                 (update :block/title (fn [title]
-                                                        (let [title' (db-content/replace-tags-with-id-refs title refs)]
-                                                          (db-content/title-ref->id-ref title' refs)))))))))]
+          blocks' (gp-block/with-parent-and-order page-id blocks)]
       (editor-handler/paste-blocks blocks' {:keep-uuid? true
                                             :outliner-real-op :paste-text}))))
 
@@ -199,9 +188,7 @@
        ;; Handle internal paste
          (let [revert-cut-txs (get-revert-cut-txs blocks)
                keep-uuid? (= (state/get-block-op-type) :cut)
-               blocks (if (config/db-based-graph? (state/get-current-repo))
-                        (map (fn [b] (dissoc b :block/properties)) blocks)
-                        blocks)]
+               blocks blocks]
            (if embed-block?
              (when-let [block-id (:block/uuid (first blocks))]
                (when-let [current-block (state/get-edit-block)]

@@ -1,8 +1,6 @@
 (ns frontend.db.conn
   "Contains db connections."
-  (:require [clojure.string :as string]
-            [datascript.core :as d]
-            [frontend.config :as config]
+  (:require             [frontend.config :as config]
             [frontend.db.conn-state :as db-conn-state]
             [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
@@ -10,7 +8,6 @@
             [frontend.util.text :as text-util]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
-            [logseq.db.frontend.schema :as db-schema]
             [logseq.graph-parser.db :as gp-db]
             [logseq.graph-parser.text :as text]))
 
@@ -55,9 +52,7 @@
 
                      :else
                      repo-name)]
-    (if (config/db-based-graph? repo-name')
-      (string/replace-first repo-name' config/db-version-prefix "")
-      repo-name')))
+    repo-name'))
 
 (defn remove-conn!
   [repo]
@@ -84,9 +79,7 @@
    (start! repo {}))
   ([repo {:keys [listen-handler]}]
    (let [db-name (db-conn-state/get-repo-path repo)
-         db-conn (if (config/db-based-graph? repo)
-                   (d/create-conn db-schema/schema)
-                   (gp-db/start-conn))]
+         db-conn (gp-db/start-conn)]
      (destroy-all!)
      (swap! conns assoc db-name db-conn)
      (when listen-handler

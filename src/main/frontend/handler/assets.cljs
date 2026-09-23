@@ -120,27 +120,6 @@
              (util/format "[[%s][%s]]" url file-name))
       nil)))
 
-(defn <make-data-url
-  [path]
-  (let [repo-dir (config/get-repo-dir (state/get-current-repo))]
-    (p/let [binary (fs/read-file-raw repo-dir path {})
-            blob (js/Blob. (array binary) (clj->js {:type "image"}))]
-      (when blob (js/URL.createObjectURL blob)))))
-
-(defn <expand-assets-links-for-db-graph
-  "Expand ../assets/ links in custom.css file to blob url.
-
-   Only for db-based graph"
-  [css]
-  (let [rel-paths (re-seq #"\(['\"]?(\.\./assets/.*?)['\"]?\)" css)
-        rel-paths (vec (set (map second rel-paths)))
-        fixed-rel-paths (map (fn [p] (path/path-join "./logseq/" p)) rel-paths)]
-    (p/let [blob-urls (p/all (map <make-data-url fixed-rel-paths))]
-      (reduce (fn [css [rel-path blob-url]]
-                (string/replace css rel-path (str "'" blob-url "'")))
-              css
-              (map vector rel-paths blob-urls)))))
-
 (defn <make-asset-url
   "Make accessible asset url from path.
    If path is absolute url, return it directly.
