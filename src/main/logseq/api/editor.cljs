@@ -3,7 +3,6 @@
   (:require [cljs-bean.core :as bean]
             [cljs.reader]
             [frontend.commands :as commands]
-            [frontend.config :as config]
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
@@ -122,10 +121,10 @@
 (defn create_page
   [name ^js properties ^js opts]
   (this-as
-   this
+   _this
    (let [properties (bean/->clj properties)
-         db-based? (config/db-based-graph?)
-         {:keys [redirect format journal schema class customUUID]} (bean/->clj opts)]
+         db-based? false
+         {:keys [redirect format journal _schema class customUUID]} (bean/->clj opts)]
      (p/let [page (<get-block name {:children? false})
              new-page (when-not page
                         (page-handler/<create!
@@ -138,10 +137,7 @@
                            (string? customUUID)
                            (assoc :uuid (uuid customUUID))
                            (not db-based?)
-                           (assoc :properties properties))))
-             _ (when (and db-based? (seq properties))
-                 (api-block/db-based-save-block-properties! new-page properties {:plugin this
-                                                                                 :schema schema}))]
+                           (assoc :properties properties))))]
        (some-> (or page new-page)
                sdk-utils/result->js)))))
 
@@ -215,7 +211,7 @@
                 [sibling? before?] (if insert-at-first-child?
                                      [true true]
                                      [sibling before])
-                db-based? (config/db-based-graph?)
+                db-based? false
                 before? (if (and (false? sibling?) before? (not insert-at-first-child?))
                           false
                           before?)
@@ -242,7 +238,7 @@
      (p/let [block (<ensure-page-loaded block-uuid)]
        (when block
          (when-let [blocks (bean/->clj batch-blocks-js)]
-           (let [db-based? (config/db-based-graph?)
+           (let [db-based? false
                  blocks' (if-not (vector? blocks) (vector blocks) blocks)
                  opts (bean/->clj opts-js)
                  {:keys [sibling before _schema keepUUID]} opts]
@@ -279,7 +275,7 @@
     (this-as
      this
      (p/let [repo (state/get-current-repo)
-             db-based? (config/db-based-graph?)
+             db-based? false
              block (<get-block id {:children? false})
              opts' (bean/->clj opts)]
        (when-let [block-uuid (:block/uuid block)]
@@ -459,7 +455,7 @@
             opts (bean/->clj options)
             repo (state/get-current-repo)
             block (<get-block id {:children? false})
-            db-based? (config/db-based-graph?)
+            db-based? false
             value (bean/->clj value)]
       (when-let [block-uuid (:block/uuid block)]
         (if db-based?
@@ -471,7 +467,7 @@
   (this-as this
     (p/let [block (<get-block id {:children? false})]
       (when-let [block-uuid (:block/uuid block)]
-        (let [db-based? (config/db-based-graph?)
+        (let [db-based? false
               key (api-block/sanitize-user-property-name key)
               key (if db-based?
                     (api-block/get-db-ident-from-property-name key this)
@@ -507,7 +503,7 @@
   (fn [id]
     (p/let [block (<get-block id {:children? false})]
       (when block
-        (let [properties (if (config/db-based-graph?)
+        (let [properties (if false
                            (api-block/into-readable-db-properties (:block/properties block))
                            (:block/properties block))]
           (sdk-utils/result->js properties))))))
