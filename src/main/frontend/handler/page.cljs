@@ -135,10 +135,8 @@
          (state/update-favorites-updated!))))))
 
 (defn update-public-attribute!
-  [repo page value]
-  (if (config/db-based-graph? repo)
-    (db-property-handler/set-block-property! [:block/uuid (:block/uuid page)] :logseq.property/publishing-public? value)
-    (file-page-property/add-property! page :public value)))
+  [_repo page value]
+  (file-page-property/add-property! page :public value))
 
 (defn get-page-ref-text
   [page]

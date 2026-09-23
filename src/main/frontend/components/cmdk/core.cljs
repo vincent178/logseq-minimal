@@ -13,7 +13,6 @@
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.handler.block :as block-handler]
             [frontend.handler.command-palette :as cp-handler]
-            [frontend.handler.db-based.page :as db-page-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
@@ -88,11 +87,13 @@
   (when (and (not (string/blank? q))
              (not (#{"config.edn" "custom.js" "custom.css"} q))
              (not config/publishing?))
-    (let [class? (string/starts-with? q "#")
+    (let [db-graph? (config/db-based-graph? (state/get-current-repo))
+          class? (and db-graph? (string/starts-with? q "#"))
           class-name (get-class-from-input q)
-          class (let [class (db/get-case-page class-name)]
-                  (when (ldb/class? class)
-                    class))]
+          class (when db-graph?
+                  (let [class (db/get-case-page class-name)]
+                    (when (ldb/class? class)
+                      class)))]
       (->> [{:text (cond
                      class "Configure tag"
                      class? "Create tag"
@@ -562,21 +563,13 @@
 (defmethod handle-action :create [_ state _event]
   (let [item (state->highlighted-item state)
         !input (::input state)
-        create-class? (string/starts-with? @!input "#")
         create-whiteboard? (= :whiteboard (:source-create item))
-        create-page? (= :page (:source-create item))
-        class (when create-class? (get-class-from-input @!input))]
-    (if (and (= (:text item) "Configure tag") (:class item))
-      (state/pub-event! [:dialog/show-block (:class item) {:tag-dialog? true}])
-      (p/let [result (cond
-                       create-class?
-                       (db-page-handler/<create-class! class
-                                                       {:redirect? false})
-                       create-whiteboard? (whiteboard-handler/<create-new-whiteboard-and-redirect! @!input)
-                       create-page? (page-handler/<create! @!input {:redirect? true}))]
-        (shui/dialog-close! :ls-dialog-cmdk)
-        (when (and create-class? result)
-          (state/pub-event! [:dialog/show-block result {:tag-dialog? true}]))))))
+        create-page? (= :page (:source-create item))]
+    (p/let [_ (cond
+                create-whiteboard? (whiteboard-handler/<create-new-whiteboard-and-redirect! @!input)
+                ;; File graphs: a leading '#' is file-tag syntax; create a page.
+                create-page? (page-handler/<create! @!input {:redirect? true}))]
+      (shui/dialog-close! :ls-dialog-cmdk))))
 
 (defn- get-filter-user-input
   [input]
