@@ -12,7 +12,6 @@
             [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.common.page :as page-common-handler]
-            [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
             [frontend.handler.file-based.page :as file-page-handler]
