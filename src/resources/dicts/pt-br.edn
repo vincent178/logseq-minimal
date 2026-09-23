@@ -416,8 +416,6 @@
  :export-opml "Exportar como OPML"
  :export-public-pages "Exportar páginas públicas"
  :export-json "Exportar como JSON"
- :export-sqlite-db "Exportar SQLite DB"
- :export-zip "Exportar ambos SQLite DB e imagens"
  :export-roam-json "Exportar como Roam JSON"
  :export-edn "Exportar como EDN"
  :export-transparent-background "Fundo transparente"

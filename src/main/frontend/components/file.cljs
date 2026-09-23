@@ -86,11 +86,7 @@
                                     :else
                                     [repo-dir path])]
                    (when (and format (contains? (common-config/text-formats) format))
-                     (p/let [content (if (and (config/db-based-graph? repo)
-                                              ;; not global
-                                              (not (string/starts-with? path "/")))
-                                       (db/get-file path)
-                                       (fs/read-file dir path))]
+                     (p/let [content (fs/read-file dir path)]
                        (reset! *content (or content ""))))
                    (assoc state ::file-content *content)))
    :did-mount (fn [state]
@@ -107,9 +103,6 @@
         in-db? (when-not (path/absolute? path)
                  (boolean (db/get-file (or path rel-path))))
         file-path (cond
-                    (config/db-based-graph? (state/get-current-repo))
-                    path
-
                     in-db?
                     (path/path-join repo-dir path)
 
