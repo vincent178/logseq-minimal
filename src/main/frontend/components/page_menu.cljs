@@ -34,9 +34,7 @@
          {:title [:h3.text-lg.leading-6.font-medium.flex.gap-2.items-center
                   [:span.top-1.relative
                    (shui/tabler-icon "alert-triangle")]
-                  (if (config/db-based-graph? (state/get-current-repo))
-                    (t :page/db-delete-confirmation)
-                    (t :page/delete-confirmation))]
+                  (t :page/delete-confirmation)]
           :content [:p.opacity-60 (str "- " (:block/title page))]
           :outside-cancel? true})
         (p/then #(delete-page! page))
@@ -46,14 +44,11 @@
   [page]
   (when-let [page-name (and page (db/page? page) (:block/name page))]
     (let [repo (state/sub :git/current-repo)
-          db-based? (config/db-based-graph? repo)
-          page-title (if db-based? (str (:block/uuid page)) (:block/title page))
+          page-title (:block/title page)
           whiteboard? (ldb/whiteboard? page)
           block? (and page (util/uuid-string? page-name) (not whiteboard?))
           contents? (= page-name "contents")
-          public? (if db-based?
-                    (:logseq.property/publishing-public? page)
-                    (get-in page [:block/properties :public]))
+          public? (get-in page [:block/properties :public])
           _favorites-updated? (state/sub :favorites/updated?)
           favorited? (page-handler/favorited? page-title)
           developer-mode? (state/sub [:ui/developer-mode?])
@@ -70,7 +65,7 @@
                            (page-handler/<unfavorite-page! page-title)
                            (page-handler/<favorite-page! page-title)))}})
 
-          (when (and (util/electron?) (not db-based?))
+          (when (util/electron?)
             {:title   (t :page/version-history)
              :options {:on-click
                        (fn [] (shell/get-file-latest-git-log page 100))
@@ -79,12 +74,10 @@
           (when (or (util/electron?)
                     (mobile-util/native-platform?))
             {:title   (t :page/copy-page-url)
-             :options {:on-click #(page-handler/copy-page-url (if db-based? (:block/uuid page) page-title))}})
+             :options {:on-click #(page-handler/copy-page-url page-title)}})
 
           (when-not (or contents?
-                        config/publishing?
-                        (and db-based?
-                             (:logseq.property/built-in? page)))
+                        config/publishing?)
             {:title   (t :page/delete)
              :options {:on-click #(delete-page-confirm! page)}})
 
@@ -134,9 +127,7 @@
              :options {:on-click (fn []
                                    (dev-common-handler/show-entity-data (:db/id page)))}})
 
-          (when (and developer-mode?
-                     ;; Remove when we have an easy way to fetch file content for a DB graph
-                     (not db-based?))
+          (when developer-mode?
             {:title   (t :dev/show-page-ast)
              :options {:on-click (fn []
                                    (let [page (db/pull '[:block/format {:block/file [:file/content]}] (:db/id page))]
