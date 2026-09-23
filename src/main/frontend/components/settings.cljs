@@ -14,7 +14,6 @@
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.plugin :as plugin-handler]
-            [frontend.handler.property :as property-handler]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.handler.user :as user-handler]
@@ -432,32 +431,21 @@
    [:label.block.text-sm.font-medium.leading-5.opacity-70
     {:for "custom_date_format"}
     (t :settings-page/custom-date-format)
-    (when-not (config/db-based-graph? (state/get-current-repo))
-      (ui/tooltip [:span.flex.px-2 (svg/info)]
-                  [:span (t :settings-page/custom-date-format-warning)]))]
+    (ui/tooltip [:span.flex.px-2 (svg/info)]
+                [:span (t :settings-page/custom-date-format-warning)])]
    [:div.mt-1.sm:mt-0.sm:col-span-2
     [:div.max-w-lg.rounded-md
      [:select.form-select.is-small
       {:value     preferred-date-format
        :on-change (fn [e]
-                    (let [repo (state/get-current-repo)
-                          format (util/evalue e)
-                          db-based? (config/db-based-graph? repo)]
+                    (let [format (util/evalue e)]
                       (when-not (string/blank? format)
-                        (if db-based?
-                          (p/do!
-                           (property-handler/set-block-property! repo
-                                                                 :logseq.class/Journal
-                                                                 :logseq.property.journal/title-format
-                                                                 format)
-                           (notification/show! "Please refresh the app for this change to take effect"))
-                          (do
-                            (config-handler/set-config! :journal/page-title-format format)
-                            (notification/show!
-                             [:div (t :settings-page/custom-date-format-notification)]
-                             :warning false)))
-                        (shui/dialog-close-all!)
-                        (when-not db-based? (route-handler/redirect! {:to :graphs})))))}
+                        (config-handler/set-config! :journal/page-title-format format)
+                        (notification/show!
+                         [:div (t :settings-page/custom-date-format-notification)]
+                         :warning false))
+                      (shui/dialog-close-all!)
+                      (route-handler/redirect! {:to :graphs})))}
       (for [format (sort (date/journal-title-formatters))]
         [:option {:key format} format])]]]])
 
@@ -768,15 +756,12 @@
         enable-shortcut-tooltip? (state/sub :ui/shortcut-tooltip?)
         show-brackets? (state/show-brackets?)
         wide-mode? (state/sub :ui/wide-mode?)
-        enable-git-auto-push? (state/enable-git-auto-push? current-repo)
-        db-graph? (config/db-based-graph? (state/get-current-repo))]
+        enable-git-auto-push? (state/enable-git-auto-push? current-repo)]
 
     [:div.panel-wrap.is-editor
-     (when-not db-graph?
-       (file-format-row t preferred-format))
+     (file-format-row t preferred-format)
      (date-format-row t preferred-date-format)
-     (when-not db-graph?
-       (workflow-row t preferred-workflow))
+     (workflow-row t preferred-workflow)
      (show-brackets-row t show-brackets?)
      (toggle-wide-mode-row t wide-mode?)
 
@@ -791,8 +776,7 @@
        (tooltip-row t enable-tooltip?))
      (timetracking-row t enable-timetracking?)
      (enable-all-pages-public-row t enable-all-pages-public?)
-     (when-not db-graph?
-       (auto-push-row t current-repo enable-git-auto-push?))]))
+     (auto-push-row t current-repo enable-git-auto-push?)]))
 
 (rum/defc settings-git
   []
@@ -851,7 +835,6 @@
   (let [current-repo (state/get-current-repo)
         enable-journals? (state/enable-journals? current-repo)
         enable-flashcards? (state/enable-flashcards? current-repo)
-        db-based? (config/db-based-graph? current-repo)
         enable-whiteboards? (state/enable-whiteboards? current-repo)]
     [:div.panel-wrap.is-features.mb-8
      (journal-row enable-journals?)
@@ -868,13 +851,13 @@
             :on-key-press  (fn [e]
                              (when (= "Enter" (util/ekey e))
                                (update-home-page e)))}]]]])
-     (when-not db-based? (whiteboards-switcher-row enable-whiteboards?))
+     (whiteboards-switcher-row enable-whiteboards?)
      (when (and web-platform? config/feature-plugin-system-on?)
        (plugin-system-switcher-row))
      (when (util/electron?)
        (http-server-switcher-row))
      (flashcards-switcher-row enable-flashcards?)
-     (when-not db-based? (zotero-settings-row))]))
+     (zotero-settings-row)]))
 
      ;; (when-not web-platform?
      ;;   [:<>
@@ -926,8 +909,7 @@
   (let [current-repo (state/sub :git/current-repo)
         _installed-plugins (state/sub :plugin/installed-plugins)
         plugins-of-settings (and config/lsp-enabled? (seq (plugin-handler/get-enabled-plugins-if-setting-schema)))
-        *active (::active state)
-        db-based? (config/db-based-graph?)]
+        *active (::active state)]
 
     [:div#settings.cp__settings-main
      (settings-effect @*active)
@@ -944,7 +926,7 @@
                [:keymap "keymap" (t :settings-page/tab-keymap) (ui/icon "keyboard")]
 
                ;; :ai (semantic search) tab removed with vector-search
-               (when (and (util/electron?) (not db-based?))
+               (when (util/electron?)
                  [:version-control "git" (t :settings-page/tab-version-control) (ui/icon "history")])
 
                ;; (when (util/electron?)

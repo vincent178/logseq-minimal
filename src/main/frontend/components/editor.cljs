@@ -5,12 +5,9 @@
             [frontend.components.file-based.datetime :as datetime-comp]
             [frontend.components.icon :as icon-component]
             [frontend.components.svg :as svg]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
-            [frontend.date :as date]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
-            [frontend.db.model :as db-model]
             [frontend.extensions.zotero :as zotero]
             [frontend.handler.block :as block-handler]
             [frontend.handler.editor :as editor-handler :refer [get-state]]
@@ -29,8 +26,6 @@
             [goog.dom :as gdom]
             [goog.string :as gstring]
             [logseq.common.util :as common-util]
-            [logseq.common.util.page-ref :as page-ref]
-            [logseq.db :as ldb]
             [logseq.db.frontend.class :as db-class]
             [logseq.graph-parser.property :as gp-property]
             [logseq.shui.hooks :as hooks]
@@ -52,7 +47,7 @@
     commands))
 
 (defn node-render
-  [block q {:keys [db-tag? db-based?]}]
+  [block q {:keys [_db-tag? _db-based?]}]
   (let [block' (if-let [id (:block/uuid block)]
                  (if-let [e (db/entity [:block/uuid id])]
                    (assoc e
@@ -68,19 +63,6 @@
             (breadcrumb {:search? true} (state/get-current-repo) (:block/uuid block')
                         {:disabled? true})]))
        [:div.flex.flex-row.items-start
-        (when-not (or db-tag? (not db-based?))
-          [:div.flex.items-center.h-5.mr-1.opacity-50
-           (cond
-             (:nlp-date? block')
-             (ui/icon "calendar" {:size 14})
-
-             (or (string/starts-with? (str (:block/title block')) (t :new-tag))
-                 (string/starts-with? (str (:block/title block')) (t :new-page)))
-             (ui/icon "plus" {:size 14})
-
-             :else
-             (icon-component/get-node-icon-cp block' {:ignore-current-icon? true}))])
-
         (let [title (let [alias (get-in block' [:alias :block/title])]
                       (block-handler/block-unique-title block' {:alias alias}))]
           (if (or (string/starts-with? title (t :new-tag))
@@ -173,61 +155,34 @@
                                                  :other-attrs {:block/link (:db/id page')}}))))
     (page-handler/on-chosen-handler input id pos format)))
 
-(defn- matched-pages-with-new-page [partial-matched-pages db-tag? q]
-  (let [ids (db/page-exists? q (if db-tag?
-                                 #{:logseq.class/Tag}
-                                 ;; Page existence here should be the same as entity-util/page?.
-                                 ;; Don't show 'New page' if a page has any of these tags
-                                 db-class/page-classes))
+(defn- matched-pages-with-new-page [partial-matched-pages _db-tag? q]
+  (let [ids (db/page-exists? q
+                             ;; Page existence here should be the same as entity-util/page?.
+                             ;; Don't show 'New page' if a page has any of these tags
+                             db-class/page-classes)
         page-exists? (some (fn [id] (nil? (:block/parent (db/entity id)))) ids)]
-    (if (or page-exists?
-            (and db-tag? (some ldb/class? (:block/_alias (db/get-page q)))))
+    (if page-exists?
       partial-matched-pages
-      (if db-tag?
-        (concat
-       ;; Don't show 'New tag' for an internal page because it already shows 'Convert ...'
-         (when-not (let [entity (db/get-page q)]
-                     (and (ldb/internal-page? entity) (= (:block/title entity) q)))
-           [{:block/title (str (t :new-tag) " " q)}])
-         partial-matched-pages)
-        (cons {:block/title (str (t :new-page) " " q)}
-              partial-matched-pages)))))
+      (cons {:block/title (str (t :new-page) " " q)}
+            partial-matched-pages))))
 
 (defn- search-pages
-  [q db-tag? db-based? set-matched-pages!]
+  [q _db-tag? set-matched-pages!]
   (when-not (string/blank? q)
-    (p/let [block (db-async/<get-block (state/get-current-repo) q {:children? false})
-            result (if db-tag?
-                     (let [classes (editor-handler/get-matched-classes q)]
-                       (if (and (ldb/internal-page? block)
-                                (= (:block/title block) q)
-                                (not (ldb/built-in? block)))
-                         (cons {:block/title q
-                                :db/id (:db/id block)
-                                :block/uuid (:block/uuid block)
-                                :convert-page-to-tag? true
-                                :friendly-title (util/format "Convert \"%s\" to tag" q)} classes)
-                         classes))
-                     (editor-handler/<get-matched-blocks q {:nlp-pages? true
-                                                            :page-only? (not db-based?)}))]
+    (p/let [_block (db-async/<get-block (state/get-current-repo) q {:children? false})
+            result (editor-handler/<get-matched-blocks q {:nlp-pages? true
+                                                          :page-only? true})]
       (set-matched-pages! result))))
 
 (rum/defc page-search-aux
   [id format embed? db-tag? q current-pos input pos]
-  (let [db-based? (config/db-based-graph? (state/get-current-repo))
-        q (string/trim q)
+  (let [q (string/trim q)
         [matched-pages set-matched-pages!] (rum/use-state nil)
-        search-f #(search-pages q db-tag? db-based? set-matched-pages!)]
+        search-f #(search-pages q db-tag? set-matched-pages!)]
     (hooks/use-effect! search-f [(hooks/use-debounced-value q 150)])
 
     (let [matched-pages' (if (string/blank? q)
-                           (when db-based?
-                             (if db-tag?
-                               (db-model/get-all-classes (state/get-current-repo) {:except-root-class? true})
-                               (->> (map (fn [title] {:block/title title
-                                                      :nlp-date? true})
-                                         date/nlp-pages)
-                                    (take 10))))
+                           nil
                            ;; reorder, shortest and starts-with first.
                            (if (and (seq matched-pages)
                                     (gstring/caseInsensitiveStartsWith (:block/title (first matched-pages)) q))
@@ -241,19 +196,9 @@
          :on-enter    (fn []
                         (page-handler/page-not-exists-handler input id q current-pos))
          :item-render (fn [block _chosen?]
-                        (node-render block q {:db-tag? db-tag?
-                                              :db-based? db-based?}))
-         :empty-placeholder [:div.text-gray-500.text-sm.px-4.py-2 (if db-tag?
-                                                                    "Search for a tag"
-                                                                    "Search for a node")]
-         :class "black"})
-
-       (when (and db-based? db-tag?
-                  (not (string/blank? q))
-                  (not= "page" (string/lower-case q)))
-         [:p.px-1.opacity-50.text-sm
-          [:code (if util/mac? "Cmd+Enter" "Ctrl+Enter")]
-          [:span " to display this tag inline instead of at the end of this node."]])])))
+                        (node-render block q {:db-tag? db-tag?}))
+         :empty-placeholder [:div.text-gray-500.text-sm.px-4.py-2 "Search for a node"]
+         :class "black"})])))
 
 (rum/defcs page-search < rum/reactive
   {:init (fn [state]
@@ -264,10 +209,8 @@
   "Page or tag searching popup"
   [state id format]
   (let [action (state/sub :editor/action)
-        db? (config/db-based-graph? (state/get-current-repo))
-        embed? (and db? (= @commands/*current-command "Page embed"))
-        tag? (= action :page-search-hashtag)
-        db-tag? (and db? tag?)
+        embed? false
+        db-tag? false
         pos (::pos state)
         input (gdom/getElement id)]
     (when input
@@ -323,9 +266,7 @@
   [state _edit-block input id q format selected-text]
   (let [result (->> (rum/react (get state ::result))
                     (remove (fn [b] (nil? (:block/uuid b)))))
-        db? (config/db-based-graph? (state/get-current-repo))
-        embed? (and db? (= @commands/*current-command "Block embed"))
-        chosen-handler (block-on-chosen-handler embed? input id q format selected-text)
+        chosen-handler (block-on-chosen-handler false input id q format selected-text)
         non-exist-block-handler (editor-handler/block-non-exist-handler input)]
     (ui/auto-complete
      result
@@ -333,8 +274,7 @@
       :on-enter    non-exist-block-handler
       :empty-placeholder   [:div.text-gray-500.text-sm.px-4.py-2 (t :editor/block-search)]
       :item-render (fn [block]
-                     (node-render block q {:db-tag? false
-                                           :db-based? db?}))
+                     (node-render block q {:db-tag? false}))
       :class       "ac-block-search"})))
 
 (rum/defcs block-search < rum/reactive
@@ -355,17 +295,7 @@
            (when (>= (count edit-content) current-pos)
              (subs edit-content pos current-pos)))]
     (when input
-      (let [db? (config/db-based-graph? (state/get-current-repo))
-            embed? (and db? (= @commands/*current-command "Block embed"))
-            page (when embed? (page-ref/get-page-name edit-content))
-            embed-block-id (when (and embed? page (common-util/uuid-string? page))
-                             (uuid page))]
-        (if embed-block-id
-          (let [f (block-on-chosen-handler true input id q format nil)
-                block (db/entity embed-block-id)]
-            (when block (f block))
-            nil)
-          (block-search-auto-complete edit-block input id q format selected-text))))))
+      (block-search-auto-complete edit-block input id q format selected-text))))
 
 (rum/defc template-search-aux
   [id q]

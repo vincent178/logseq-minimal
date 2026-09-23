@@ -159,14 +159,13 @@
 
 (rum/defcs page-blocks-cp < rum/reactive db-mixins/query
   {:will-mount (fn [state]
-                 (when-not (config/db-based-graph?)
-                   (let [page-e (first (:rum/args state))
-                         page-name (:block/name page-e)]
-                     (when (and page-name
-                                (db/journal-page? page-name)
-                                (>= (date/journal-title->int page-name)
-                                    (date/journal-title->int (date/today))))
-                       (state/pub-event! [:journal/insert-template page-name]))))
+                 (let [page-e (first (:rum/args state))
+                       page-name (:block/name page-e)]
+                   (when (and page-name
+                              (db/journal-page? page-name)
+                              (>= (date/journal-title->int page-name)
+                                  (date/journal-title->int (date/today))))
+                     (state/pub-event! [:journal/insert-template page-name])))
                  state)}
   [state block* {:keys [sidebar? whiteboard? hide-add-button? journals?] :as config}]
   (when-let [id (:db/id block*)]
@@ -231,9 +230,7 @@
       (when (seq queries)
         [:div#today-queries
          (for [query queries]
-           (let [query' (if (config/db-based-graph?)
-                          (assoc query :collapsed? true)
-                          query)]
+           (let [query' query]
              (rum/with-key
                (ui/catch-error
                 (ui/component-error "Failed default query:" {:content (pr-str query')})
@@ -376,9 +373,8 @@
                                         (not (ldb/built-in? page)))
                                (reset! *input-value (if untitled? "" old-name))
                                (reset! *edit? true)))))}
-            (when-not (config/db-based-graph?)
-              (when (get-in page [:block/properties :icon])
-                (icon-component/get-node-icon-cp page {})))
+            (when (get-in page [:block/properties :icon])
+              (icon-component/get-node-icon-cp page {}))
 
             (if @*edit?
               (page-title-editor page {:*title-value *title-value
@@ -658,7 +654,6 @@
 (defonce *builtin-pages? (atom nil))
 (defonce *excluded-pages? (atom true))
 (defonce *show-journals-in-page-graph? (atom nil))
-(defonce *created-at-filter (atom nil))
 (defonce *link-dist (atom 70))
 (defonce *charge-strength (atom -600))
 (defonce *charge-range (atom 600))
@@ -694,7 +689,6 @@
         orphan-pages? (if (nil? orphan-pages?') orphan-pages? orphan-pages?')
         builtin-pages? (if (nil? builtin-pages?') builtin-pages? builtin-pages?')
         excluded-pages? (if (nil? excluded-pages?') excluded-pages? excluded-pages?')
-        created-at-filter (or (rum/react *created-at-filter) (:created-at-filter settings))
         link-dist (if (nil? link-dist') link-dist link-dist')
         charge-strength (if (nil? charge-strength') charge-strength charge-strength')
         charge-range (if (nil? charge-range') charge-range charge-range')
@@ -776,24 +770,6 @@
                                (set-setting! :excluded-pages? value)))
                            true)]]
 
-              (when (config/db-based-graph? (state/get-current-repo))
-                [:div.flex.flex-col.mb-2
-                 [:p "Created before"]
-                 (when created-at-filter
-                   [:div (.toDateString (js/Date. (+ created-at-filter (get-in graph [:all-pages :created-at-min]))))])
-
-                 (ui/tooltip
-                   ;; Slider keeps track off the range from min created-at to max created-at
-                   ;; because there were bugs with setting min and max directly
-                  (ui/slider created-at-filter
-                             {:min 0
-                              :max (- (get-in graph [:all-pages :created-at-max])
-                                      (get-in graph [:all-pages :created-at-min]))
-                              :on-change #(do
-                                            (reset! *created-at-filter (int %))
-                                            (set-setting! :created-at-filter (int %)))})
-                  [:div.px-1 (str (js/Date. (+ created-at-filter (get-in graph [:all-pages :created-at-min]))))])])
-
               (when (seq focus-nodes)
                 [:div.flex.flex-col.mb-2
                  [:p {:title "N hops from selected nodes"}
@@ -809,8 +785,6 @@
                                                       (swap! *graph-reset? not)
                                                       (reset! *focus-nodes [])
                                                       (reset! *n-hops nil)
-                                                      (reset! *created-at-filter nil)
-                                                      (set-setting! :created-at-filter nil)
                                                       (state/clear-search-filters!))}
                "Reset Graph"]]]))
          {})

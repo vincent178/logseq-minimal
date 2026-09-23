@@ -18,22 +18,20 @@
             [rum.core :as rum]))
 
 (rum/defc normalized-graph-label
-  [{:keys [url remote? graph-e2ee? GraphName GraphUUID] :as graph} on-click]
-  (let [db-based? (config/db-based-graph? url)]
-    (when graph
-      [:span.flex.items-center
-       (if (or (config/local-file-based-graph? url)
-               db-based?)
-         (let [local-dir (config/get-local-dir url)
-               graph-name (text-util/get-graph-name-from-path url)]
-           [:a.flex.items-center {:title local-dir
-                                  :on-click #(on-click graph)}
-            [:span graph-name (when (and GraphName (not db-based?)) [:strong.pl-1 "(" GraphName ")"])]
-            (when remote? [:strong.px-1.flex.items-center (ui/icon (if graph-e2ee? "lock" "cloud"))])])
-         [:a.flex.items-center {:title GraphUUID
+  [{:keys [url remote? graph-e2ee? GraphName] :as graph} on-click]
+  (when graph
+    [:span.flex.items-center
+     (if (config/local-file-based-graph? url)
+       (let [local-dir (config/get-local-dir url)
+             graph-name (text-util/get-graph-name-from-path url)]
+         [:a.flex.items-center {:title local-dir
                                 :on-click #(on-click graph)}
-          (db/get-repo-path (or url GraphName))
-          (when remote? [:strong.pl-1.flex.items-center (ui/icon "cloud")])])])))
+          [:span graph-name (when GraphName [:strong.pl-1 "(" GraphName ")"])]
+          (when remote? [:strong.px-1.flex.items-center (ui/icon (if graph-e2ee? "lock" "cloud"))])])
+       [:a.flex.items-center {:title url
+                              :on-click #(on-click graph)}
+        (db/get-repo-path (or url GraphName))
+        (when remote? [:strong.pl-1.flex.items-center (ui/icon "cloud")])])]))
 
 (defn sort-repos-with-metadata-local
   [repos]
@@ -54,16 +52,12 @@
 
 (defn- delete-local-graph!
   "Permanently delete (db graph) or unlink (file graph) a local graph."
-  [repo url db-based? graph-name]
-  (let [prompt-str (if db-based?
-                     (str "Are you sure you want to permanently delete the graph \"" graph-name "\" from Logseq?")
-                     (str "Are you sure you want to unlink the graph \"" url "\" from local folder?"))]
+  [repo url _graph-name]
+  (let [prompt-str (str "Are you sure you want to unlink the graph \"" url "\" from local folder?")]
     (-> (shui/dialog-confirm!
          [:p.font-medium.-my-4 prompt-str
           [:span.my-2.flex.font-normal.opacity-75
-           (if db-based?
-             [:small "Notice that we can't recover this graph after being deleted. Make sure you have backups before deleting it."]
-             [:small "It won't remove your local files!"])]])
+           [:small "It won't remove your local files!"]]])
         (p/then (fn []
                   (repo-handler/remove-repo! repo)
                   (state/pub-event! [:graph/unlinked repo (state/get-current-repo)]))))))
@@ -73,8 +67,7 @@
   [repos]
   (for [{:keys [root url GraphUUID GraphName created-at last-seen-at] :as repo}
         (sort-repos-with-metadata-local repos)
-        :let [db-based? (config/db-based-graph? url)
-              graph-name (if db-based? (config/db-graph-name url) GraphName)]]
+        :let [graph-name GraphName]]
     [:div.flex.justify-between.mb-2.items-center.group
      {:key (or url GraphUUID) "data-testid" url}
      [:div
@@ -109,18 +102,14 @@
            (shui/dropdown-menu-item
             {:key "delete-locally"
              :class "delete-local-graph-menu-item"
-             :on-click #(delete-local-graph! repo url db-based? graph-name)}
+             :on-click #(delete-local-graph! repo url graph-name)}
             "Delete local graph"))))]]]))
 
 (rum/defc repos-cp < rum/reactive
   []
   (let [repos (state/sub [:me :repos])
         repos (util/distinct-by :url repos)
-        repos (cond->>
-               (remove #(= (:url %) config/demo-repo) repos)
-                (util/mobile?)
-                (filter (fn [item]
-                          (config/db-based-graph? (:url item)))))
+        repos (remove #(= (:url %) config/demo-repo) repos)
         ;; minimal build: no remote graphs, everything is local
         local-graphs (remove :remote? repos)]
     [:div#graphs
@@ -140,12 +129,10 @@
         repo-links (mapv
                     (fn [{:keys [url GraphName] :as _graph}]
                       (let [local? (config/local-file-based-graph? url)
-                            db-only? (config/db-based-graph? url)
-                            repo-url (cond
-                                       local? (db/get-repo-name url)
-                                       db-only? url
-                                       :else GraphName)
-                            short-repo-name (if (or local? db-only?)
+                            repo-url (if local?
+                                       (db/get-repo-name url)
+                                       GraphName)
+                            short-repo-name (if local?
                                               (text-util/get-graph-name-from-path repo-url)
                                               GraphName)]
                         (when short-repo-name
@@ -162,12 +149,11 @@
                     switch-repos)]
     (->> repo-links (remove nil?))))
 
-(defn- repos-footer [multiple-windows? db-based?]
+(defn- repos-footer [multiple-windows?]
   [:div.cp__repos-quick-actions
    {:on-click #(shui/popup-hide!)}
 
-   (when (and (not db-based?)
-              (not (config/demo-graph?)))
+   (when (not (config/demo-graph?))
      [:<>
       (shui/button {:size :sm :variant :ghost
                     :title (t :sync-from-local-files-detail)
@@ -211,7 +197,6 @@
   (let [multiple-windows? false
         current-repo (state/sub :git/current-repo)
         repos (state/sub [:me :repos])
-        db-based? (config/db-based-graph? current-repo)
         repos (sort-repos-with-metadata-local repos)
         repos (distinct repos)
         items-fn #(repos-dropdown-links repos current-repo opts)
@@ -245,7 +230,7 @@
                    [:span.flex.items-center.gap-1.w-full
                     icon [:div title]]))))))]
      (when footer?
-       (repos-footer multiple-windows? db-based?))]))
+       (repos-footer multiple-windows?))]))
 
 (rum/defcs graphs-selector < rum/reactive
   [_state]
@@ -253,7 +238,6 @@
         user-repos (state/get-repos)
         current-repo' (some->> user-repos (medley/find-first #(= current-repo (:url %))))
         repo-name (when current-repo (db/get-repo-name current-repo))
-        db-based? (config/db-based-graph? current-repo)
         remote? (:remote? current-repo')
         short-repo-name (if current-repo
                           (db/get-short-repo-name repo-name)
@@ -267,7 +251,7 @@
                                      {:as-dropdown? true
                                       :content-props {:class "repos-list"}
                                       :align :start}))}
-      [:span.thumb (shui/tabler-icon (if remote? "cloud" (if db-based? "topology-star" "folder")) {:size 16})]
+      [:span.thumb (shui/tabler-icon (if remote? "cloud" "folder") {:size 16})]
       [:strong short-repo-name]
       (shui/tabler-icon "selector" {:size 18})]]))
 

@@ -11,7 +11,6 @@
             [frontend.db.model :as db-model]
             [frontend.db.query-dsl :as query-dsl]
             [frontend.extensions.srs :as srs]
-            [frontend.handler.block :as block-handler]
             [frontend.handler.property :as property-handler]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.state :as state]
@@ -323,26 +322,6 @@
                    new-task--update-due-cards-count)]
     (reset! *last-update-due-cards-count-canceler canceler)
     nil))
-
-(defn- get-operating-blocks
-  [block-ids]
-  (some->> block-ids
-           (map (fn [id] (db/entity [:block/uuid id])))
-           (seq)
-           block-handler/get-top-level-blocks
-           (remove ldb/property?)))
-
-(defn batch-make-cards!
-  ([] (batch-make-cards! (state/get-selection-block-ids)))
-  ([block-ids]
-   (let [repo (state/get-current-repo)
-         blocks (get-operating-blocks block-ids)]
-     (when-let [block-ids (not-empty (map :block/uuid blocks))]
-       (property-handler/batch-set-block-property!
-        repo
-        block-ids
-        :block/tags
-        (:db/id (db/entity :logseq.class/Card)))))))
 
 (comment
   (defn- cards-in-time-range

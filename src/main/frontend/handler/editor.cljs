@@ -1629,21 +1629,6 @@
       (when (>= pos 0)
         (text-util/wrapped-by? value pos before end)))))
 
-(defn get-matched-classes
-  "Return matched classes except the root tag"
-  [q]
-  (let [editing-block (some-> (state/get-edit-block) :db/id db/entity)
-        non-page-block? (and editing-block (not (ldb/page? editing-block)))
-        all-classes (cond-> (db-model/get-all-classes (state/get-current-repo) {:except-root-class? true})
-                      non-page-block?
-                      (conj (db/entity :logseq.class/Page)))
-        classes (->> all-classes
-                     (mapcat (fn [class]
-                               (conj (:block/alias class) class)))
-                     (common-util/distinct-by :db/id)
-                     (map (fn [e] (select-keys e [:block/uuid :block/title]))))]
-    (search/fuzzy-search classes q {:extract-fn :block/title})))
-
 (defn <get-matched-blocks
   "Return matched blocks that are not built-in"
   [q & [{:keys [nlp-pages? page-only?]}]]

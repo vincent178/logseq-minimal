@@ -344,10 +344,6 @@
 (defonce local-handle "handle")
 (defonce db-version-prefix common-config/db-version-prefix)
 
-(defn db-graph-name
-  [repo-with-prefix]
-  (string/replace-first repo-with-prefix db-version-prefix ""))
-
 (defn local-file-based-graph?
   [s]
   (and (string? s)
