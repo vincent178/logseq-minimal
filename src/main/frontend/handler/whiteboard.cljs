@@ -58,25 +58,6 @@
                               :name (:block/name page-block)
                               :shapes shapes})]})))
 
-(defn db-build-page-block
-  [page-entity page-name tldraw-page assets]
-  (let [get-k #(gobj/get tldraw-page %)
-        tldraw-page {:id (get-k "id")
-                     :name (get-k "name")
-                     :bindings (js->clj-keywordize (get-k "bindings"))
-                     :nonce (get-k "nonce")
-                     :assets (js->clj-keywordize assets)}]
-    {:db/id (:db/id page-entity)
-     :block/title page-name
-     :block/name (util/page-name-sanity-lc page-name)
-     :block/tags :logseq.class/Whiteboard
-     :block/format :markdown
-     :logseq.property/ls-type :whiteboard-page
-     :logseq.property.tldraw/page tldraw-page
-     :block/updated-at (util/time-ms)
-     :block/created-at (or (:block/created-at page-entity)
-                           (util/time-ms))}))
-
 (defn file-build-page-block
   [page-entity page-name tldraw-page assets]
   (let [get-k #(gobj/get tldraw-page %)]
@@ -98,10 +79,7 @@
 
 (defn build-page-block
   [page-entity page-name tldraw-page assets]
-  (let [f (if (config/db-based-graph? (state/get-current-repo))
-            db-build-page-block
-            file-build-page-block)]
-    (f page-entity page-name tldraw-page assets)))
+  (file-build-page-block page-entity page-name tldraw-page assets))
 
 (defn- compute-tx
   [^js app ^js tl-page new-id-nonces db-id-nonces page-uuid replace?]
@@ -241,8 +219,7 @@
 
 (defn get-default-new-whiteboard-tx
   [page-name id]
-  (let [db-based? (config/db-based-graph? (state/get-current-repo))
-        tldraw-page {:id (str id),
+  (let [tldraw-page {:id (str id),
                      :name page-name,
                      :ls-type :whiteboard-page,
                      :bindings {},
@@ -257,9 +234,7 @@
                   :format :markdown
                   :updated-at (util/time-ms),
                   :created-at (util/time-ms)}
-        m' (if db-based?
-             (merge m properties)
-             (assoc m :block/properties properties))]
+        m' (assoc m :block/properties properties)]
     [m']))
 
 (defn <create-new-whiteboard-page!
@@ -275,7 +250,7 @@
   ([]
    (<create-new-whiteboard-and-redirect! (str (d/squuid))))
   ([name]
-   (when-not (or config/publishing? (config/db-based-graph? (state/get-current-repo)))
+   (when-not config/publishing?
      (p/let [id (<create-new-whiteboard-page! name)]
        (route-handler/redirect-to-page! id {:new-whiteboard? true})))))
 
