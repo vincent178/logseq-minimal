@@ -20,7 +20,6 @@
             [frontend.handler.assets :as assets-handler]
             [frontend.handler.code :as code-handler]
             [frontend.handler.common.page :as page-common-handler]
-            [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.export :as export]
             [frontend.handler.graph :as graph-handler]
@@ -36,7 +35,6 @@
             [frontend.mobile.util :as mobile-util]
             [frontend.modules.instrumentation.posthog :as posthog]
             [frontend.modules.outliner.pipeline :as pipeline]
-            [frontend.modules.outliner.ui :as ui-outliner-tx]
             [frontend.modules.shortcut.core :as st]
             [frontend.persist-db :as persist-db]
             [frontend.quick-capture :as quick-capture]
@@ -311,38 +309,6 @@
 (defmethod handle :editor/toggle-children-number-list [[_ block]]
   (when-let [blocks (and block (db-model/get-block-immediate-children (state/get-current-repo) (:block/uuid block)))]
     (editor-handler/toggle-blocks-as-own-order-list! blocks)))
-
-(defmethod handle :editor/upsert-type-block [[_ {:keys [block type lang update-current-block?]}]]
-  (p/do!
-   (when-not update-current-block?
-     (editor-handler/save-current-block!))
-   (when-not update-current-block?
-     (p/delay 16))
-   (let [block (db/entity (:db/id block))
-         block-type (:logseq.property.node/display-type block)
-         block-title (:block/title block)
-         latest-code-lang (or lang
-                              (:kv/value (db/entity :logseq.kv/latest-code-lang)))
-         turn-type! #(if (and (= (keyword type) :code) latest-code-lang)
-                       (db-property-handler/set-block-properties!
-                        (:block/uuid %)
-                        {:logseq.property.node/display-type (keyword type)
-                         :logseq.property.code/lang latest-code-lang})
-                       (db-property-handler/set-block-property!
-                        (:block/uuid %) :logseq.property.node/display-type (keyword type)))]
-     (p/let [block (if (or (not (nil? block-type))
-                           (and (not update-current-block?) (not (string/blank? block-title))))
-                     (p/let [result (ui-outliner-tx/transact!
-                                     {:outliner-op :insert-blocks}
-                                     ;; insert a new block
-                                     (let [[_p _ block'] (editor-handler/insert-new-block-aux! {} block "")]
-                                       (turn-type! block')))]
-                       (when-let [id (:block/uuid (first (:blocks result)))]
-                         (db/entity [:block/uuid id])))
-                     (p/do!
-                      (turn-type! block)
-                      (db/entity [:block/uuid (:block/uuid block)])))]
-       (js/setTimeout #(editor-handler/edit-block! block :max) 100)))))
 
 ;; db-worker -> UI
 (defmethod handle :db/sync-changes [[_ data]]
