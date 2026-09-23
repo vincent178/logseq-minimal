@@ -23,7 +23,7 @@
     (util/exit-edit)
     (assert/assert-selected-block-text "b2")))
 
-(deftest self-tag-block-reference
+(deftest ^:db-graph self-tag-block-reference
   (testing "self reference"
     (b/new-block "b2")
     (util/set-tag "task")
@@ -32,7 +32,7 @@
     (util/exit-edit)
     (assert/assert-selected-block-text "b2")))
 
-(deftest mutual-reference
+(deftest ^:db-graph mutual-reference
   (testing "mutual reference"
     (b/new-blocks ["b1" "b2"])
     (util/set-tag "task")
@@ -47,7 +47,7 @@
     (util/exit-edit)
     (b/assert-blocks-visible ["b1[[b2]]" "b2[[b1]]"])))
 
-(deftest parent-reference
+(deftest ^:db-graph parent-reference
   (testing "parent reference"
     (b/new-blocks ["b1" "b2"])
     (util/set-tag "task")
@@ -63,7 +63,7 @@
     (util/exit-edit)
     (b/assert-blocks-visible ["b1[[b2]]" "b2[[b1]]"])))
 
-(deftest cycle-reference
+(deftest ^:db-graph cycle-reference
   (testing "cycle reference"
     (b/new-blocks ["b1" "b2" "b3"])
     (util/set-tag "task")

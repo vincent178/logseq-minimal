@@ -82,7 +82,7 @@
       (ls-api-call! :editor.removeBlock uuid')
       (assert-api-ls-block! uuid' 0))))
 
-(deftest block-properties-test
+(deftest ^:db-graph block-properties-test
   (testing "block properties related apis"
     (page/new-page "test-block-properties-apis")
     (let [ret (ls-api-call! :editor.appendBlockInPage "test-block-properties-apis" "block-in-page-0" {:properties {:p1 1}})
@@ -116,7 +116,7 @@
         (is (= (get props ":plugin.property._test_plugin/p3") false))
         (is (= (get props ":plugin.property._test_plugin/p2") "p2-updated"))))))
 
-(deftest property-upsert-test
+(deftest ^:db-graph property-upsert-test
   (testing "property with default settings"
     (let [p (new-property)]
       (ls-api-call! :editor.upsertProperty p)
@@ -145,7 +145,7 @@
         (ls-api-call! :editor.upsertProperty p {:type "checkbox"
                                                 :cardinality "many"}))))
 
-(deftest property-related-test
+(deftest ^:db-graph property-related-test
   (testing "properties management related apis"
     (dorun
      (map-indexed
@@ -159,7 +159,7 @@
           (is (nil? (ls-api-call! :editor.getProperty property-name)))))
       ["default" "number" "date" "datetime" "checkbox" "url" "node" "json" "string"]))))
 
-(deftest insert-block-with-properties
+(deftest ^:db-graph insert-block-with-properties
   (testing "insert block with properties"
     (let [page "insert-block-properties-test"
           _ (page/new-page page)
@@ -190,7 +190,7 @@
         (is (= "some content" (get x8-block-value "title")))
         (is (some? (get x8-block-value "page")))))))
 
-(deftest update-block-with-properties
+(deftest ^:db-graph update-block-with-properties
   (testing "update block with properties"
     (let [page "update-block-properties-test"
           _ (page/new-page page)
@@ -225,7 +225,7 @@
         (is (= "some content" (get y8-block-value "title")))
         (is (some? (get y8-block-value "page")))))))
 
-(deftest insert-batch-blocks-test
+(deftest ^:db-graph insert-batch-blocks-test
   (testing "insert batch blocks"
     (let [page "insert batch blocks"
           _ (page/new-page page)
@@ -262,7 +262,7 @@
              ["b1" "test" "b1.1" "b1.1.1" "Page 1" "Page 2" "Page 3" "b1.1.2" "b1.2" "b2"]))
       (is (true? (get (first result) (->plugin-ident "z2")))))))
 
-(deftest create-page-test
+(deftest ^:db-graph create-page-test
   (testing "create page"
     (let [result (ls-api-call! :editor.createPage "Test page 1")]
       (is (= "Test page 1" (get result "title")))
@@ -308,7 +308,7 @@
         (-> (ls-api-call! :editor.getBlock (first (get result "tags")))
             (get "ident")))))))
 
-(deftest get-all-tags-test
+(deftest ^:db-graph get-all-tags-test
   (testing "get_all_tags"
     (let [result (ls-api-call! :editor.get_all_tags)
           built-in-tags #{":logseq.class/Template"
@@ -321,12 +321,12 @@
                           ":logseq.class/Cards"}]
       (is (set/subset? built-in-tags (set (map #(get % "ident") result)))))))
 
-(deftest get-all-properties-test
+(deftest ^:db-graph get-all-properties-test
   (testing "get_all_properties"
     (let [result (ls-api-call! :editor.get_all_properties)]
       (is (>= (count result) 94)))))
 
-(deftest get-tag-objects-test
+(deftest ^:db-graph get-tag-objects-test
   (testing "get_tag_objects"
     (let [page "tag objects test"
           _ (page/new-page page)
@@ -336,7 +336,7 @@
       (is (= (count result) 1))
       (is (= "task 1" (get (first result) "title"))))))
 
-(deftest create-and-get-tag-test
+(deftest ^:db-graph create-and-get-tag-test
   (testing "create and get tag with title or ident"
     (let [title "book1"
           title-ident (str :plugin.class._test_plugin/book1)
@@ -364,7 +364,7 @@
         (is (= (get tag1 ":logseq.property.class/extends") [id2 id3]) "tag1 extends tag2,tag3 with db ids"))
       )))
 
-(deftest get-tags-by-name-test
+(deftest ^:db-graph get-tags-by-name-test
   (testing "get tags by exact name"
     (let [tag-name "product"
           tag1 (ls-api-call! :editor.createTag tag-name)

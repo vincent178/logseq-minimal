@@ -13,7 +13,9 @@
   prn {:task (clojure "-X clojure.core/prn" cli-opts)}
 
   test {:doc "run tests (ns'es ending in '-basic-test')"
-        :task (do (clojure "-M:test -r \".*\\-basic\\-test$\" -e fix-me")
+        ;; Exclude :db-graph tests — this is a file-graph-only build, so DB
+        ;; property/tag/library/status APIs under test do not exist here.
+        :task (do (clojure "-M:test -r \".*\\-basic\\-test$\" -e fix-me -e db-graph")
                   (System/exit 0))}
 
   -dev {:depends [serve prn test]}

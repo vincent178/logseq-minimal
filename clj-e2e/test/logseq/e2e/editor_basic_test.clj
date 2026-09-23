@@ -17,7 +17,7 @@
   fixtures/new-logseq-page
   fixtures/validate-graph)
 
-(deftest toggle-between-page-and-block
+(deftest ^:db-graph toggle-between-page-and-block
   (testing "Convert block to page and back"
     (b/new-block "b1")
     (util/set-tag "Page" {:hidden? true})
@@ -25,7 +25,7 @@
     (b/toggle-property "Tags" "Page")
     (assert/assert-is-hidden ".ls-page-blocks .ls-block .ls-icon-file")))
 
-(deftest toggle-between-page-and-block-for-selected-blocks
+(deftest ^:db-graph toggle-between-page-and-block-for-selected-blocks
   (testing "Convert selected blocks to pages and back"
     (b/new-blocks ["b1" "b2" "b3"])
     (b/select-blocks 3)
@@ -36,7 +36,7 @@
     (b/toggle-property "Tags" "Page")
     (w/wait-for-not-visible ".ls-page-blocks .ls-block .ls-icon-file")))
 
-(deftest disallow-adding-page-tag-to-normal-pages
+(deftest ^:db-graph disallow-adding-page-tag-to-normal-pages
   (testing "Disallow adding #Page to normal pages"
     (k/arrow-up)
     (util/move-cursor-to-end)
@@ -71,7 +71,7 @@
     (k/enter)
     (assert/assert-have-count ".ls-page-blocks .page-blocks-inner .ls-block" 0)))
 
-(deftest move-pages-to-library
+(deftest ^:db-graph move-pages-to-library
   (testing "move pages using `mod+shift+m`"
     (p/goto-page "Library")
     (p/new-page "test page")
@@ -101,7 +101,7 @@
     (let [contents (set (util/get-page-blocks-contents))]
       (is (set/subset? (set ["block1" "block2" "block3" "block4" "block5"]) contents)))))
 
-(deftest create-nested-pages-in-library
+(deftest ^:db-graph create-nested-pages-in-library
   (testing "create nested pages in Library"
     (p/goto-page "Library")
     (b/new-blocks ["page parent" "page child"])

@@ -161,7 +161,7 @@
     (is (= "" (util/get-edit-content)))
     (is (= 3 (util/page-blocks-count)))))
 
-(deftest delete-concat-test-with-tag
+(deftest ^:db-graph delete-concat-test-with-tag
   (testing "Delete concat with tag"
     (b/new-blocks ["" "b2"])
     (b/indent)
