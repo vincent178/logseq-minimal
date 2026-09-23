@@ -7,10 +7,8 @@
             [frontend.components.editor :as editor]
             [frontend.components.export :as export]
             [frontend.components.page-menu :as page-menu]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
-            [frontend.extensions.fsrs :as fsrs]
             [frontend.extensions.srs :as srs]
             [frontend.handler.common.developer :as dev-common-handler]
             [frontend.handler.editor :as editor-handler]
@@ -36,8 +34,7 @@
 
 (rum/defc custom-context-menu-content
   []
-  (let [repo (state/get-current-repo)
-        db-based? (config/db-based-graph? repo)]
+  (let [repo (state/get-current-repo)]
     [:<>
      (ui/menu-background-color #(property-handler/batch-set-block-property! repo
                                                                             (state/get-selection-block-ids)
@@ -89,20 +86,17 @@
        :on-click editor-handler/copy-block-refs}
       (t :content/copy-block-ref))
 
-     (when-not db-based?
-       (shui/dropdown-menu-item
-        {:key "copy block embeds"
-         :on-click editor-handler/copy-block-embeds}
-        (t :content/copy-block-emebed)))
+     (shui/dropdown-menu-item
+      {:key "copy block embeds"
+       :on-click editor-handler/copy-block-embeds}
+      (t :content/copy-block-emebed))
 
      (shui/dropdown-menu-separator)
 
      (when (state/enable-flashcards?)
        (shui/dropdown-menu-item
         {:key "Make a Card"
-         :on-click #(if (config/db-based-graph? (state/get-current-repo))
-                      (fsrs/batch-make-cards!)
-                      (srs/batch-make-cards!))}
+         :on-click #(srs/batch-make-cards!)}
         (t :context-menu/make-a-flashcard)))
 
      (shui/dropdown-menu-item
@@ -204,8 +198,7 @@
 (rum/defc ^:large-vars/cleanup-todo block-context-menu-content <
   shortcut/disable-all-shortcuts
   [_target block-id property-default-value?]
-  (let [repo (state/get-current-repo)
-        db? (config/db-based-graph? repo)]
+  (let [repo (state/get-current-repo)]
     (when-let [block (db/entity [:block/uuid block-id])]
       (let [heading (or (pu/lookup block :logseq.property/heading)
                         false)]
@@ -238,12 +231,11 @@
                        (editor-handler/copy-block-ref! block-id ref/->block-ref))}
           (t :content/copy-block-ref))
 
-         (when-not db?
-           (shui/dropdown-menu-item
-            {:key      "Copy block embed"
-             :on-click (fn [_e]
-                         (editor-handler/copy-block-ref! block-id #(util/format "{{embed ((%s))}}" %)))}
-            (t :content/copy-block-emebed)))
+         (shui/dropdown-menu-item
+          {:key      "Copy block embed"
+           :on-click (fn [_e]
+                       (editor-handler/copy-block-ref! block-id #(util/format "{{embed ((%s))}}" %)))}
+          (t :content/copy-block-emebed))
 
          ;; TODO Logseq protocol mobile support
          (when (util/electron?)
@@ -281,8 +273,7 @@
 
          (shui/dropdown-menu-separator)
 
-         (when-not db?
-           (block-template block-id))
+         (block-template block-id)
 
          (cond
            (srs/card-block? block)
@@ -293,9 +284,7 @@
            (state/enable-flashcards?)
            (shui/dropdown-menu-item
             {:key      "Make a Card"
-             :on-click #(if (config/db-based-graph? (state/get-current-repo))
-                          (fsrs/batch-make-cards! [block-id])
-                          (srs/batch-make-cards! [block-id]))}
+             :on-click #(srs/batch-make-cards! [block-id])}
             (t :context-menu/make-a-flashcard))
            :else
            nil)
