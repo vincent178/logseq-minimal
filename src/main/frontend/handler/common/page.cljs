@@ -2,8 +2,7 @@
   "Common fns for file and db based page handlers, including create!, delete!
   and favorite fns. This ns should be agnostic of file or db concerns but there
   is still some file-specific tech debt to remove from create!"
-  (:require [clojure.set :as set]
-            [clojure.string :as string]
+  (:require             [clojure.string :as string]
             [dommy.core :as dom]
             [frontend.config :as config]
             [frontend.db :as db]
@@ -16,22 +15,7 @@
             [frontend.modules.outliner.ui :as ui-outliner-tx]
             [frontend.state :as state]
             [logseq.common.util :as common-util]
-            [logseq.common.util.page-ref :as page-ref]
-            [logseq.db :as ldb]
             [promesa.core :as p]))
-
-(defn- wrap-tags
-  "Tags might have multiple words"
-  [title]
-  (let [parts (string/split title #" #")]
-    (->>
-     (cons (first parts)
-           (map (fn [s]
-                  (if (and (string/includes? s " ") (not (page-ref/page-ref? s)))
-                    (page-ref/->page-ref s)
-                    s))
-                (rest parts)))
-     (string/join " #"))))
 
 (defn <create!
   ([title]
@@ -40,35 +24,12 @@
            :or   {redirect? true}
            :as options}]
    (when (string? title)
-     (p/let [repo (state/get-current-repo)
-             db-based? (config/db-based-graph? repo)
-             title (if (and db-based? (string/includes? title " #")) ; tagged page
-                     (wrap-tags title)
-                     title)
-             parsed-result nil ; db-based-graph? is pinned off; DB parse removed
-             has-tags? (and db-based? (seq (:block/tags parsed-result)))
-             title' (if has-tags?
-                      (some-> (first
-                               (common-util/split-first (str "#" page-ref/left-brackets) (:block/title parsed-result)))
-                              string/trim)
-                      title)]
+     (p/let [_repo (state/get-current-repo)
+             title' title]
        (cond
-         (and has-tags? (nil? title'))
-         (notification/show! "Page name can't include \"#\"." :error)
-         (and has-tags?
-              (seq (set/intersection ldb/private-tags (set (map :db/ident (:block/tags parsed-result))))))
-         (notification/show! (str "New page can't set built-in tags: "
-                                  (string/join ", "
-                                               (keep #(when (ldb/private-tags (:db/ident %)) (pr-str (:block/title %)))
-                                                     (:block/tags parsed-result))))
-                             :error)
          :else
          (when-not (string/blank? title')
-           (p/let [options' (if db-based?
-                              (cond-> (update options :tags concat (:block/tags parsed-result))
-                                (nil? (:split-namespace? options))
-                                (assoc :split-namespace? true))
-                              options)
+           (p/let [options' options
                    [_page-name page-uuid] (ui-outliner-tx/transact!
                                            {:outliner-op :create-page}
                                            (outliner-op/create-page! title' options'))
@@ -183,9 +144,7 @@
 
 (defn after-page-renamed!
   [repo {:keys [page-id old-name new-name old-path new-path]}]
-  (let [db-based?           (config/db-based-graph? repo)
-        old-page-name       (common-util/page-name-sanity-lc old-name)
-        new-page-name       (common-util/page-name-sanity-lc new-name)
+  (let [old-page-name       (common-util/page-name-sanity-lc old-name)
         redirect? (= (some-> (state/get-current-page) common-util/page-name-sanity-lc)
                      (common-util/page-name-sanity-lc old-page-name))
         page (db/entity repo page-id)]
@@ -196,16 +155,12 @@
                                 :push        false
                                 :path-params {:name (str (:block/uuid page))}}))
 
-    ;; FIXME: favorites should store db id/uuid instead of page names
-    (when (and (config/db-based-graph? repo) (file-favorited? old-page-name))
-      (file-unfavorite-page! old-page-name)
-      (file-favorite-page! new-page-name))
+
     (let [home (get (state/get-config) :default-home {})]
       (when (= old-page-name (common-util/page-name-sanity-lc (get home :page "")))
         (config-handler/set-config! :default-home (assoc home :page new-name))))
 
-    (when-not db-based?
-      (when (and old-path new-path)
-        (rename-file! old-path new-path)))
+    (when (and old-path new-path)
+      (rename-file! old-path new-path))
 
     (ui-handler/re-render-root!)))
