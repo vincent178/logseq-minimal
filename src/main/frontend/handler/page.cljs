@@ -119,9 +119,7 @@
 
 (defn get-page-ref-text
   [page]
-  (if (config/db-based-graph?)
-    (ref/->page-ref page)
-    (file-page-handler/get-page-ref-text page)))
+  (file-page-handler/get-page-ref-text page))
 
 (defn init-commands!
   []
@@ -185,7 +183,7 @@
       (cursor/move-cursor-forward input (+ 2 (count current-selected))))))
 
 (defn- tag-on-chosen-handler
-  [input id pos format _current-pos edit-content q db-based?]
+  [input id pos format _current-pos edit-content q]
   (fn [chosen-result ^js e]
     (util/stop e)
     (state/clear-editor-action!)
@@ -195,11 +193,6 @@
             target (first (:block/_alias chosen-result))
             chosen-result (if (and target (not (ldb/class? chosen-result)) (ldb/class? target)) target chosen-result)
             chosen (:block/title chosen-result)
-            class? (and db-based?
-                        (or (string/includes? chosen (str (t :new-tag) " "))
-                            (ldb/class? chosen-result)))
-            inline-tag? (and class? (= (.-identifier e) "auto-complete/meta-complete")
-                             (not= chosen "Page"))
             chosen (-> chosen
                        (string/replace-first (str (t :new-tag) " ") "")
                        (string/replace-first (str (t :new-page) " ") ""))
@@ -219,7 +212,7 @@
             last-pattern (str "#" (when wrapped? page-ref/left-brackets) last-pattern)]
       (p/do!
        (editor-handler/insert-command! id
-                                       (if (and class? (not inline-tag?)) "" (str "#" wrapped-tag))
+                                       (str "#" wrapped-tag)
                                        format
                                        {:last-pattern last-pattern
                                         :end-pattern (when wrapped? page-ref/right-brackets)
@@ -227,7 +220,7 @@
        (when input (.focus input))))))
 
 (defn- page-on-chosen-handler
-  [id format q db-based?]
+  [id format q]
   (fn [chosen-result e]
     (util/stop e)
     (state/clear-editor-action!)
@@ -255,15 +248,7 @@
                               (or multiple-pages-same-name? (not (ldb/page? chosen-result))))
                        (ref/->page-ref (:block/uuid chosen-result))
                        (get-page-ref-text chosen'))
-            result (when db-based?
-                     (when-not (de/entity? chosen-result)
-                       (<create! chosen'
-                                 {:redirect? false
-                                  :split-namespace? true})))
-            ref-text' (if result
-                        (let [title (:block/title result)]
-                          (ref/->page-ref title))
-                        ref-text)]
+            ref-text' ref-text]
       (p/do!
        (editor-handler/insert-command! id
                                        ref-text'
@@ -272,7 +257,7 @@
                                         :end-pattern page-ref/right-brackets
                                         :postfix-fn   (fn [s] (util/replace-first page-ref/right-brackets s ""))
                                         :command :page-ref})
-       (p/let [chosen-result (or result chosen-result)]
+       (p/let [chosen-result chosen-result]
          (when (de/entity? chosen-result)
            (state/conj-block-ref! chosen-result)))))))
 
@@ -288,10 +273,10 @@
              (common-util/safe-subs edit-content pos current-pos))
            (when (> (count edit-content) current-pos)
              (common-util/safe-subs edit-content pos current-pos)))
-        db-based? (config/db-based-graph? (state/get-current-repo))]
+        ]
     (if hashtag?
-      (tag-on-chosen-handler input id pos format current-pos edit-content q db-based?)
-      (page-on-chosen-handler id format q db-based?))))
+      (tag-on-chosen-handler input id pos format current-pos edit-content q)
+      (page-on-chosen-handler id format q))))
 
 (defn create-today-journal!
   []
@@ -305,23 +290,19 @@
                (not config/publishing?))
       (when-let [title (date/today)]
         (state/set-today! title)
-        (when (or (config/db-based-graph? repo)
-                  (config/local-file-based-graph? repo))
+        (when (config/local-file-based-graph? repo)
           (let [today-page (util/page-name-sanity-lc title)
                 format (state/get-preferred-format repo)
-                db-based? (config/db-based-graph? repo)
                 create-f (fn []
                            (p/let [result (<create! title {:redirect? false
                                                            :split-namespace? false
                                                            :today-journal? true})]
-                             (when-not db-based? (state/pub-event! [:journal/insert-template today-page]))
+                             (state/pub-event! [:journal/insert-template today-page])
                              (ui-handler/re-render-root!)
                              (plugin-handler/hook-plugin-app :today-journal-created {:title today-page})
                              result))]
             (when-not (db/get-page today-page)
-              (if db-based?
-                (create-f)
-                (p/let [file-name (date/journal-title->default title)
+              (p/let [file-name (date/journal-title->default title)
                         file-rpath (str (config/get-journals-directory) "/" file-name "."
                                         (config/get-file-extension format))
                         repo-dir (config/get-repo-dir repo)
@@ -330,7 +311,7 @@
                                        (fs/read-file repo-dir file-rpath))]
                   (when (or (not file-exists?)
                             (and file-exists? (string/blank? file-content)))
-                    (create-f)))))))))))
+                    (create-f))))))))))
 
 (defn open-today-in-sidebar
   []
@@ -365,9 +346,7 @@
 
 (defn copy-page-url
   ([]
-   (let [id (if (config/db-based-graph? (state/get-current-repo))
-              (page-util/get-current-page-uuid)
-              (page-util/get-current-page-name))]
+   (let [id (page-util/get-current-page-name)]
      (copy-page-url id)))
   ([page-uuid]
    (if page-uuid
