@@ -25,6 +25,9 @@ STARTED_WATCH=0
 STARTED_ELECTRON=0
 
 cleanup() {
+  # Only tear down processes this script actually started. With --no-boot (or
+  # when the services were already running) we leave them alone so a dev's
+  # long-running watch/Electron is not killed.
   if [ "$STARTED_ELECTRON" = "1" ]; then
     log "stopping Electron"
     pkill -f "MacOS/Electron.*remote-debugging-port=$CDP_PORT" 2>/dev/null || pkill -f "MacOS/Electron" 2>/dev/null

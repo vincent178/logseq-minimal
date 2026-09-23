@@ -39,19 +39,36 @@ const record = (name, ok, detail = '') => {
 };
 
 let browser;
-try {
-  browser = await chromium.connectOverCDP(`http://localhost:${CDP_PORT}`);
-} catch (e) {
+let lastErr;
+// Retry CDP connect: the renderer can briefly reload (e.g. after a watch
+// rebuild), which drops the connection. Try a few times before giving up.
+for (let attempt = 0; attempt < 8 && !browser; attempt++) {
+  try {
+    browser = await chromium.connectOverCDP(`http://localhost:${CDP_PORT}`);
+  } catch (e) {
+    lastErr = e;
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+if (!browser) {
   console.error(`Cannot connect to Electron CDP on port ${CDP_PORT}.`);
   console.error('Launch Electron with: static/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron . --remote-debugging-port=' + CDP_PORT);
+  console.error(String(lastErr).slice(0, 200));
   process.exit(1);
 }
 
-const page = browser.contexts()[0]?.pages().find(p => !p.url().includes('db-worker'));
+let page;
+for (let attempt = 0; attempt < 8 && !page; attempt++) {
+  page = browser.contexts()[0]?.pages().find(p => !p.url().includes('db-worker'));
+  if (!page) await new Promise(r => setTimeout(r, 2000));
+}
 if (!page) {
   console.error('No Logseq renderer page found over CDP.');
   process.exit(1);
 }
+// Give the renderer a moment to finish any in-flight reload before driving it.
+await page.waitForLoadState('domcontentloaded').catch(() => {});
+await page.waitForTimeout(1500);
 page.setDefaultTimeout(30000);
 
 const errors = [];

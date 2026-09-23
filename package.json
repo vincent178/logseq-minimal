@@ -64,6 +64,7 @@
         "test": "run-s cljs:test cljs:run-test",
         "smoke": "node scripts/smoke/core-features.mjs",
         "smoke:run": "scripts/smoke/run.sh",
+        "verify": "scripts/smoke/verify.sh",
         "report": "run-s cljs:report",
         "style:lint": "stylelint \"src/**/*.css\"",
         "gulp:watch": "gulp watch",

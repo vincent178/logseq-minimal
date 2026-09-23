@@ -42,7 +42,18 @@ Or let the wrapper boot everything (electron-watch + Electron) and tear it down:
 ```bash
 yarn smoke:run             # full cycle
 scripts/smoke/run.sh       # same
-scripts/smoke/run.sh --no-boot   # env already up; just run the suite
+scripts/smoke/run.sh --no-boot   # env already up; just run the suite (leaves it running)
+```
+
+### Full verification (lint + unit + smoke)
+
+`verify.sh` chains the standard lint/unit gate with the smoke suite — use it
+as the single pre-merge check after any runtime-affecting change:
+
+```bash
+yarn verify                 # bb dev:lint-and-test, then boot Electron + smoke
+scripts/smoke/verify.sh --no-boot     # lint+unit, smoke against already-running env
+scripts/smoke/verify.sh --skip-smoke  # lint+unit only
 ```
 
 Exit code is `0` when all checks pass, `1` otherwise — safe to wire into a
