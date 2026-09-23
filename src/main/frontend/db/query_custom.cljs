@@ -1,7 +1,6 @@
 (ns frontend.db.query-custom
   "Handles executing custom queries a.k.a. advanced queries"
   (:require [clojure.walk :as walk]
-            [frontend.config :as config]
             [frontend.db.file-based.model :as file-model]
             [frontend.db.query-dsl :as query-dsl]
             [frontend.db.query-react :as query-react]
@@ -74,13 +73,12 @@
   ([query query-opts]
    (custom-query (state/get-current-repo) query query-opts))
   ([repo query query-opts]
-   (let [db-graph? (config/db-based-graph? repo)
-         query' (if db-graph? query (replace-star-with-block-attrs! query))
+   (let [query' (replace-star-with-block-attrs! query)
          query-opts (if (:query-string query-opts) query-opts
                         (assoc query-opts :query-string (str query)))]
      (if (or (list? (:query query'))
              (not= :find (first (:query query')))) ; dsl query
        [nil (query-dsl/custom-query repo query' query-opts)]
        (query-react/react-query repo
-                                (add-rules-to-query query' {:db-graph? db-graph?})
+                                (add-rules-to-query query' {:db-graph? false})
                                 query-opts)))))

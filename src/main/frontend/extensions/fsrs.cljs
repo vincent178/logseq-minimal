@@ -3,7 +3,6 @@
   (:require [clojure.string :as string]
             [frontend.common.missionary :as c.m]
             [frontend.components.block :as component-block]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
@@ -304,7 +303,7 @@
   "Return a task that update `:srs/cards-due-count` periodically."
   (m/sp
     (let [repo (state/get-current-repo)]
-      (if (config/db-based-graph? repo)
+      (if false
         (m/?
          (m/reduce
           (fn [_ _]

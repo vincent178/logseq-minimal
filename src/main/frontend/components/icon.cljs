@@ -79,11 +79,9 @@
         node-icon* (if (:link? opts)
                      "arrow-narrow-right"
                      (get-node-icon node-entity opts))
-        node-icon (if (config/db-based-graph?)
-                    node-icon*
-                    (or (when-let [icon' (get-in node-entity [:block/properties :icon])]
-                          [:span icon'])
-                        node-icon*))]
+        node-icon (or (when-let [icon' (get-in node-entity [:block/properties :icon])]
+                        [:span icon'])
+                      node-icon*)]
     (when-not (or (string/blank? node-icon) (and (contains? #{"point-filled" "letter-p" "hash" "file"} node-icon) (:not-text-or-page? opts)))
       [:div.icon-cp-container.flex.items-center
        (merge {:style {:color (or (:color node-icon) "inherit")}}

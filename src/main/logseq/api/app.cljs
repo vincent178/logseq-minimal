@@ -15,7 +15,6 @@
             [frontend.state :as state]
             [frontend.util :as util]
             [frontend.version :as fv]
-            [logseq.api.db-based :as db-based-api]
             [logseq.sdk.core]
             [logseq.sdk.experiments]
             [logseq.sdk.git]
@@ -84,12 +83,10 @@
 
 (def get_current_graph_favorites
   (fn []
-    (if (config/db-based-graph?)
-      (db-based-api/get-favorites)
-      (some->> (:favorites (state/get-config))
-               (remove string/blank?)
-               (filter string?)
-               (bean/->js)))))
+    (some->> (:favorites (state/get-config))
+             (remove string/blank?)
+             (filter string?)
+             (bean/->js))))
 
 (def get_current_graph_recent
   (fn []

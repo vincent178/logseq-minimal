@@ -152,11 +152,7 @@
 
          ;(mobile-util/native-platform?)
          ;(mobile-util/convert-file-src full-path)
-
-         (config/db-based-graph? (state/get-current-repo))  ; memory fs
-         (p/let [binary (fs/read-file-raw repo-dir path {})
-                 blob (js/Blob. (array binary) (clj->js {:type "image"}))]
-           (when blob (js/URL.createObjectURL blob))))))))
+         )))))
 
 (defn get-file-checksum
   [^js file]

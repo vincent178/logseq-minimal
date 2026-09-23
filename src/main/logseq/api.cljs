@@ -3,7 +3,6 @@
   (:require [cljs-bean.core :as bean]
             [cljs.reader]
             [electron.ipc :as ipc]
-            [frontend.config :as config]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.search :as search-handler]
             [frontend.loader :as loader]
@@ -64,7 +63,7 @@
 (def ^:export __install_plugin api-plugin/__install_plugin)
 
 ;; app/graph
-(def ^:export check_current_is_db_graph config/db-based-graph?)
+(def ^:export check_current_is_db_graph (fn [] false))
 (def ^:export get_state_from_store api-app/get_state_from_store)
 (def ^:export set_state_from_store api-app/set_state_from_store)
 (def ^:export get_app_info api-app/get_app_info)

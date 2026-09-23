@@ -1,7 +1,6 @@
 (ns frontend.persist-db
   "Backend of DB based graph"
-  (:require [frontend.config :as config]
-            [frontend.db :as db]
+  (:require             [frontend.db :as db]
             [frontend.persist-db.browser :as browser]
             [frontend.persist-db.protocol :as protocol]
             [frontend.state :as state]
@@ -41,18 +40,11 @@
 ;; repo->max-tx
 (defonce *last-synced-graph->tx (atom {}))
 
-(defn- graph-has-changed?
-  [repo]
-  (let [tx (@*last-synced-graph->tx repo)
-        db (db/get-db repo)]
-    (or (nil? tx)
-        (> (:max-tx db) tx))))
-
 (defn export-current-graph!
   [& {:keys [succ-notification? force-save?]}]
   (when (util/electron?)
     (when-let [repo (state/get-current-repo)]
-      (when (or (and (config/db-based-graph? repo) (graph-has-changed? repo)) force-save?)
+      (when force-save?
         (println :debug :save-db-to-disk repo)
         (->
          (p/do!

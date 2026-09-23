@@ -4,7 +4,6 @@
   (:require ["/frontend/utils" :as utils]
             [clojure.string :as string]
             [clojure.zip :as z]
-            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.extensions.zip :as zip]
             [frontend.format.mldoc :as mldoc]
@@ -472,9 +471,7 @@
   [repo]
   (p/let [files (common/<get-file-contents repo "opml")]
     (when (seq files)
-      (let [repo' (if (config/db-based-graph? repo)
-                    (string/replace repo config/db-version-prefix "")
-                    (path/basename repo))
+      (let [repo' (path/basename repo)
             files (->> (export-files-as-opml repo files nil)
                        (clojure.core/remove nil?))
             zip-file-name (str repo' "_opml_" (quot (util/time-ms) 1000))]

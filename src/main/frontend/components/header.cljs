@@ -15,7 +15,6 @@
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.handler :as handler]
-            [frontend.handler.page :as page-handler]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.route :as route-handler]
             [frontend.mobile.util :as mobile-util]
@@ -74,18 +73,7 @@
         working-page? (if config/publishing? (not (state/sub :db/restoring?)) true)
         page-menu (if (and working-page? (ldb/page? page))
                     (page-menu/page-menu page)
-                    (when-not config/publishing?
-                      (when (config/db-based-graph?)
-                        (let [block-id-str (str (:block/uuid page))
-                              favorited? (page-handler/favorited? block-id-str)]
-                          [{:title   (if favorited?
-                                       (t :page/unfavorite)
-                                       (t :page/add-to-favorites))
-                            :options {:on-click
-                                      (fn []
-                                        (if favorited?
-                                          (page-handler/<unfavorite-page! block-id-str)
-                                          (page-handler/<favorite-page! block-id-str)))}}]))))
+                    nil)
         page-menu-and-hr (concat page-menu [{:hr true}])
         items (fn []
                 (->>

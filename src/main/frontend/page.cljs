@@ -5,7 +5,6 @@
             [frontend.components.plugins :as plugin]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
-            [frontend.handler.export :as export]
             [frontend.handler.notification :as notification]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.search :as search-handler]
@@ -32,12 +31,10 @@
   of broken conditions"
   []
   ;; This layout emulates most of container/sidebar
-  (let [current-repo (state/get-current-repo)
-        db-based? (config/db-based-graph? current-repo)]
-    [:div#main-container.cp__sidebar-main-layout.flex-1.flex
-     [:div.#app-container
-      [:div#left-container
-       [:div#main-container.cp__sidebar-main-layout.flex-1.flex
+  [:div#main-container.cp__sidebar-main-layout.flex-1.flex
+   [:div.#app-container
+    [:div#left-container
+     [:div#main-container.cp__sidebar-main-layout.flex-1.flex
         [:div#main-content-container.scrollbar-spacing.w-full.flex.justify-center
          [:div.cp__sidebar-main-content
           [:div.ls-center
@@ -68,21 +65,9 @@
               [:div.text-xs.toned-down "Quit the app and then reopen it."]]
              [:div (ui/icon "command" {:class "rounded-md p-1 mr-2 bg-quaternary"})
               (ui/icon (if (util/electron?) "letter-q" "letter-r") {:class "rounded-md p-1 bg-quaternary"})]]
-            (when db-based?
-              [:div.flex.flex-row.justify-between.align-items.mb-4.items-center.separator-top.py-4
-               [:div.flex.flex-col.items-start.mr-2
-                [:div.text-2xs.font-bold.uppercase.toned-down (t :page/step "3")]
-                [:div [:span.highlighted.font-bold "Export "] [:span.toned-down " current graph as SQLite db"]]
-                [:div.text-xs.toned-down "You can send it to help@logseq.com for debugging."]
-                [:a#download-as-sqlite-db.hidden]]
-               [:div
-                (ui/button "Export graph"
-                           :small? true
-                           :on-click #(export/export-repo-as-sqlite-db! current-repo))]])
-
             [:div.flex.flex-row.justify-between.align-items.mb-4.items-center.separator-top.py-4
              [:div.flex.flex-col.items-start
-              [:div.text-2xs.font-bold.uppercase.toned-down (t :page/step (if db-based? "4" "3"))]
+              [:div.text-2xs.font-bold.uppercase.toned-down (t :page/step "3")]
               [:div [:span.highlighted.font-bold "Clear"] [:span.toned-down " local storage"]]
               [:div.text-xs.toned-down "This does delete minor preferences like dark/light theme preference."]]
              [:div
@@ -92,22 +77,13 @@
                                      (.clear js/localStorage)
                                      (notification/show! "Cleared!" :success)))]]]
            [:div
-            (when-not db-based?
-              [:p "If you think you have experienced data loss, check for backup files under
-          the folder logseq/bak/."])
-            (when db-based?
-              [:p "You can also go to "
-               [:a {:title "All graphs"
-                    :on-click (fn []
-                                (set! (.-href js/window.location) (rfe/href :graphs))
-                                (.reload js/window.location))}
-                "All graphs"]
-               " to switch to another graph."])
+            [:p "If you think you have experienced data loss, check for backup files under
+          the folder logseq/bak/."]
             [:p "If these troubleshooting steps have not solved your problem, please "
              [:a.underline
               {:href "https://github.com/logseq/og/issues/new?labels=from:in-app&template=bug_report.yaml"}
-              "open an issue."]]]]]]]]]
-     (ui/notification)]))
+              "open an issue."]]]]]]]]
+     (ui/notification)]])
 
 (rum/defc not-found
   []

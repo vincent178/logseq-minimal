@@ -14,7 +14,6 @@
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
-            [frontend.extensions.fsrs :as fsrs]
             [frontend.extensions.srs :as srs]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
@@ -85,12 +84,11 @@
   (shui/dialog-open!
    (component-page/batch-delete-dialog selected-rows ok-handler)))
 
-(defmethod events/handle :modal/show-cards [[_ cards-id]]
-  (let [db-based? (config/db-based-graph? (state/get-current-repo))]
-    (shui/dialog-open!
-     (if db-based? (fn [] (fsrs/cards-view cards-id)) srs/global-cards)
-     {:id :srs
-      :label "flashcards__cp"})))
+(defmethod events/handle :modal/show-cards [[_ _cards-id]]
+  (shui/dialog-open!
+   srs/global-cards
+   {:id :srs
+    :label "flashcards__cp"}))
 
 (defmethod events/handle :modal/show-themes-modal [[_ classic?]]
   (if classic?
