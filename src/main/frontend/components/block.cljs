@@ -3389,7 +3389,7 @@
 
 (defn- config-block-should-update?
   [old-state new-state]
-  (let [config-compare-keys [:show-cloze? :hide-children? :own-order-list-type :own-order-list-index :original-block :edit? :hide-bullet? :ref-matched-children-ids]
+  (let [config-compare-keys [:hide-children? :own-order-list-type :own-order-list-index :original-block :edit? :hide-bullet? :ref-matched-children-ids]
         b1 (second (:rum/args old-state))
         b2 (second (:rum/args new-state))
         result (or

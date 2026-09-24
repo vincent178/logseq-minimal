@@ -265,15 +265,12 @@
 
 (defn- inline-macro
   [{:keys [name arguments]}]
-  (->
-   (if (= name "cloze")
-     (string/join "," arguments)
-     (let [l (cond-> ["{{" name]
-               (pos? (count arguments)) (conj "(" (string/join "," arguments) ")")
-               true (conj "}}"))]
-       (string/join l)))
-   raw-text
-   vector))
+  (let [l (cond-> ["{{" name]
+            (pos? (count arguments)) (conj "(" (string/join "," arguments) ")")
+            true (conj "}}"))]
+    (-> (string/join l)
+        raw-text
+        vector)))
 
 (defn- inline-entity
   [{unicode :unicode}]
