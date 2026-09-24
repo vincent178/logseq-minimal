@@ -1,12 +1,32 @@
 (ns frontend.handler.recent
   "Fns related to recent pages feature"
-  (:require [frontend.handler.db-based.recent :as db-based]))
+  (:require [clojure.string :as string]
+            [frontend.db :as db]
+            [frontend.state :as state]
+            [logseq.db :as ldb]))
 
 (defn add-page-to-recent!
-  [db-id click-from-recent?]
+  [db-id _click-from-recent?]
   (when db-id
-    (db-based/add-page-to-recent! db-id click-from-recent?)))
+    (assert (number? db-id))
+    (when-not (:db/restoring? @state/state)
+      (when-let [page (db/entity db-id)]
+        (when-not (string/blank? (:block/title page))
+          (let [pages (state/get-recent-pages)]
+            (when-not (or (ldb/hidden? page)
+                          ((set pages) db-id))
+              (let [new-pages (vec (take 15 (distinct (cons db-id pages))))]
+                (state/set-recent-pages! new-pages)))))))))
 
 (defn get-recent-pages
   []
-  (db-based/get-recent-pages))
+  (->> (state/get-recent-pages)
+       (distinct)
+       (take 20)
+       (keep db/entity)
+       (filter db/page?)
+       (remove ldb/hidden?)
+       (remove (fn [e]
+                 (or (and (ldb/property? e)
+                          (true? (:logseq.property/hide? e)))
+                     (string/blank? (:block/title e)))))))

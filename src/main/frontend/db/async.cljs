@@ -236,17 +236,6 @@
         [?page :block/name]]
       tag-id))
 
-(defn <get-tag-objects
-  [graph class-id]
-  (let [class-children (db-model/get-structured-children graph class-id)
-        class-ids (distinct (conj class-children class-id))]
-    (<q graph {:transact-db? true}
-        '[:find [(pull ?b [*]) ...]
-          :in $ [?class-id ...]
-          :where
-          [?b :block/tags ?class-id]]
-        class-ids)))
-
 (defn <get-whiteboards
   [graph]
   (p/let [result (<q graph {:transact-db? false}
@@ -257,18 +246,6 @@
     (->> result
          (sort-by :block/updated-at)
          reverse)))
-
-(defn <get-asset-with-checksum
-  [graph checksum]
-  (p/let [result (<q graph {:transact-db? true}
-                     '[:find [(pull ?b [*]) ...]
-                       :in $ ?checksum
-                       :where
-                       [?b :logseq.property.asset/checksum ?checksum]]
-                     checksum)]
-    (some-> (first result)
-            :db/id
-            db/entity)))
 
 (defn <get-pdf-annotations
   [graph pdf-id]

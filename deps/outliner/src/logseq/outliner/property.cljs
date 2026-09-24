@@ -767,7 +767,7 @@
                        (not= id (:block/uuid b))))
                 (entity-plus/lookup-kv-then-entity property :property/closed-values))
 
-          ;; Make sure to update frontend.handler.db-based.property-test when updating ex-info message
+          ;; (db-based.property-test removed)
           (throw (ex-info "Closed value choice already exists"
                           {:error :value-exists
                            :type :notification
@@ -775,7 +775,7 @@
                                      :type :warning}}))
 
           validate-message
-          ;; Make sure to update frontend.handler.db-based.property-test when updating ex-info message
+          ;; (db-based.property-test removed)
           (throw (ex-info "Invalid property value"
                           {:error :value-invalid
                            :type :notification

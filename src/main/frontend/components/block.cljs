@@ -15,10 +15,8 @@
             [frontend.components.lazy-editor :as lazy-editor]
             [frontend.components.macro :as macro]
             [frontend.components.plugins :as plugins]
-            [frontend.components.property :as property-component]
             [frontend.components.query :as query]
             [frontend.components.query.builder :as query-builder-component]
-            [frontend.components.select :as select]
             [frontend.components.svg :as svg]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
@@ -40,7 +38,6 @@
             [frontend.fs :as fs]
             [frontend.handler.assets :as assets-handler]
             [frontend.handler.block :as block-handler]
-            [frontend.handler.db-based.property :as db-property-handler]
             [frontend.handler.dnd :as dnd]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.export.common :as export-common-handler]
@@ -2456,23 +2453,6 @@
       :else
       nil)))
 
-(rum/defcs db-properties-cp < rum/static
-  {:init (fn [state]
-           (let [container-id (or (:container-id (first (:rum/args state)))
-                                  (state/get-next-container-id))]
-             (assoc state ::initial-container-id container-id)))}
-  [state config block opts]
-  (property-component/properties-area block
-                                      (merge
-                                       config
-                                       {:inline-text inline-text
-                                        :page-cp page-cp
-                                        :block-cp blocks-container
-                                        :editor-box (state/get-component :editor/box)
-                                        :container-id (or (:container-id config)
-                                                          (::initial-container-id state))}
-                                       opts)))
-
 (rum/defc invalid-properties-cp
   [invalid-properties]
   (when (seq invalid-properties)
@@ -3309,17 +3289,7 @@
                                                   :id "letter-p"})))]
                         [:div.ls-page-icon.flex.self-start
                          (icon-component/icon-picker icon
-                                                     {:on-chosen (fn [_e icon]
-                                                                   (if icon
-                                                                     (db-property-handler/set-block-property!
-                                                                      (:db/id block)
-                                                                      (pu/get-pid :logseq.property/icon)
-                                                                      (select-keys icon [:id :type :color]))
-                                                                     ;; del
-                                                                     (db-property-handler/remove-block-property!
-                                                                      (:db/id block)
-                                                                      (pu/get-pid :logseq.property/icon))))
-                                                      :del-btn? (boolean icon')
+                                                     {:del-btn? (boolean icon')
                                                       :icon-props {:style {:width "1lh"
                                                                            :height "1lh"
                                                                            :font-size (cond
@@ -3743,29 +3713,11 @@
 
 (declare ->hiccup)
 
-(defn- get-code-mode-by-lang
-  [lang]
-  (some (fn [m] (when (= (.-name m) lang) (.-mode m))) js/window.CodeMirror.modeInfo))
-
-(rum/defc src-lang-picker
-  [block on-select!]
-  (when-let [langs (map (fn [m] (.-name m)) js/window.CodeMirror.modeInfo)]
-    (let [options (map (fn [lang] {:label lang :value lang}) langs)]
-      (select/select {:items options
-                      :input-default-placeholder "Choose language"
-                      :on-chosen
-                      (fn [chosen _ _ e]
-                        (let [lang (:value chosen)]
-                          (when (and (= :code (:logseq.property.node/display-type block))
-                                     (not= lang (:logseq.property.code/lang block)))
-                            (on-select! lang e)))
-                        (shui/popup-hide!))}))))
-
 (rum/defc src-cp < rum/static
   [config options]
   (let [block (or (:code-block config) (:block config))
-        container-id (:container-id config)
-        *mode-ref (hooks/use-ref nil)
+        _container-id (:container-id config)
+        _mode-ref (hooks/use-ref nil)
         *actions-ref (hooks/use-ref nil)]
 
     (when options
@@ -3801,30 +3753,6 @@
                [:div.ls-code-editor-wrap
                 [:div.code-block-actions
                  {:ref *actions-ref}
-                 (shui/button
-                  {:variant :text
-                   :size :sm
-                   :class "select-language"
-                   :ref *mode-ref
-                   :containerid (str container-id)
-                   :blockid (str (:block/uuid block))
-                   :on-click (fn [^js e]
-                               (util/stop-propagation e)
-                               (let [target (.-target e)]
-                                 (shui/popup-show! target
-                                                   #(src-lang-picker block
-                                                                     (fn [lang ^js _e]
-                                                                       (when-let [^js cm (util/get-cm-instance (util/rec-get-node target "ls-block"))]
-                                                                         (if-let [mode (get-code-mode-by-lang lang)]
-                                                                           (.setOption cm "mode" mode)
-                                                                           (throw (ex-info "code mode not found"
-                                                                                           {:lang lang})))
-                                                                         (db/transact! [(ldb/kv :logseq.kv/latest-code-lang lang)])
-                                                                         (db-property-handler/set-block-property!
-                                                                          (:db/id block) :logseq.property.code/lang lang))))
-                                                   {:align :end})))}
-                  (or language "Choose language")
-                  (ui/icon "chevron-down"))
                  (shui/button
                   {:variant :text
                    :size :sm

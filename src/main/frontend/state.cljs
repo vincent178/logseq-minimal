@@ -1974,10 +1974,6 @@ Similar to re-frame subscriptions"
   [key-code]
   (set-state! :ui/global-last-key-code key-code))
 
-(defn get-ui-last-key-code
-  []
-  @(:ui/global-last-key-code @state))
-
 (defn set-block-op-type!
   [op-type]
   (set-state! :editor/block-op-type op-type))

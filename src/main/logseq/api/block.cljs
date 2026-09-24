@@ -6,7 +6,6 @@
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
             [frontend.db.utils :as db-utils]
-            [frontend.handler.db-based.property.util :as db-pu]
             [frontend.modules.outliner.tree :as outliner-tree]
             [frontend.state :as state]
             [logseq.db.frontend.db-ident :as db-ident]
@@ -57,12 +56,6 @@
   [ident]
   (and (qualified-keyword? ident)
        (string/starts-with? (namespace ident) plugin-property-prefix)))
-
-(defn into-readable-db-properties
-  [properties]
-  (some-> properties
-          (db-pu/readable-properties
-           {:original-key? true :key-fn str})))
 
 (defn parse-property-json-value-if-need
   [ident property-value]

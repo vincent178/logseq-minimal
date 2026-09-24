@@ -11,8 +11,6 @@
             [frontend.common.missionary :as c.m]
             [frontend.components.dnd :as dnd]
             [frontend.components.icon :as icon-component]
-            [frontend.components.property.config :as property-config]
-            [frontend.components.property.value :as pv]
             [frontend.components.select :as select]
             [frontend.components.selection :as selection]
             [frontend.config :as config]
@@ -134,7 +132,7 @@
         [asc?] (some (fn [item] (when (= (:id item) (:id column))
                                   (when-some [asc? (:asc? item)]
                                     [asc?]))) sorting)
-        property (db/entity (:id column))
+        _property (db/entity (:id column))
         sub-content (fn [{:keys [_id]}]
                       (let [table-options [(shui/dropdown-menu-item
                                             {:key "asc"
@@ -151,13 +149,13 @@
                             tag (when-let [entity (:logseq.property/view-for view-entity)]
                                   (when (ldb/class? entity)
                                     entity))
-                            option (cond->
+                            _option (cond->
                                     {:with-title? false
                                      :more-options table-options}
                                      (some? tag)
                                      (assoc :class-schema? true))]
                         [:div.ls-property-dropdown
-                         (property-config/property-dropdown property tag option)]))]
+                         nil]))]
     (shui/button
      {:variant "text"
       :class "h-8 !pl-4 !px-2 !py-0 hover:text-foreground w-full justify-start"
@@ -251,26 +249,21 @@
                         :else
                         (let [popup (fn []
                                       (let [width (-> (max 160 width) (- 18))]
-                                        (if many?
-                                          [:div.ls-table-block
-                                           {:style {:width width :max-width width}
-                                            :on-click util/stop-propagation}
-                                           (pv/property-value row property {})]
-                                          [:div.ls-table-block
-                                           {:style {:width width :max-width width}
-                                            :on-click util/stop-propagation}
-                                           (block-container
-                                            {:popup? true
-                                             :view? true
-                                             :table-block-title? true
-                                             :table? true
-                                             :on-key-down
-                                             (fn [e]
-                                               (when (and (= (util/ekey e) "Enter")
-                                                          (not (state/get-editor-action)))
-                                                 (util/stop e)
-                                                 (save-block-and-focus *ref set-focus-timeout! true)))}
-                                            block)])))]
+                                        [:div.ls-table-block
+                                         {:style {:width width :max-width width}
+                                          :on-click util/stop-propagation}
+                                         (block-container
+                                          {:popup? true
+                                           :view? true
+                                           :table-block-title? true
+                                           :table? true
+                                           :on-key-down
+                                           (fn [e]
+                                             (when (and (= (util/ekey e) "Enter")
+                                                        (not (state/get-editor-action)))
+                                               (util/stop e)
+                                               (save-block-and-focus *ref set-focus-timeout! true)))}
+                                          block)]))]
                           (p/do!
                            (shui/popup-show!
                             (.closest (.-target e) ".ls-table-cell")
@@ -377,18 +370,7 @@
                               (:block/title property))
                     :header (or (:header property)
                                 header-cp)
-                    :cell (or (:cell property)
-                              (when (de/entity? property)
-                                (fn [_table row _column style]
-                                  (pv/property-value row property {:view? true
-                                                                   :table-view? true
-                                                                   :table-text-property-render
-                                                                   (fn [block opts]
-                                                                     (block-title block (assoc opts
-                                                                                               :row row
-                                                                                               :property property
-                                                                                               :width (:width style)
-                                                                                               :sidebar? (:sidebar? config))))}))))
+                    :cell (:cell property)
                     :get-value get-value
                     :type (:type property)}))))
            properties')
