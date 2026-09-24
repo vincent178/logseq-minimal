@@ -49,8 +49,7 @@
 (def db-graph-paths
   "Paths _only_ for DB graphs"
   (into block-name-db-graph-paths
-        ["deps/outliner/src/logseq/outliner/cli.cljs"
-         "deps/outliner/src/logseq/outliner/db_pipeline.cljs"
+        ["deps/outliner/src/logseq/outliner/db_pipeline.cljs"
          "deps/outliner/src/logseq/outliner/validate.cljs"
          "deps/outliner/src/logseq/outliner/page.cljs"
          ;; TODO: change to deps/cli/src when :block/name no longer in other cli namespaces
