@@ -15,6 +15,11 @@
 
 (defonce db-version-prefix common-config/db-version-prefix)
 
+(def built-in-pages-names
+  #{common-config/library-page-name
+    common-config/quick-add-page-name
+    "Contents"})
+
 (def ^:private write-handlers (cljs-bean.transit/writer-handlers))
 (def ^:private read-handlers {})
 

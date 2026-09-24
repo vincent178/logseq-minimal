@@ -43,7 +43,6 @@
             [logseq.db.common.view :as db-view]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.property :as db-property]
-            [logseq.db.sqlite.export :as sqlite-export]
             [logseq.db.sqlite.gc :as sqlite-gc]
             [logseq.db.sqlite.util :as sqlite-util]
             [logseq.outliner.op :as outliner-op]
@@ -626,21 +625,6 @@
   [repo]
   (when-let [conn (worker-state/get-datascript-conn repo)]
     (worker-db-validate/validate-db conn)))
-
-;; Returns an export-edn map for given repo. When there's an unexpected error, a map
-;; with key :export-edn-error is returned
-(def-thread-api :thread-api/export-edn
-  [repo options]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (try
-      (sqlite-export/build-export @conn options)
-      (catch :default e
-        (js/console.error "export-edn error: " e)
-        (js/console.error "Stack:\n" (.-stack e))
-        (worker-util/post-message :notification
-                                  ["An unexpected error occurred during export. See the javascript console for details."
-                                   :error])
-        {:export-edn-error (.-message e)}))))
 
 (def-thread-api :thread-api/get-view-data
   [repo view-id option]
