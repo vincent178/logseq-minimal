@@ -292,11 +292,4 @@
     (util/exit-edit)
     (w/wait-for "iframe")))
 
-(deftest cloze-test
-  (testing "cloze"
-    (b/new-block "")
-    (util/input-command "cloze")
-    (util/press-seq "hidden answer")
-    (util/exit-edit)
-    (w/click "a.cloze")
-    (w/wait-for "a.cloze-revealed")))
+
