@@ -32,7 +32,6 @@
             [frontend.extensions.pdf.assets :as pdf-assets]
             [frontend.extensions.sci :as sci]
             [frontend.extensions.video.youtube :as youtube]
-            [frontend.extensions.zotero :as zotero]
             [frontend.format.block :as block]
             [frontend.format.mldoc :as mldoc]
             [frontend.fs :as fs]
@@ -381,9 +380,7 @@
 (defn- open-pdf-file
   [e block href]
   (let [href (if-let [url (:logseq.property.asset/external-url block)]
-               (if (string/starts-with? url "zotero://")
-                 (zotero/zotero-full-path (last (string/split url #"/")) (:logseq.property.asset/external-file-name block))
-                 url)
+               url
                href)]
     (when-let [s (or href (some-> (.-target e) (.-dataset) (.-href)))]
       (let [load$ (fn []
@@ -1772,15 +1769,6 @@
       (when-let [timestamp' (first arguments)]
         (when-let [seconds (youtube/parse-timestamp timestamp')]
           (youtube/timestamp seconds)))
-
-      (= name "zotero-imported-file")
-      (let [[item-key filename] arguments]
-        (when (and item-key filename)
-          [:span.ml-1 (zotero/zotero-imported-file item-key filename)]))
-
-      (= name "zotero-linked-file")
-      (when-let [path (first arguments)]
-        [:span.ml-1 (zotero/zotero-linked-file path)])
 
       (= name "vimeo")
       (macro-vimeo-cp config arguments)

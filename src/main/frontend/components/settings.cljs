@@ -557,22 +557,6 @@
             (let [value (not enable-all-pages-public?)]
               (config-handler/set-config! :publishing/all-pages-public? value)))))
 
-(defn zotero-settings-row []
-  [:div.it.sm:grid.sm:grid-cols-3.sm:gap-4.sm:items-center
-   [:label.block.text-sm.font-medium.leading-5.opacity-70
-    {:for "zotero_settings"}
-    "Zotero"]
-   [:div.mt-1.sm:mt-0.sm:col-span-2
-    [:div
-     (ui/button
-      (t :settings)
-      :class "text-sm"
-      :style {:margin-top "0px"}
-      :on-click
-      (fn []
-        (state/close-settings!)
-        (route-handler/redirect! {:to :zotero-setting})))]]])
-
 (defn auto-push-row [_t current-repo enable-git-auto-push?]
   (when (and current-repo (string/starts-with? current-repo "https://"))
     (toggle "enable_git_auto_push"
@@ -826,8 +810,7 @@
      (when (and web-platform? config/feature-plugin-system-on?)
        (plugin-system-switcher-row))
      (when (util/electron?)
-       (http-server-switcher-row))
-     (zotero-settings-row)]))
+       (http-server-switcher-row))]))
 
      ;; (when-not web-platform?
      ;;   [:<>

@@ -14,8 +14,6 @@
 (s/def ::ls-pdf-area-is-dashed boolean?)
 (s/def ::ls-pdf-hl-block-is-colored boolean?)
 (s/def ::ls-pdf-viewer-theme string?)
-(s/def :zotero/api-key-v2 map?)
-(s/def :zotero/setting-profile string?)
 (s/def ::commands-history (s/coll-of map?))
 (s/def :ui/wide-mode boolean?)
 (s/def :git/current-repo string?)
@@ -53,8 +51,6 @@
             ::ls-pdf-area-is-dashed
             ::ls-pdf-hl-block-is-colored
             ::ls-pdf-viewer-theme
-            :zotero/api-key-v2
-            :zotero/setting-profile
             ::commands-history
             :ui/wide-mode
             :git/current-repo

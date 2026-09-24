@@ -20,7 +20,6 @@
 (def custom-formatter (tf/formatter "yyyy-MM-dd'T'HH:mm:ssZZ"))
 
 (def ^:private mmm-do-yyyy-formatter (tf/formatter "MMM do, yyyy"))
-(def ^:private yyyy-MM-dd-formatter (tf/formatter "yyyy-MM-dd"))
 (def ^:private yyyy-MM-dd-HH-mm-formatter (tf/formatter "yyyy-MM-dd HH:mm"))
 
 (defn journal-title-formatters
@@ -66,14 +65,6 @@
                                          :date date
                                          :format formatter})
          (throw e))))))
-
-(defn journal-name-s [s]
-  (try
-    (journal-name (tf/parse yyyy-MM-dd-formatter s))
-    (catch :default _e
-      (log/error :parse-journal-date {:message  "Unable to parse date to journal name, skipping."
-                                      :date-str s})
-      nil)))
 
 (defn start-of-day [date]
   (t/date-time (t/year date) (t/month date) (t/day date)))

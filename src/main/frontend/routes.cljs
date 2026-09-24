@@ -8,7 +8,6 @@
             [frontend.components.plugins :as plugins]
             [frontend.components.repo :as repo]
             [frontend.components.settings :as settings]
-            [frontend.extensions.zotero :as zotero]
             [frontend.components.bug-report :as bug-report]
             [logseq.shui.demo :as shui]
             [frontend.components.imports :as imports]
@@ -44,10 +43,6 @@
    ["/settings"
     {:name :settings
      :view settings/settings}]
-
-   ["/settings/zotero"
-    {:name :zotero-setting
-     :view zotero/settings}]
 
    ["/import"
     {:name :import

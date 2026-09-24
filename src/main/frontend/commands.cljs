@@ -70,10 +70,6 @@
                          :id :label
                          :placeholder "Label"}]]])
 
-(defn zotero-steps []
-  [[:editor/input (str command-trigger "zotero")]
-   [:editor/show-zotero]])
-
 (defn ->marker
   [marker]
   [[:editor/clear-current-slash]
@@ -339,7 +335,6 @@
       ;; advanced
       [["Query" (query-steps) query-doc :icon/query "ADVANCED"]
        ["Advanced Query" (advanced-query-steps) "Create an advanced query block" :icon/query]
-       ["Zotero" (zotero-steps) "Import Zotero journal article" :icon/circle-letter-z]
        ["Query function" [[:editor/input "{{function }}" {:backward-pos 2}]] "Create a query function" :icon/queryCode]
        ["Calculator"
         (calc-steps)
@@ -713,9 +708,6 @@
 
 (defmethod handle-step :editor/show-input [[_ option]]
   (state/set-editor-show-input! option))
-
-(defmethod handle-step :editor/show-zotero [[_]]
-  (state/set-editor-action! :zotero))
 
 (defn insert-youtube-timestamp
   []
