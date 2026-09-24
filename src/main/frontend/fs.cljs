@@ -43,10 +43,6 @@
       :else
       (throw (ex-info "failed to get fs backend" {:dir dir :repo repo :rpath rpath})))))
 
-(defn mkdir!
-  [dir]
-  (protocol/mkdir! (get-fs dir) dir))
-
 (defn mkdir-recur!
   [dir]
   (protocol/mkdir-recur! (get-fs dir) dir))

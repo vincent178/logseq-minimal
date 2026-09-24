@@ -86,7 +86,7 @@
             [promesa.core :as p]
             [reitit.frontend.easy :as rfe]
             [rum.core :as rum]
-            [shadow.loader :as loader]))
+            ))
 
 ;; local state
 (defonce *dragging?
@@ -936,19 +936,6 @@
        [:a.asset-ref {:target "_blank" :href real-path-url}
         title-or-path])]))
 
-(defonce excalidraw-loaded? (atom false))
-(rum/defc excalidraw < rum/reactive
-  {:init (fn [state]
-           (p/let [_ (loader/load :excalidraw)]
-             (reset! excalidraw-loaded? true))
-           state)}
-  [file block-uuid]
-  (let [loaded? (rum/react excalidraw-loaded?)
-        draw-component (when loaded?
-                         (resolve 'frontend.extensions.excalidraw/draw))]
-    (when draw-component
-      (draw-component {:file file :block-uuid block-uuid}))))
-
 (rum/defcs asset-cp < rum/reactive
   (rum/local nil ::file-exists?)
   {:will-mount (fn [state]
@@ -1040,11 +1027,6 @@
             (cond
               (and asset? (img-audio-video? block))
               (asset-cp config block)
-
-              (and (string? uuid-or-title) (string/ends-with? uuid-or-title ".excalidraw"))
-              [:div.draw {:on-click (fn [e]
-                                      (.stopPropagation e))}
-               (excalidraw uuid-or-title (:block/uuid config))]
 
               :else
               (let [blank-title? (string/blank? (:block/title block))]
