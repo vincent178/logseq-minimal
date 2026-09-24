@@ -196,3 +196,6 @@ frontend.common.file.util/ugly-pr-str
 frontend.handler.db-based.import/import-from-sqlite-db!
 frontend.handler.db-based.import/import-from-debug-transit!
 frontend.handler.db-based.import/import-from-edn-file!
+;; Inert data-preservation: kept so shape blocks in existing user graphs stay
+;; loadable; UI callers removed with whiteboards (goal mufyry37-hlu4wy)
+frontend.handler.property.util/shape-block?
