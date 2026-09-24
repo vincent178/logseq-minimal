@@ -3,7 +3,6 @@
   (:require [clojure.string :as string]
             [datascript.core :as d]
             [logseq.db :as ldb]
-            [logseq.db.sqlite.export :as sqlite-export]
             [logseq.outliner.core :as outliner-core]
             [logseq.outliner.property :as outliner-property]
             [logseq.outliner.transaction :as outliner-tx]
@@ -95,11 +94,6 @@
      [:op :keyword]
      [:args [:tuple ::property-id ::values]]]]
 
-   [:batch-import-edn
-    [:catn
-     [:op :keyword]
-     [:args [:tuple ::import-edn ::option]]]]
-
    ;; transact
    [:transact
     [:catn
@@ -134,7 +128,6 @@
                        ::value :any
                        ::values [:sequential ::value]
                        ::option [:maybe map?]
-                       ::import-edn map?
                        ::blocks [:sequential ::block]
                        ::ids [:sequential ::id]
                        ::uuid uuid?
@@ -150,23 +143,6 @@
 (defn register-op-handlers!
   [handlers]
   (reset! *op-handlers handlers))
-
-(defn- import-edn-data
-  [conn *result export-map {:keys [tx-meta] :as import-options}]
-  (let [{:keys [init-tx block-props-tx misc-tx error] :as _txs}
-        (try (sqlite-export/build-import export-map @conn (dissoc import-options :tx-meta))
-             (catch :default e
-               (js/console.error "Import EDN error: " e)
-               {:error "An unexpected error occurred building the import. See the javascript console for details."}))]
-    ;; (cljs.pprint/pprint _txs)
-    (if error
-      (reset! *result {:error error})
-      (try
-        (ldb/transact! conn (vec (concat init-tx block-props-tx misc-tx))
-                       (merge {::sqlite-export/imported-data? true} tx-meta))
-        (catch :default e
-          (js/console.error "Unexpected Import EDN error:" e)
-          (reset! *result {:error (str "Unexpected Import EDN error: " (pr-str (ex-message e)))}))))))
 
 (defn ^:large-vars/cleanup-todo apply-ops!
   [repo conn ops date-formatter opts]
@@ -256,9 +232,6 @@
 
          :add-existing-values-to-closed-values
          (apply outliner-property/add-existing-values-to-closed-values! conn args)
-
-         :batch-import-edn
-         (apply import-edn-data conn *result args)
 
          :transact
          (apply ldb/transact! conn args)

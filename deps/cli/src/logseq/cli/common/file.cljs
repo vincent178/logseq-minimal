@@ -6,7 +6,6 @@
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.frontend.content :as db-content]
-            [logseq.db.sqlite.create-graph :as sqlite-create-graph]
             [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.property :as gp-property]
             [logseq.outliner.tree :as otree]))
@@ -129,7 +128,7 @@
   (let [filter-fn (if (ldb/db-based-graph? db)
                     (fn [ent]
                       (or (not (:logseq.property/built-in? ent))
-                          (contains? sqlite-create-graph/built-in-pages-names (:block/title ent))))
+                          (contains? sqlite-util/built-in-pages-names (:block/title ent))))
                     (constantly true))]
     (->> (d/datoms db :avet :block/name)
          (map #(d/entity db (:e %)))

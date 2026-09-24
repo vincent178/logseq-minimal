@@ -15,7 +15,6 @@
             [logseq.db.file-based.schema :as file-schema]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.schema :as db-schema]
-            [logseq.db.sqlite.create-graph :as sqlite-create-graph]
             [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.block :as gp-block]
             [logseq.graph-parser.db :as gp-db]
@@ -82,7 +81,7 @@
                            (ldb/get-orphaned-pages db {:pages old-pages
                                                        :built-in-pages-names
                                                        (if db-graph?
-                                                         sqlite-create-graph/built-in-pages-names
+                                                         sqlite-util/built-in-pages-names
                                                          gp-db/built-in-pages-names)
                                                        :empty-ref-f (fn [page]
                                                                       (let [refs (:block/_refs page)]
@@ -252,7 +251,7 @@
                (when-let [id (:block/uuid t)]
                  (:db/ident (d/entity db [:block/uuid id])))))
           (contains?
-           sqlite-create-graph/built-in-pages-names
+           sqlite-util/built-in-pages-names
            (or (:block/title t)
                (when-let [id (:block/uuid t)]
                  (:block/title (d/entity db [:block/uuid id])))))))))

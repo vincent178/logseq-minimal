@@ -16,8 +16,7 @@
             [logseq.db.common.order :as db-order]
             [logseq.db.common.sqlite :as common-sqlite]
             [logseq.db.frontend.class :as db-class]
-            [logseq.db.sqlite.create-graph :as sqlite-create-graph]
-            [logseq.db.sqlite.export :as sqlite-export]
+            [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.exporter :as gp-exporter]
             [logseq.outliner.core :as outliner-core]
             [logseq.outliner.datascript-report :as ds-report]
@@ -349,7 +348,7 @@
                 (:fix-db? tx-meta))
     (let [built-in-page? (fn [id]
                            (let [block (d/entity db-after id)]
-                             (and (contains? sqlite-create-graph/built-in-pages-names
+                             (and (contains? sqlite-util/built-in-pages-names
                                              (:block/title block))
                                   (ldb/built-in? block))))
           tx-data' (mapcat
@@ -522,7 +521,7 @@
         ;; Ref rebuilding happens here because transact-pipeline doesn't rebuild refs
         ;; for these cases
         (or (::gp-exporter/new-graph? tx-meta)
-            (and (::sqlite-export/imported-data? tx-meta)
+            (and (:logseq.db.sqlite.export/imported-data? tx-meta)
                  ;; Undo and redo must be handled by default in order to work
                  (not (:undo? tx-meta)) (not (:redo? tx-meta))))
         (invoke-hooks-for-imported-graph conn tx-report)
