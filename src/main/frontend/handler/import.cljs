@@ -15,7 +15,6 @@
             [frontend.state :as state]
             [frontend.util :as util]
             [logseq.graph-parser.mldoc :as gp-mldoc]
-            [logseq.graph-parser.whiteboard :as gp-whiteboard]
             [medley.core :as medley]
             [promesa.core :as p]))
 
@@ -60,17 +59,15 @@
    :children - tree
    :properties - map
    "
-  [{:keys [type uuid title children properties] :as tree}]
+  [{:keys [uuid title children properties] :as tree}]
   (let [title (string/trim title)
         has-children? (seq children)
-        page-format (or (some-> tree (:children) (first) (:format)) :markdown)
-        whiteboard? (= type "whiteboard")]
+        page-format (or (some-> tree (:children) (first) (:format)) :markdown)]
     (p/do!
      (try (page-handler/<create! title {:redirect?           false
                                         :format              page-format
                                         :uuid                uuid
-                                        :properties          properties
-                                        :whiteboard?         whiteboard?})
+                                        :properties          properties})
           (catch :default e
             (js/console.error e)
             (prn {:tree tree})
@@ -81,17 +78,10 @@
        (let [page-name (util/page-name-sanity-lc title)
              page-block (db/get-page page-name)]
         ;; Missing support for per block format (or deprecated?)
-         (try (if whiteboard?
-               ;; only works for file graph :block/properties
-                (let [blocks (->> children
-                                  (map (partial medley/map-keys (fn [k] (keyword "block" k))))
-                                  (map gp-whiteboard/migrate-shape-block)
-                                  (map #(merge % (gp-whiteboard/with-whiteboard-block-props % [:block/uuid uuid]))))]
-                  (db/transact! blocks))
-                (editor/insert-block-tree children page-format
-                                          {:target-block page-block
-                                           :sibling?     false
-                                           :keep-uuid?   true}))
+         (try (editor/insert-block-tree children page-format
+                                        {:target-block page-block
+                                         :sibling?     false
+                                         :keep-uuid?   true})
               (catch :default e
                 (js/console.error e)
                 (prn {:tree tree})

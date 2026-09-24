@@ -10,7 +10,6 @@
             [logseq.common.util :as common-util]
             [logseq.common.util.page-ref :as page-ref]))
 
-;; FIXME: add whiteboard
 (defn- get-directory
   [journal?]
   (if journal?

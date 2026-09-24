@@ -179,18 +179,15 @@
       (async/go-loop []
         (if-let [item (async/<! chan)]
           (let [[idx file] item
-                whiteboard? (common-config/whiteboard? (:file/path file))
                 yield-for-ui? (or (not large-graph?)
                                   (zero? (rem idx 10))
-                                  (<= (- total idx) 10)
-                                  whiteboard?)]
+                                  (<= (- total idx) 10))]
             (state/set-parsing-state! (fn [m]
                                         (assoc m :current-parsing-file (:file/path file))))
 
             (when yield-for-ui? (async/<! (async/timeout 1)))
 
             (let [opts' (select-keys opts [:new-graph? :verbose])
-                  ;; whiteboards might have conflicting block IDs so that db transaction could be failed
                   result (async/<! (p->c (parse-and-load-file! repo-url file opts')))
                   page-name (when (coll? result) ; result could be a promise
                               (some (fn [x] (when (and (map? x)

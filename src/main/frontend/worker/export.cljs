@@ -26,20 +26,15 @@
               [?b :block/name]] db)
 
        (map (fn [[page]]
-              (let [whiteboard? (ldb/whiteboard? page)
-                    blocks (ldb/get-page-blocks db (:db/id page))
-                    blocks' (if whiteboard?
-                              blocks
-                              (map (fn [b]
-                                     (let [b' (if (seq (:block/properties b))
-                                                (update b :block/title
-                                                        (fn [content]
-                                                          (gp-property/remove-properties (get b :block/format :markdown) content)))
-                                                b)]
-                                       (safe-keywordize b'))) blocks))
-                    children (if whiteboard?
-                               blocks'
-                               (otree/blocks->vec-tree repo db blocks' (:db/id page)))
+              (let [blocks (ldb/get-page-blocks db (:db/id page))
+                    blocks' (map (fn [b]
+                                   (let [b' (if (seq (:block/properties b))
+                                              (update b :block/title
+                                                      (fn [content]
+                                                        (gp-property/remove-properties (get b :block/format :markdown) content)))
+                                              b)]
+                                     (safe-keywordize b'))) blocks)
+                    children (otree/blocks->vec-tree repo db blocks' (:db/id page))
                     page' (safe-keywordize page)]
                 (assoc page' :block/children children))))))
 

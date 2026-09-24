@@ -17,7 +17,6 @@
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
-            [logseq.db.file-based.entity-util :as file-entity-util]
             [logseq.outliner.tree :as otree]
             [malli.core :as m]))
 
@@ -50,40 +49,12 @@
 
 (def batch-write-interval 1000)
 
-(def whiteboard-blocks-pull-keys-with-persisted-ids
-  '[:block/properties
-    :block/uuid
-    :block/order
-    :block/title
-    :block/format
-    :block/created-at
-    :block/updated-at
-    :block/collapsed?
-    {:block/page      [:block/uuid]}
-    {:block/parent    [:block/uuid]}])
-
-(defn- cleanup-whiteboard-block
-  [block]
-  (if (get-in block [:block/properties :ls-type] false)
-    (dissoc block
-            :db/id
-            :block/uuid ;; shape block uuid is read from properties
-            :block/collapsed?
-            :block/title
-            :block/format
-            :block/order
-            :block/page
-            :block/parent) ;; these are auto-generated for whiteboard shapes
-    (dissoc block :db/id :block/page)))
-
 (defn- transact-file-tx-if-not-exists!
   [conn page-block ok-handler context]
   (when (:block/name page-block)
     (let [format (name (get page-block :block/format (:preferred-format context)))
           date-formatter (:date-formatter context)
           title (string/capitalize (:block/name page-block))
-          whiteboard-page? (file-entity-util/whiteboard? page-block)
-          format (if whiteboard-page? "edn" format)
           journal-page? (common-date/valid-journal-title? title date-formatter)
           journal-title (common-date/normalize-journal-title title date-formatter)
           journal-page? (and journal-page? (not (string/blank? journal-title)))
@@ -93,7 +64,6 @@
                          wfu/file-name-sanity))
           sub-dir (cond
                     journal-page?    (:journals-directory context)
-                    whiteboard-page? (:whiteboards-directory context)
                     :else            (:pages-directory context))
           ext (if (= format "markdown") "md" format)
           file-rpath (path/path-join sub-dir (str filename "." ext))
@@ -104,8 +74,6 @@
       (ldb/transact! conn tx)
       (when ok-handler (ok-handler)))))
 
-(defn- remove-transit-ids [block] (dissoc block :db/id :block/file))
-
 (defn- save-tree-aux!
   [repo db page-block tree blocks-just-deleted? context request-id]
   (let [page-block (d/pull db '[*] (:db/id page-block))
@@ -113,12 +81,7 @@
         file-db-id (-> page-block :block/file :db/id)
         file-path (-> (d/entity db file-db-id) :file/path)
         result (if (and (string? file-path) (not-empty file-path))
-                 (let [new-content (if (file-entity-util/whiteboard? page-block)
-                                     (->
-                                      (wfu/ugly-pr-str {:blocks tree
-                                                        :pages (list (remove-transit-ids page-block))})
-                                      (string/triml))
-                                     (common-file/tree->file-content repo db tree {:init-level init-level} context))]
+                 (let [new-content (common-file/tree->file-content repo db tree {:init-level init-level} context)]
                    (when-not (and (string/blank? new-content) (not blocks-just-deleted?))
                      (let [files [[file-path new-content]]]
                        (when (seq files)
@@ -149,26 +112,19 @@
   [repo conn page-db-id outliner-op context request-id]
   (let [page-block (d/entity @conn page-db-id)
         page-db-id (:db/id page-block)
-        whiteboard? (file-entity-util/whiteboard? page-block)
         blocks-count (ldb/get-page-blocks-count @conn page-db-id)
         blocks-just-deleted? (and (zero? blocks-count)
                                   (contains? #{:delete-blocks :move-blocks} outliner-op))]
     (if (or (>= blocks-count 1) blocks-just-deleted?)
-      (if (and (or (> blocks-count 500) whiteboard?)
+      (if (and (> blocks-count 500)
                (not (worker-state/tx-idle? repo {:diff 3000})))
         (async/put! file-writes-chan [repo page-db-id outliner-op (tc/to-long (t/now)) request-id])
-        (let [blocks (if whiteboard?
-                       (ldb/get-page-blocks @conn (:db/id page-block)
-                                            {:pull-keys whiteboard-blocks-pull-keys-with-persisted-ids})
-                       (:block/_page page-block))
-              blocks (if whiteboard? (map cleanup-whiteboard-block blocks) blocks)]
+        (let [blocks (:block/_page page-block)]
           (if (and (= 1 (count blocks))
                    (string/blank? (:block/title (first blocks)))
-                   (nil? (:block/file page-block))
-                   (not whiteboard?))
+                   (nil? (:block/file page-block)))
             (dissoc-request! request-id)
-            (let [tree-or-blocks (if whiteboard? blocks
-                                     (otree/blocks->vec-tree repo @conn blocks (:db/id page-block)))]
+            (let [tree-or-blocks (otree/blocks->vec-tree repo @conn blocks (:db/id page-block))]
               (if page-block
                 (save-tree! repo conn page-block tree-or-blocks blocks-just-deleted? context request-id)
                 (do

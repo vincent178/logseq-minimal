@@ -4134,15 +4134,14 @@
           (let [blocks (remove nil? blocks)]
             (when (seq blocks)
               (let [alias? (:block/alias? page)
-                    page (db/entity (:db/id page))
-                    whiteboard? (model/whiteboard-page? page)]
+                    page (db/entity (:db/id page))]
                 [:div.my-2 {:key (str "page-" (:db/id page))}
                  (ui/foldable
                   [:div
                    (page-cp config page)
                    (when alias? [:span.text-sm.font-medium.opacity-50 " Alias"])]
                   (fn []
-                    (when-not whiteboard? (blocks-container config blocks)))
+                    (blocks-container config blocks))
                   {})])))))]
 
      :else

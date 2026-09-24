@@ -26,18 +26,16 @@
      :block/parent page
      :block/page page}))
 
-(defn- build-page-tx [repo conn config date-formatter format properties page {:keys [whiteboard? tags]}]
+(defn- build-page-tx [repo conn config date-formatter format properties page {:keys [tags]}]
   (when (:block/uuid page)
     (let [page-entity   [:block/uuid (:block/uuid page)]
           page'          (merge page
-                                (when whiteboard? {:block/type "whiteboard"})
                                 (when tags {:block/tags (mapv #(hash-map :db/id
                                                                          (:db/id (d/entity @conn [:block/uuid %])))
                                                               tags)}))
           file-page (merge page'
                            (when (seq properties) {:block/properties properties}))]
       (if (and (seq properties)
-               (not whiteboard?)
                (ldb/page-empty? @conn (:block/name page)))
         [file-page (file-based-properties-block repo conn config date-formatter properties format page-entity)]
         [file-page]))))
@@ -86,7 +84,7 @@
                                              [:block/uuid (:block/uuid (nth txs (dec i)))])))
                                   txs)
             page-uuid (:block/uuid (last pages))
-            page-txs (build-page-tx repo conn config date-formatter format properties (last pages) (select-keys options [:whiteboard? :tags]))
+            page-txs (build-page-tx repo conn config date-formatter format properties (last pages) (select-keys options [:tags]))
             page-txs (if (seq txs)
                        (update page-txs 0
                                (fn [p]
