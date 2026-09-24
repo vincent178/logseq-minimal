@@ -1,8 +1,7 @@
 (ns logseq.db.sqlite.export
   "Builds sqlite.build EDN to represent nodes in a graph-agnostic way.
    Useful for exporting and importing across DB graphs"
-  (:require [cljs.pprint :as pprint]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
             [clojure.string :as string]
             [clojure.walk :as walk]
             [datascript.core :as d]
@@ -16,7 +15,6 @@
             [logseq.db.frontend.property :as db-property]
             [logseq.db.frontend.property.type :as db-property-type]
             [logseq.db.frontend.schema :as db-schema]
-            [logseq.db.frontend.validate :as db-validate]
             [logseq.db.sqlite.build :as sqlite-build]
                         [medley.core :as medley]))
 
