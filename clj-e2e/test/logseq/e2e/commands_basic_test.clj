@@ -219,7 +219,7 @@
     (assert/assert-have-count "span.typed-list" 3)
     (is (= ["1." "2." "3."] (w/all-text-contents "span.typed-list")))))
 
-(deftest ^:file-graph-fixme query-test
+(deftest query-test
   (testing "query"
     (b/new-blocks ["[[foo]] block" "[[foo]] another" ""])
     (util/input-command "query")
@@ -230,17 +230,16 @@
       (w/click "a.menu-link:has-text('foo')")
       (assert/assert-is-visible "div:text('Live query (2)')"))))
 
-(deftest ^:file-graph-fixme advanced-query-test
+(deftest advanced-query-test
   (testing "query"
     (b/new-blocks ["[[bar]] block" "[[bar]] another" ""])
     (util/input-command "advanced query")
-    (w/click ".ls-query-setting")
-    (w/click "pre.CodeMirror-line")
+    ;; file graph: /Advanced Query inserts #+BEGIN_QUERY block, edit directly
     (util/input "{:query [:find (pull ?b [*])
 :where [?b :block/refs ?r]
 [?r :block/title \"bar\"]]}")
-    (k/esc)
-    (is (some? (w/find-one-by-text "div" "Live query (2)")))))
+    (util/exit-edit)
+    (is (some? (w/find-one-by-text "div" "2 results")))))
 
 (deftest calculator-test
   (testing "calculator"

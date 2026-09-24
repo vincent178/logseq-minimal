@@ -16,11 +16,12 @@
   fixtures/validate-graph)
 
 (defn create-test-page-and-insert-blocks []
-  ;; a page block and a child block
-  (is (= 2 (util/blocks-count)))
+  ;; file graph: new page has 1 empty block (no title block)
+  (is (= 1 (util/blocks-count)))
   (b/new-blocks ["first block" "second block"])
   (util/exit-edit)
-  (is (= 3 (util/blocks-count))))
+  ;; empty block replaced by "first block", then "second block" appended
+  (is (= 2 (util/blocks-count))))
 
 (defn indent-and-outdent []
   (b/new-blocks ["b1" "b2"])
@@ -52,7 +53,7 @@
   (b/new-blocks ["b1" "b2"])
   (p/new-page "Page testing")
   (b/new-blocks ["b3" ""])
-  (util/input-command "Node embed")
+  (util/input-command "Page embed")
   (util/press-seq "Page embed" {:delay 60})
   (k/press "Enter" {:delay 60})
   (util/exit-edit)
@@ -105,13 +106,13 @@
     (is (= "b1" (util/get-edit-content)))
     (is (= 1 (util/page-blocks-count)))))
 
-(deftest ^:file-graph-fixme create-test-page-and-insert-blocks-test
+(deftest create-test-page-and-insert-blocks-test
   (create-test-page-and-insert-blocks))
 
 (deftest indent-and-outdent-test
   (indent-and-outdent))
 
-(deftest ^:file-graph-fixme indent-outdent-embed-page-test
+(deftest indent-outdent-embed-page-test
   (indent-outdent-embed-page))
 
 (deftest move-up-down-test
