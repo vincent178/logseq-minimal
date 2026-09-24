@@ -88,35 +88,78 @@ if (!graphOpen) {
   process.exit(1);
 }
 
-const append = (content) => page.evaluate((c) => window.logseq.api.append_block_in_page(c), content);
+// Append to today's journal page explicitly — the 1-arity form of
+// append_block_in_page depends on the current view, which breaks when the app
+// was left on a non-journal page (home, deleted page, graph view).
+const append = (content) => page.evaluate((c) => {
+  const today = window.frontend?.date?.today?.();
+  return window.logseq.api.append_block_in_page(today, c);
+}, content);
 const bodyText = () => page.evaluate(() => document.body.innerText);
 
 // Navigate to today's journal so .block-content is present regardless of where
-// the app was left (e.g. on the graph-view page after a previous run).
+// the app was left (e.g. on the graph-view page after a previous run, or on a
+// page a previous run's cleanup deleted). Uses the app's own date formatter
+// (frontend.date.today) for the exact journal page name, and condition-waits
+// for the router to actually land instead of assuming the nav succeeded.
 async function gotoJournal() {
-  await page.evaluate(() => {
-    const r = window.frontend?.handler?.route;
-    if (r?.redirect_to_page_BANG_) {
-      const today = new Date();
-      const fmt = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-        .replace(/(\d+),/, (m, d) => d + (/1$/.test(d) && d !== '11' ? 'st,' : /2$/.test(d) && d !== '12' ? 'nd,' : /3$/.test(d) && d !== '13' ? 'rd,' : 'th,'));
-      try { r.redirect_to_page_BANG_(fmt); return; } catch {}
+  const today = await page.evaluate(() =>
+    window.frontend?.date?.today?.() || null);
+  if (!today) throw new Error('gotoJournal: frontend.date.today not available (app not ready)');
+
+  // get_current_page returns a page UUID (e.g. journals use
+  // "00000001-YYYY-MMDD-..."), not the display name — resolve it via the API
+  // and compare journalDay to know whether we're really on today's journal.
+  const onJournal = () => page.evaluate(async () => {
+    const api = window.logseq?.api;
+    const cur = window.frontend?.state?.get_current_page?.();
+    if (!api || !cur) return false;
+    const pg = await api.get_page(cur).catch(() => null);
+    if (!pg) return false;
+    const now = new Date();
+    const day = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+    return pg.journalDay === day;
+  }).catch(() => false);
+  const waitLanded = async () => {
+    for (let i = 0; i < 16; i++) {
+      if (await onJournal()) return;
+      await page.waitForTimeout(500);
     }
-  }).catch(() => {});
-  await page.keyboard.press('Escape').catch(() => {});
-  // Fallback: click the Journals nav item.
-  if (!(await page.locator('.block-content').first().isVisible().catch(() => false))) {
+  };
+
+  if (!(await onJournal())) {
+    await page.evaluate((t) =>
+      window.frontend?.handler?.route?.redirect_to_page_BANG_?.(t), today).catch(() => {});
+    await waitLanded();
+  }
+  if (!(await onJournal())) {
+    // Fallback: sidebar Journals click.
+    await page.keyboard.press('Escape').catch(() => {});
     await page.getByText('Journals', { exact: true }).first().click().catch(() => {});
+    await waitLanded();
   }
   await page.waitForSelector('.block-content', { timeout: 20000 }).catch(() => {});
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(500);
+  if (!(await onJournal())) {
+    const cur = await page.evaluate(() =>
+      window.frontend?.state?.get_current_page?.() ?? null).catch(() => null);
+    throw new Error(`gotoJournal failed: current page is "${cur}", expected today's journal "${today}"`);
+  }
 }
-await gotoJournal();
+try {
+  await gotoJournal();
+} catch (e) {
+  console.error('❌ ' + e.message);
+  await browser.close();
+  process.exit(1);
+}
 
 // ---- 1. Journals ------------------------------------------------------------
 try {
   await page.waitForSelector('.block-content', { timeout: 30000 });
+  // Prefer router state over DOM title (DOM can hold a stale title element).
   const title = await page.evaluate(() =>
+    window.frontend?.state?.get_current_page?.() ||
     (document.querySelector('.page-title, h1.title, [data-testid="page title"]')?.innerText || '').trim());
   const marker = RUN_TAG + '_journal';
   await append(marker);
@@ -150,6 +193,9 @@ try {
 
 // ---- 3. Query ----------------------------------------------------------------
 try {
+  // Check 2 navigated away to the link-target page; return to the journal so
+  // bodyText reflects the query we append there.
+  await gotoJournal();
   const qtag = RUN_TAG + '_Query';
   await append(`query data [[${qtag}]]`);
   await append(`{{query [[${qtag}]]}}`);
@@ -164,6 +210,7 @@ try {
 
 // ---- 4. Task -----------------------------------------------------------------
 try {
+  await gotoJournal();
   const ttag = RUN_TAG + '_task';
   await append(`TODO ${ttag}`);
   await page.waitForTimeout(1800);
@@ -198,6 +245,49 @@ try {
 // ---- Console errors -----------------------------------------------------------
 const fatal = fatalErrors();
 record('no fatal console errors', fatal.length === 0, fatal.slice(0, 2).join(' | ').slice(0, 120));
+
+// ---- Cleanup test data --------------------------------------------------------
+try {
+  // Navigate away from any test page first — deleting the page we're viewing
+  // leaves Electron's last-opened-page pointing at a deleted page, breaking the
+  // next run's gotoJournal(). Go to today's journal before deleting.
+  await gotoJournal();
+  // Delete pages + journal blocks created during this run. Both delete_page and
+  // remove_block are async (they persist to disk), so await each and then
+  // condition-wait until the page is actually gone — fire-and-forget deletes
+  // leave ghost pages behind that break subsequent runs. Query the journal
+  // block tree via the API, not the DOM: virtualized rendering means many
+  // journal blocks are not in the DOM at all.
+  const removed = await page.evaluate(async (tag) => {
+    const api = window.logseq?.api;
+    if (!api) return { pages: 0, blocks: 0 };
+    let pages = 0, blocks = 0;
+    for (const name of [tag + '_LinkTarget', tag + '_Query']) {
+      const pg = await api.get_page(name).catch(() => null);
+      if (pg) { await api.delete_page(name); pages++; }
+    }
+    const tree = await api.get_current_page_blocks_tree();
+    const uuids = [];
+    const walk = (bs) => (bs || []).forEach((b) => {
+      if (b.content?.includes(tag)) uuids.push(b.uuid);
+      if (b.children?.length) walk(b.children);
+    });
+    walk(tree);
+    for (const u of uuids) { await api.remove_block(u); blocks++; }
+    return { pages, blocks };
+  }, RUN_TAG);
+  // Condition-wait for the deletes to flush to the DB.
+  await page.waitForFunction(async (tag) => {
+    const api = window.logseq?.api;
+    if (!api) return true;
+    const lt = await api.get_page(tag + '_LinkTarget').catch(() => null);
+    const q = await api.get_page(tag + '_Query').catch(() => null);
+    return !lt && !q;
+  }, RUN_TAG, { timeout: 8000 }).catch(() => {});
+  console.log(`  cleanup: removed ${removed.pages} pages, ${removed.blocks} journal blocks`);
+} catch (e) {
+  console.log('Cleanup warning (non-fatal):', String(e).slice(0, 100));
+}
 
 // ---- Summary ------------------------------------------------------------------
 await browser.close();
