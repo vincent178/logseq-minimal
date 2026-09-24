@@ -209,23 +209,37 @@ try {
 }
 
 // ---- 4. Task -----------------------------------------------------------------
+// Task markers depend on the graph's :preferred-workflow: :todo graphs use
+// TODO/DOING, :now graphs use LATER/NOW. A TODO block in a :now graph is
+// plain text (no marker, nothing to cycle) — that is correct app behavior,
+// not a bug — so the check must use the workflow the graph is configured for.
 try {
   await gotoJournal();
+  const workflow = await page.evaluate(() => {
+    const w = window.frontend?.state?.get_preferred_workflow?.();
+    return w ? String(w) : null; // CLJS keyword stringifies to ":now" / ":todo"
+  });
+  const isNow = !workflow || /now/i.test(workflow); // default :now when unset
+  const start = isNow ? 'LATER' : 'TODO';
+  // First click: LATER -> NOW, TODO -> DOING. Second click lands on DONE for
+  // both, so accept any active/done marker after one click.
+  const after = isNow ? /NOW|DONE/ : /DOING|DONE/;
   const ttag = RUN_TAG + '_task';
-  await append(`TODO ${ttag}`);
+  await append(`${start} ${ttag}`);
   await page.waitForTimeout(1800);
   let body = await bodyText();
-  const rendered = /TODO/.test(body) && body.includes(ttag);
-  const marker = page.getByText('TODO', { exact: true }).last();
+  const rendered = new RegExp(start).test(body) && body.includes(ttag);
+  const marker = page.getByText(start, { exact: true }).last();
   const markerVisible = await marker.isVisible().catch(() => false);
   let cycled = false;
   if (markerVisible) {
     await marker.click().catch(() => {});
     await page.waitForTimeout(1500);
     body = await bodyText();
-    cycled = /DOING|DONE/.test(body) && body.includes(ttag);
+    cycled = after.test(body) && body.includes(ttag);
   }
-  record('4. task', rendered && cycled, `render=${rendered} cycle=${cycled}`);
+  record('4. task', rendered && cycled,
+    `workflow=${workflow} render=${rendered} cycle=${cycled}`);
 } catch (e) {
   record('4. task', false, String(e).slice(0, 120));
 }
