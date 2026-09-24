@@ -1,23 +1,16 @@
 (ns ^:no-doc frontend.handler.assets
-  (:require [cljs-http-missionary.client :as http]
-            [clojure.string :as string]
-            [frontend.common.crypt :as crypt]
-            [frontend.common.missionary :as c.m]
+  (:require [clojure.string :as string]
             [frontend.common.thread-api :as thread-api :refer [def-thread-api]]
             [frontend.config :as config]
             [frontend.fs :as fs]
             [frontend.state :as state]
             [frontend.util :as util]
-            [lambdaisland.glogi :as log]
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
-            [logseq.db :as ldb]
             [logseq.db.frontend.asset :as db-asset]
             [medley.core :as medley]
-            [missionary.core :as m]
-            [promesa.core :as p])
-  (:import [missionary Cancelled]))
+            [promesa.core :as p]))
 
 (defn alias-enabled?
   []
@@ -214,75 +207,6 @@
                                   (str asset-block-id "." asset-type))]
     (p/catch (fs/unlink! repo file-path {}) (constantly nil))))
 
-(defn new-task--rtc-upload-asset
-  [repo aes-key asset-block-uuid-str asset-type checksum put-url]
-  (assert (and asset-type checksum))
-  (m/sp
-    (let [asset-file (try (c.m/<? (<read-asset repo asset-block-uuid-str asset-type))
-                          (catch :default e
-                            (log/info :read-asset e)
-                            (throw (ex-info "read-asset failed" {:type :rtc.exception/read-asset-failed} e))))
-          asset-file* (if (not aes-key)
-                        asset-file
-                        (ldb/write-transit-str
-                         (c.m/<? (crypt/<encrypt-uint8array aes-key asset-file))))
-          *progress-flow (atom nil)
-          http-task (http/put put-url {:headers {"x-amz-meta-checksum" checksum
-                                                 "x-amz-meta-type" asset-type}
-                                       :body asset-file*
-                                       :with-credentials? false
-                                       :*progress-flow *progress-flow})]
-      (c.m/run-task :upload-asset-progress
-        (m/reduce (fn [_ v]
-                    (state/update-state!
-                     :rtc/asset-upload-download-progress
-                     (fn [m] (assoc-in m [repo asset-block-uuid-str] v))))
-                  @*progress-flow)
-        :succ (constantly nil))
-      (let [{:keys [status] :as r} (m/? http-task)]
-        (when-not (http/unexceptional-status? status)
-          (throw (ex-info "upload-asset failed"
-                          {:type :rtc.exception/upload-asset-failed :data (dissoc r :body)})))))))
-
-(defn new-task--rtc-download-asset
-  [repo aes-key asset-block-uuid-str asset-type get-url]
-  (m/sp
-    (let [*progress-flow (atom nil)
-          http-task (http/get get-url {:with-credentials? false
-                                       :response-type :array-buffer
-                                       :*progress-flow *progress-flow})
-          progress-canceler
-          (c.m/run-task :download-asset-progress
-            (m/reduce (fn [_ v]
-                        (state/update-state!
-                         :rtc/asset-upload-download-progress
-                         (fn [m] (assoc-in m [repo asset-block-uuid-str] v))))
-                      @*progress-flow)
-            :succ (constantly nil))]
-      (try
-        (let [{:keys [status body] :as r} (m/? http-task)]
-          (if-not (http/unexceptional-status? status)
-            (throw (ex-info "download asset failed"
-                            {:type :rtc.exception/download-asset-failed :data (dissoc r :body)}))
-            (let [asset-file
-                  (if (not aes-key)
-                    body
-                    (try
-                      (let [asset-file-untransited (ldb/read-transit-str (.decode (js/TextDecoder.) body))]
-                        (c.m/<? (crypt/<decrypt-uint8array aes-key asset-file-untransited)))
-                      (catch js/SyntaxError _
-                        body)
-                      (catch :default e
-                        ;; if decrypt failed, write origin-body
-                        (if (= "decrypt-uint8array" (ex-message e))
-                          body
-                          (throw e)))))]
-              (c.m/<? (<write-asset repo asset-block-uuid-str asset-type asset-file))
-              nil)))
-        (catch Cancelled e
-          (progress-canceler)
-          (throw e))))))
-
 (def-thread-api :thread-api/unlink-asset
   [repo asset-block-id asset-type]
   (<unlink-asset repo asset-block-id asset-type))
@@ -294,18 +218,6 @@
 (def-thread-api :thread-api/get-asset-file-metadata
   [repo asset-block-id asset-type]
   (<get-asset-file-metadata repo asset-block-id asset-type))
-
-(def-thread-api :thread-api/rtc-upload-asset
-  [repo exported-aes-key asset-block-uuid-str asset-type checksum put-url]
-  (m/sp
-    (let [aes-key (when exported-aes-key (c.m/<? (crypt/<import-aes-key exported-aes-key)))]
-      (m/? (new-task--rtc-upload-asset repo aes-key asset-block-uuid-str asset-type checksum put-url)))))
-
-(def-thread-api :thread-api/rtc-download-asset
-  [repo exported-aes-key asset-block-uuid-str asset-type get-url]
-  (m/sp
-    (let [aes-key (when exported-aes-key (c.m/<? (crypt/<import-aes-key exported-aes-key)))]
-      (m/? (new-task--rtc-download-asset repo aes-key asset-block-uuid-str asset-type get-url)))))
 
 (comment
   ;; read asset

@@ -10,7 +10,6 @@
    [frontend.extensions.zip :as zip]
    [frontend.external.roam-export :as roam-export]
    [frontend.handler.export.common :as export-common-handler]
-   [frontend.persist-db :as persist-db]
    [frontend.state :as state]
    [frontend.util :as util]
    [goog.dom :as gdom]
@@ -151,18 +150,7 @@
       (.setAttribute anchor "download" filename)
       (.click anchor))))
 
-(defn export-repo-as-sqlite-db!
-  [repo]
-  (->
-   (p/let [data (persist-db/<export-db repo {:return-data? true})
-           filename (file-name repo "sqlite")
-           url (js/URL.createObjectURL (js/Blob. #js [data]))]
-     (when-let [anchor (gdom/getElement "download-as-sqlite-db")]
-       (.setAttribute anchor "href" url)
-       (.setAttribute anchor "download" filename)
-       (.click anchor)))
-   (p/catch (fn [error]
-              (js/console.error error)))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Export to roam json ;;
@@ -193,16 +181,4 @@
       (.setAttribute anchor "download" (file-name (str repo "_roam") :json))
       (.click anchor))))
 
-(defn backup-db-graph
-  "No-op on file graphs (DB-graph backup only)."
-  [_repo])
 
-(defonce *backup-interval (atom nil))
-(defn cancel-db-backup!
-  []
-  (when-let [i @*backup-interval]
-    (js/clearInterval i)))
-
-(defn auto-db-backup!
-  "No-op on file graphs (DB-graph backup only)."
-  [_repo])

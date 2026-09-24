@@ -122,7 +122,6 @@
   (this-as
    _this
    (let [properties (bean/->clj properties)
-         db-based? false
          {:keys [redirect format journal _schema class customUUID]} (bean/->clj opts)]
      (p/let [page (<get-block name {:children? false})
              new-page (when-not page
@@ -135,7 +134,7 @@
                            :format format}
                            (string? customUUID)
                            (assoc :uuid (uuid customUUID))
-                           (not db-based?)
+                           true
                            (assoc :properties properties))))]
        (some-> (or page new-page)
                sdk-utils/result->js)))))
@@ -210,7 +209,6 @@
                 [sibling? before?] (if insert-at-first-child?
                                      [true true]
                                      [sibling before])
-                db-based? false
                 before? (if (and (false? sibling?) before? (not insert-at-first-child?))
                           false
                           before?)
@@ -222,9 +220,8 @@
                        :edit-block? false
                        :custom-uuid custom-uuid
                        :ordered-list? (if (boolean? autoOrderedList) autoOrderedList false)
-                       :properties (when (not db-based?)
-                                     (merge properties
-                                            (when custom-uuid {:id custom-uuid})))}]
+                       :properties (merge properties
+                                          (when custom-uuid {:id custom-uuid}))}]
           (p/let [new-block (editor-handler/api-insert-new-block! content opts')]
             (bean/->js (sdk-utils/normalize-keyword-for-json new-block))))))))
 
@@ -424,8 +421,8 @@
 
 (defn download_graph_db
   []
-  (when-let [repo (state/get-current-repo)]
-    (export-handler/export-repo-as-sqlite-db! repo)))
+  (when (state/get-current-repo)
+    nil))
 
 (defn download_graph_pages
   []

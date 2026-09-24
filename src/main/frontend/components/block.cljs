@@ -3862,8 +3862,7 @@
 
 (rum/defc block-list
   [config blocks]
-  (let [[virtualized? _] (hooks/use-state (not (or (util/rtc-test?)
-                                                   (and (util/mobile?) (:journals? config))
+  (let [[virtualized? _] (hooks/use-state (not (or (and (util/mobile?) (:journals? config))
                                                    (if (:journals? config)
                                                      (< (count blocks) 50)
                                                      (< (count blocks) 10))

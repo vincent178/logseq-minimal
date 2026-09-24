@@ -128,6 +128,10 @@ frontend.common.crypt/<encrypt-text-by-text-password
 frontend.common.crypt/<export-public-key
 frontend.common.crypt/<import-private-key
 frontend.common.crypt/<import-public-key
+;; Only used in (comment) REPL snippets after RTC asset sync removal
+frontend.common.crypt/<import-aes-key
+frontend.common.crypt/<encrypt-uint8array
+frontend.common.crypt/<decrypt-uint8array
 frontend.common.file.opfs/<read-text!
 frontend.common.file.opfs/<write-text!
 frontend.common.missionary/backoff
@@ -199,3 +203,7 @@ frontend.handler.db-based.import/import-from-edn-file!
 ;; Inert data-preservation: kept so shape blocks in existing user graphs stay
 ;; loadable; UI callers removed with whiteboards (goal mufyry37-hlu4wy)
 frontend.handler.property.util/shape-block?
+;; Only used in (comment) REPL snippets after RTC asset sync removal
+frontend.handler.assets/<write-asset
+;; Auth accessor kept for API compat; last UI caller removed with dev RTC menu
+frontend.state/get-auth-id-token
