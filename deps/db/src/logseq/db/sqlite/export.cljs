@@ -18,8 +18,7 @@
             [logseq.db.frontend.schema :as db-schema]
             [logseq.db.frontend.validate :as db-validate]
             [logseq.db.sqlite.build :as sqlite-build]
-            [logseq.db.test.helper :as db-test]
-            [medley.core :as medley]))
+                        [medley.core :as medley]))
 
 ;; Export fns
 ;; ==========
@@ -1092,20 +1091,3 @@
             (assoc :misc-tx (vec (concat (::graph-files export-map'')
                                          (::kv-values export-map'')))))
         (sqlite-build/build-blocks-tx (remove-namespaced-keys export-map''))))))
-
-(defn validate-export
-  "Validates an export by creating an in-memory DB graph, importing the EDN and validating the graph.
-   Returns a map with a readable :error key if any error occurs"
-  [export-edn]
-  (try
-    (let [import-conn (db-test/create-conn)
-          {:keys [init-tx block-props-tx misc-tx] :as _txs} (build-import export-edn @import-conn {})
-          _ (d/transact! import-conn (concat init-tx block-props-tx misc-tx))
-          validation (db-validate/validate-local-db! @import-conn)]
-      (when-let [errors (seq (:errors validation))]
-        (js/console.error "Exported EDN has the following invalid errors when imported into a new graph:")
-        (pprint/pprint errors)
-        {:error (str "The exported EDN has " (count errors) " validation error(s)")}))
-    (catch :default e
-      (js/console.error "Unexpected export-edn validation error:" e)
-      {:error (str "The exported EDN is unexpectedly invalid: " (pr-str (ex-message e)))})))
