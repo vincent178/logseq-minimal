@@ -76,10 +76,6 @@
   content: "\ea0c";
 }
 
-.tie-link-to-whiteboard::before {
-  content: "\ea0d";
-}
-
 .tie-move-to-sidebar-right::before {
   content: "\ea0e";
 }
@@ -90,14 +86,6 @@
 
 .tie-new-page::before {
   content: "\ea10";
-}
-
-.tie-new-whiteboard::before {
-  content: "\ea11";
-}
-
-.tie-new-whiteboard-element::before {
-  content: "\ea12";
 }
 
 .tie-object-compact::before {

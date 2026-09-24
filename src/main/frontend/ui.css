@@ -130,13 +130,8 @@
         width: auto;
         min-width: 600px;
 
-        .ls-card,
         .ls-search {
           width: 740px;
-        }
-
-        .ls-card {
-          min-height: 60vh;
         }
 
         .ls-search {
@@ -178,10 +173,6 @@ html.is-native-iphone-without-notch {
       transform: translateX(-8px);
       width: 104%;
     }
-  }
-
-  .ls-card {
-    min-height: 65vh;
   }
 }
 
