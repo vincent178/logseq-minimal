@@ -8,7 +8,6 @@
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
             [frontend.components.shell :as shell]
-            [frontend.components.whiteboard :as whiteboard]
             [frontend.context.i18n :refer [t]]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
@@ -197,12 +196,6 @@
   ;; no accounts in the minimal build — login is a no-op
   nil)
 
-(defmethod events/handle :whiteboard/onboarding [[_ opts]]
-  (shui/dialog-open!
-   (fn [{:keys [close]}] (whiteboard/onboarding-welcome close))
-   (merge {:close-btn?      false
-           :center?         true
-           :close-backdrop? false} opts)))
 
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
   ;; no accounts or remote graphs in the minimal build

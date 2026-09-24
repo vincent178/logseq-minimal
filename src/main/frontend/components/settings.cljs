@@ -804,24 +804,10 @@
      ;;  [:p (t :settings-page/clear-cache-warning)])
      ]))
 
-(rum/defc whiteboards-enabled-switcher
-  [enabled?]
-  (ui/toggle enabled?
-             (fn []
-               (let [value (not enabled?)]
-                 (config-handler/set-config! :feature/enable-whiteboards? value)))
-             true))
-
-(defn whiteboards-switcher-row [enabled?]
-  (row-with-button-action
-   {:left-label (t :settings-page/enable-whiteboards)
-    :action (whiteboards-enabled-switcher enabled?)}))
-
 (rum/defc settings-features < rum/reactive
   []
   (let [current-repo (state/get-current-repo)
-        enable-journals? (state/enable-journals? current-repo)
-        enable-whiteboards? (state/enable-whiteboards? current-repo)]
+        enable-journals? (state/enable-journals? current-repo)]
     [:div.panel-wrap.is-features.mb-8
      (journal-row enable-journals?)
      (when (not enable-journals?)
@@ -837,7 +823,6 @@
             :on-key-press  (fn [e]
                              (when (= "Enter" (util/ekey e))
                                (update-home-page e)))}]]]])
-     (whiteboards-switcher-row enable-whiteboards?)
      (when (and web-platform? config/feature-plugin-system-on?)
        (plugin-system-switcher-row))
      (when (util/electron?)

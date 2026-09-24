@@ -152,39 +152,6 @@
                                     {:name    "offset"
                                      :options {:offset [0, 15]}}]}}])
 
-(defn- create-steps-whiteboard! [^js jsTour]
-  [;; step 1
-   {:id                "whiteboard-home"
-    :text              (h/render-html [:section [:h2  (t :on-boarding/tour-whiteboard-home "🖼")]
-                                       [:p (t :on-boarding/tour-whiteboard-home-description)]])
-    :attachTo          {:element ".nav-header .whiteboard" :on "right"}
-    :beforeShowPromise (fn []
-                         (when-not (state/sub :ui/left-sidebar-open?)
-                           (state/toggle-left-sidebar!))
-                         (wait-target ".nav-header .whiteboard" 500)
-                         (util/scroll-to-top))
-    :canClickTarget    true
-    :buttons           [{:text (t :on-boarding/tour-whiteboard-btn-next) :action (.-next jsTour)}]
-    :popperOptions     {:modifiers [{:name    "preventOverflow"
-                                     :options {:padding 20}}
-                                    {:name    "offset"
-                                     :options {:offset [0, 10]}}]}}
-
-   ;; step 2
-   {:id                "whiteboard-new"
-    :text              (h/render-html [:section [:h2 (t :on-boarding/tour-whiteboard-new "🆕️")]
-                                       [:p (t :on-boarding/tour-whiteboard-new-description)]])
-    :beforeShowPromise (fn []
-                         (route-handler/redirect-to-whiteboard-dashboard!)
-                         (wait-target ".dashboard-create-card" 500))
-    :attachTo          {:element ".dashboard-create-card" :on "bottom"}
-    :buttons           [{:text (t :on-boarding/tour-whiteboard-btn-back) :classes "back" :action (.-back jsTour)}
-                        {:text (t :on-boarding/tour-whiteboard-btn-finish) :action (.-complete jsTour)}]
-    :popperOptions     {:modifiers [{:name    "preventOverflow"
-                                     :options {:padding 20}}
-                                    {:name    "offset"
-                                     :options {:offset [0, 10]}}]}}])
-
 (defn start
   []
   (let [^js jsTour (js/Shepherd.Tour.
@@ -242,29 +209,6 @@
 
     ;(.start jsTour)
     ))
-
-(defn start-whiteboard
-  []
-  (let [^js jsTour (js/Shepherd.Tour.
-                    (bean/->js
-                     {:useModalOverlay    true
-                      :defaultStepOptions {:classes  "cp__onboarding-quick-tour"
-                                           :scrollTo false}}))
-        steps      (create-steps-whiteboard! jsTour)
-        steps      (map-indexed #(assoc %2 :text (str (:text %2) (inject-steps-indicator (inc %1) (count steps)))) steps)
-        [show-skip! hide-skip!] (make-skip-fns jsTour)]
-
-    ;; events
-    (doto jsTour
-      (.on "show" show-skip!)
-      (.on "hide" hide-skip!)
-      (.on "complete" hide-skip!)
-      (.on "cancel" hide-skip!))
-
-    (doseq [step steps]
-      (.addStep jsTour (bean/->js step)))
-
-    (.start jsTour)))
 
 (defn ready
   [callback]

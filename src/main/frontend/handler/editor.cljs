@@ -3044,11 +3044,6 @@
       :else
       (js/document.execCommand "copy"))))
 
-(defn whiteboard?
-  []
-  (and (db-model/whiteboard-page? (state/get-current-page))
-       (.closest (.-activeElement js/document) ".logseq-tldraw")))
-
 (defn shortcut-cut
   "shortcut cut action:
   * when in selection mode, cut selected blocks
@@ -3063,9 +3058,6 @@
                            (gdom/getElement (state/get-edit-input-id))))
     (keydown-backspace-handler true e)
 
-    (whiteboard?)
-    (.cut (state/active-tldraw-app))
-
     :else
     nil))
 
@@ -3074,9 +3066,6 @@
   (cond
     (state/selection?)
     (shortcut-delete-selection e)
-
-    (and (whiteboard?) (not (state/editing?)))
-    (.deleteShapes (.-api ^js (state/active-tldraw-app)))
 
     :else
     nil))
@@ -3375,9 +3364,6 @@
             doall)
        (and clear-selection? (clear-selection!)))
 
-     (whiteboard?)
-     (.setCollapsed (.-api ^js (state/active-tldraw-app)) false)
-
      :else
      ;; expand one level
      (p/let [blocks-with-level (<all-blocks-with-level {})
@@ -3411,9 +3397,6 @@
                        collapse-block!)))
             doall)
        (and clear-selection? (clear-selection!)))
-
-     (whiteboard?)
-     (.setCollapsed (.-api ^js (state/active-tldraw-app)) true)
 
      :else
      ;; collapse by one level from outside
@@ -3570,11 +3553,6 @@
       ;; Focusing other input element, e.g. when editing page title.
       (contains? #{"INPUT" "TEXTAREA"} target-element)
       nil
-
-      (whiteboard?)
-      (do
-        (util/stop e)
-        (.selectAll (.-api ^js (state/active-tldraw-app))))
 
       :else
       (do

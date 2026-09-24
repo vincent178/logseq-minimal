@@ -15,7 +15,6 @@
             [frontend.handler.page :as page-handler]
             [frontend.handler.recent :as recent-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.whiteboard :as whiteboard-handler]
             [frontend.modules.shortcut.data-helper :as shortcut-dh]
             [frontend.modules.shortcut.utils :as shortcut-utils]
             [frontend.state :as state]
@@ -200,14 +199,12 @@
       (when child [:div.bd child])]]))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-navigations
-  [{:keys [default-home route-match route-name db-based? enable-whiteboards?]}]
+  [{:keys [default-home route-match route-name db-based?]}]
   (let [navs (cond-> [:all-pages :graph-view]
                db-based?
-               (concat [:tag/tasks :tag/assets])
-               (not db-based?)
-               (#(cons :whiteboards %)))
+               (concat [:tag/tasks :tag/assets]))
         [checked-navs set-checked-navs!] (rum/use-state (or (storage/get :ls-sidebar-navigations)
-                                                            [:whiteboards :all-pages :graph-view]))]
+                                                            [:all-pages :graph-view]))]
 
     (hooks/use-effect!
      (fn []
@@ -256,18 +253,6 @@
 
       (for [nav checked-navs]
         (cond
-          (= nav :whiteboards)
-          (when enable-whiteboards?
-            (when (not db-based?)
-              (sidebar-item
-               {:class "whiteboard"
-                :title (t :right-side-bar/whiteboards)
-                :href (rfe/href :whiteboards)
-                :on-click-handler (fn [_e] (whiteboard-handler/onboarding-show))
-                :active (#{:whiteboard :whiteboards} route-name)
-                :icon "writing"
-                :shortcut :go/whiteboards})))
-
           (= nav :graph-view)
           (sidebar-item
            {:class "graph-view-nav"
@@ -341,7 +326,7 @@
          (page-name page true)])])))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-container
-  [route-match close-modal-fn left-sidebar-open? enable-whiteboards?
+  [route-match close-modal-fn left-sidebar-open?
    *closing? close-signal touching-x-offset]
   (let [[local-closing? set-local-closing?] (rum/use-state false)
         [el-rect set-el-rect!] (rum/use-state nil)
@@ -425,7 +410,6 @@
          {:default-home default-home
           :route-match route-match
           :db-based? db-based?
-          :enable-whiteboards? enable-whiteboards?
           :route-name route-name})]
 
        [:div.sidebar-contents-container
@@ -489,7 +473,6 @@
         *closing? (::closing? s)
         *touch-state (::touch-state s)
         *close-signal (::close-signal s)
-        enable-whiteboards? (state/enable-whiteboards?)
         touch-point-fn (fn [^js e] (some-> (gobj/get e "touches") (aget 0) (#(hash-map :x (.-clientX %) :y (.-clientY %)))))
         touching-x-offset (and (some-> @*touch-state :after)
                                (some->> @*touch-state
@@ -520,7 +503,7 @@
         (reset! *touch-state nil))}
 
      ;; sidebar contents
-     (sidebar-container route-match close-fn left-sidebar-open? enable-whiteboards? *closing?
+     (sidebar-container route-match close-fn left-sidebar-open? *closing?
                         @*close-signal (and touch-pending? touching-x-offset))
 
      ;; resizer

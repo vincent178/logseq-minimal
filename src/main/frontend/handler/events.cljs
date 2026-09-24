@@ -142,7 +142,6 @@
                  :export-bullet-indentation (state/get-export-bullet-indentation)
                  :preferred-format (state/get-preferred-format)
                  :journals-directory (config/get-journals-directory)
-                 :whiteboards-directory (config/get-whiteboards-directory)
                  :pages-directory (config/get-pages-directory)}]
     (state/<invoke-db-worker :thread-api/set-context context)))
 
@@ -234,14 +233,6 @@
   (export/auto-db-backup! graph)
   (when-not (mobile-util/native-platform?)
     (state/pub-event! [:graph/ready graph])))
-
-(defmethod handle :whiteboard-link [[_ shapes]]
-  (route-handler/go-to-search! :whiteboard/link)
-  (state/set-state! :whiteboard/linked-shapes shapes))
-
-(defmethod handle :whiteboard-go-to-link [[_ link]]
-  (route-handler/redirect! {:to :page
-                            :path-params {:name link}}))
 
 (defmethod handle :graph/save-db-to-disk [[_ _opts]]
   (persist-db/export-current-graph! {:succ-notification? true :force-save? true}))

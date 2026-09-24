@@ -50,7 +50,6 @@
             [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.whiteboard :as whiteboard-handler]
             [frontend.mixins :as mixins]
             [frontend.mobile.haptics :as haptics]
             [frontend.mobile.intent :as mobile-intent]
@@ -581,11 +580,6 @@
            (:db/id page)
            :page))
 
-        (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-        (whiteboard-handler/add-new-block-portal-shape!
-         page-name
-         (whiteboard-handler/closest-shape (.-target e)))
-
         (nil? page)
         (state/pub-event! [:page/create page-name])
 
@@ -874,8 +868,7 @@
     (cond
       entity
       (let [page-name (some-> (:block/title entity) util/page-name-sanity-lc)
-            whiteboard-page? (model/whiteboard-page? entity)
-            inner (page-inner (assoc config :whiteboard-page? whiteboard-page?) entity children label)
+                inner (page-inner (assoc config :whiteboard-page? nil) entity children label)
             modal? (shui-dialog/has-modal?)]
         (if (and (not (util/mobile?))
                  (not= page-name (:id config))
@@ -1107,7 +1100,6 @@
   [config block]
   (let [current-page (state/get-current-page)
         block (db/sub-block (:db/id block))
-        whiteboard-page? (model/whiteboard-page? block)
         page-name (:block/name block)]
     [:div.color-level.embed.embed-page.bg-base-2
      {:class (when (:sidebar? config) "in-sidebar")
@@ -1120,16 +1112,14 @@
                   page-name)
             (not= (util/page-name-sanity-lc (get config :id ""))
                   page-name))
-       (if whiteboard-page?
-         ((state/get-component :whiteboard/tldraw-preview) (:block/uuid block))
-         (let [blocks (ldb/get-children block)
-               config' (assoc config
-                              :db/id (:db/id block)
-                              :id page-name
-                              :embed? true
-                              :page-embed? true
-                              :ref? false)]
-           (blocks-container config' blocks))))]))
+       (let [blocks (ldb/get-children block)
+             config' (assoc config
+                            :db/id (:db/id block)
+                            :id page-name
+                            :embed? true
+                            :page-embed? true
+                            :ref? false)]
+         (blocks-container config' blocks)))]))
 
 (rum/defc page-embed
   [config page-name]
@@ -1237,18 +1227,10 @@
                        (:db/id block)
                        :block-ref)
 
-                      (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-                      (whiteboard-handler/add-new-block-portal-shape!
-                       (:block/uuid block)
-                       (whiteboard-handler/closest-shape (.-target e)))
-
                       :else
                       (match [block-type (util/electron?)]
                              ;; pdf annotation
                         [:annotation true] (pdf-assets/open-block-ref! block)
-
-                        [:whiteboard-shape true] (route-handler/redirect-to-page!
-                                                  (get-in block [:block/page :block/uuid]) {:block-id block-id})
 
                              ;; default open block page
                         :else (route-handler/redirect-to-page! block-id))))))}
@@ -2012,11 +1994,6 @@
        :block)
       (util/stop e))
 
-    (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-    (do (whiteboard-handler/add-new-block-portal-shape!
-         uuid
-         (whiteboard-handler/closest-shape (.-target e)))
-        (util/stop e))
 
     :else
     (when uuid
@@ -2232,7 +2209,7 @@
 
      ;; children
      (let [area? (= :area (keyword (pu/lookup block :logseq.property.pdf/hl-type)))
-           hl-ref #(when (not (#{:default :whiteboard-shape} block-type))
+           hl-ref #(when (not (#{:default} block-type))
                      [:div.prefix-link
                       {:class (when area? "as-block")
                        :on-pointer-down
@@ -2279,8 +2256,7 @@
                               (= "Link" (ffirst block-ast-title)))
                          (assoc :node-ref-link-only? true))]
            (conj
-            (map-inline config' block-ast-title)
-            (when (= block-type :whiteboard-shape) [:span.mr-1 (ui/icon "whiteboard-element" {:extension? true})])))))))))
+            (map-inline config' block-ast-title)))))))))
 
 (rum/defc block-title-aux
   [config block {:keys [query? *show-query?]}]
@@ -3711,8 +3687,7 @@
             {:keys [lines language]} options
             attr (when language
                    {:data-lang language})
-            code (if lines (apply str lines) (:block/title block))
-            [inside-portal? set-inside-portal?] (rum/use-state nil)]
+            code (if lines (apply str lines) (:block/title block))]
         (cond
           html-export?
           (highlight/html-export attr code)
@@ -3720,23 +3695,11 @@
           :else
           (let [language (if (contains? #{"edn" "clj" "cljc" "cljs" "clojurescript"} language) "clojure" language)]
             [:div.ui-fenced-code-editor.flex.w-full
-             {:ref (fn [el]
-                     (set-inside-portal? (and el (whiteboard-handler/inside-portal? el))))
-              :on-mouse-over #(dom/add-class! (hooks/deref *actions-ref) "!opacity-100")
+             {:on-mouse-over #(dom/add-class! (hooks/deref *actions-ref) "!opacity-100")
               :on-mouse-leave (fn [e]
                                 (when (dom/has-class? (.-target e) "code-editor")
                                   (dom/remove-class! (hooks/deref *actions-ref) "!opacity-100")))}
-             (cond
-               (nil? inside-portal?) nil
-
-               inside-portal?
-               (highlight/highlight (str (random-uuid))
-                                    {:class (str "language-" language)
-                                     :data-lang language}
-                                    code)
-
-               :else
-               [:div.ls-code-editor-wrap
+             [:div.ls-code-editor-wrap
                 [:div.code-block-actions
                  {:ref *actions-ref}
                  (shui/button
@@ -3752,7 +3715,7 @@
                 (lazy-editor/editor config (str (d/squuid)) attr code options)
                 (let [options (:options options) block (:block config)]
                   (when (and (= language "clojure") (contains? (set options) ":results"))
-                    (sci/eval-result code block)))])]))))))
+                    (sci/eval-result code block)))]]))))))
 
 (defn ^:large-vars/cleanup-todo markup-element-cp
   [{:keys [html-export?] :as config} item]
