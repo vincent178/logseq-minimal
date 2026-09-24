@@ -228,12 +228,14 @@
      [])
     (let [*el-ref (rum/use-ref nil)
           image-src (fs/asset-path-normalize src)
-          src' (if (or (string/starts-with? src "/")
-                       (string/starts-with? src "~"))
-                 (str "file://" src)
-                 src)
+          src' (when src
+                 (if (or (string/starts-with? src "/")
+                         (string/starts-with? src "~"))
+                   (str "file://" src)
+                   src))
           get-blockid #(some-> (rum/deref *el-ref) (.closest "[blockid]") (.getAttribute "blockid") (uuid))]
-      [:div.asset-container
+      (when src'
+        [:div.asset-container
        {:key "resize-asset-container"
         :on-pointer-down util/stop
         :on-click (fn [e]
@@ -313,7 +315,7 @@
                     (shui/dropdown-menu-item
                      {:on-click handle-delete!}
                      [:span.flex.items-center.gap-1.text-red-700
-                      (ui/icon "trash") (t :asset/delete)])])))]))])])))
+                      (ui/icon "trash") (t :asset/delete)])])))]))])]))))
 
 (rum/defcs ^:large-vars/cleanup-todo resizable-image <
   (rum/local nil ::size)
@@ -439,11 +441,12 @@
                                asset-url (path/path-join repo-dir rel-dir basename)]
                            (mobile-intent/open-or-share-file asset-url))))]
         (cond
-          (or (contains? config/audio-formats ext)
-              (and (= ext :webm) (string/starts-with? title "Audio-")))
+          (and @src
+               (or (contains? config/audio-formats ext)
+                   (and (= ext :webm) (string/starts-with? title "Audio-"))))
           (file-based-asset-loader @src #(audio-cp @src))
 
-          (contains? config/video-formats ext)
+          (and @src (contains? config/video-formats ext))
           [:video {:src @src
                    :controls true}]
 

@@ -7,7 +7,8 @@
  *   2. bidirectional link — [[page-ref]] renders, navigates, shows backlinks
  *   3. query             — {{query [[X]]}} renders live results
  *   4. task              — TODO block renders and cycles state on click
- *   5. graph view        — canvas + control panel render
+ *   5. image render      — a real `../assets/*.png` block renders a loaded <img> (naturalWidth/Height > 0)
+ *   6. graph view        — canvas + control panel render
  *
  * The suite runs against whatever file graph is currently open in the running
  * Electron instance. To stay deterministic and side-effect free, every check
@@ -25,6 +26,7 @@
  */
 
 import { chromium } from 'playwright-core';
+import fs from 'node:fs';
 
 const CDP_PORT = (() => {
   const i = process.argv.indexOf('--cdp');
@@ -244,16 +246,61 @@ try {
   record('4. task', false, String(e).slice(0, 120));
 }
 
-// ---- 5. Graph view ------------------------------------------------------------
+// ---- 5. Image render ------------------------------------------------------------
+// Regression check for the nil-src crash in `asset-container`: pasting/uploading
+// a local asset image must render a real <img> that actually loads
+// (naturalWidth/naturalHeight > 0), not a latched `[:span.warning]`.
+let imageAssetPath = null;
+try {
+  await gotoJournal();
+  // Write a real PNG into the graph's assets dir (the same file a paste/upload
+  // produces). Bytes generated in-page via canvas, so no fixture file is needed.
+  const b64 = await page.evaluate(() => {
+    const c = document.createElement('canvas');
+    c.width = 48; c.height = 32;
+    const x = c.getContext('2d');
+    x.fillStyle = '#1a7'; x.fillRect(0, 0, 48, 32);
+    return c.toDataURL('image/png').split(',')[1];
+  });
+  const imgName = RUN_TAG + '.png';
+  imageAssetPath = `${graph.path}/assets/${imgName}`;
+  fs.mkdirSync(`${graph.path}/assets`, { recursive: true });
+  fs.writeFileSync(imageAssetPath, Buffer.from(b64, 'base64'));
+
+  await append(`![${imgName}](../assets/${imgName})`);
+  await page.waitForTimeout(3000);
+  // The block is appended at the end of the journal; scroll it into view so the
+  // virtualized renderer actually mounts its <img>.
+  await page.evaluate((name) => {
+    const el = [...document.querySelectorAll('.block-content')]
+      .find(b => (b.innerText || '').includes(name));
+    if (el) el.scrollIntoView({ block: 'center' });
+  }, imgName).catch(() => {});
+  await page.waitForTimeout(2000);
+
+  const img = await page.evaluate((name) => {
+    const el = [...document.querySelectorAll('.asset-container img')]
+      .find(i => (i.getAttribute('src') || '').includes(name));
+    return el
+      ? { nw: el.naturalWidth, nh: el.naturalHeight }
+      : null;
+  }, imgName);
+  const loaded = !!(img && img.nw > 0 && img.nh > 0);
+  record('5. image render', loaded, img ? `nw=${img.nw} nh=${img.nh}` : 'no <img> found');
+} catch (e) {
+  record('5. image render', false, String(e).slice(0, 120));
+}
+
+// ---- 6. Graph view ------------------------------------------------------------
 try {
   await page.getByText('Graph view', { exact: false }).first().click();
   await page.waitForTimeout(4000);
   const hasCanvas = await page.locator('canvas').first().isVisible().catch(() => false);
-  record('5. graph view', hasCanvas, `canvas=${hasCanvas}`);
+  record('6. graph view', hasCanvas, `canvas=${hasCanvas}`);
   // navigate back to the journal so the next run starts clean
   await page.goBack().catch(() => {});
 } catch (e) {
-  record('5. graph view', false, String(e).slice(0, 120));
+  record('6. graph view', false, String(e).slice(0, 120));
 }
 
 // ---- Console errors -----------------------------------------------------------
@@ -290,6 +337,8 @@ try {
     for (const u of uuids) { await api.remove_block(u); blocks++; }
     return { pages, blocks };
   }, RUN_TAG);
+  // Remove the image asset file written for check 5.
+  if (imageAssetPath) fs.rmSync(imageAssetPath, { force: true });
   // Condition-wait for the deletes to flush to the DB.
   await page.waitForFunction(async (tag) => {
     const api = window.logseq?.api;

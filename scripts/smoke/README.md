@@ -12,8 +12,9 @@ working after every change.
 | 2 | bidirectional link | `[[ref]]` renders, click navigates, backlink shows under "Linked references" |
 | 3 | query | `{{query [[X]]}}` renders a live result list |
 | 4 | task | a task block renders its marker and cycles state on click. Workflow-aware: it reads the graph's `:preferred-workflow` and uses `LATER`→`NOW`/`DONE` for `:now` graphs, `TODO`→`DOING`/`DONE` for `:todo` graphs. A `TODO` block in a `:now` graph is plain text (no marker) by design, so the marker word must match the configured workflow. |
-| 5 | graph view | canvas + control panel render |
-| 6 | hygiene | no fatal console errors during the run |
+| 5 | image render | writes a real PNG into `assets/`, inserts `![...](../assets/...)`, asserts the rendered `<img>` loads (`naturalWidth`/`naturalHeight` > 0) — regression for the nil-`src` `asset-container` crash |
+| 6 | graph view | canvas + control panel render |
+| 7 | hygiene | no fatal console errors during the run |
 
 Every check uses a unique run tag (`Smoke<timestamp>`) for its pages/blocks, so
 the suite is **idempotent** — re-running never collides with prior data, and the
