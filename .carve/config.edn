@@ -9,16 +9,7 @@
                   ;; Ignore because of dev work
                   helper
                   logseq.api
-                  ;; Temporarily exempted while db_based/* handlers are being
-                  ;; removed in layers (3b-3c-iv). These fns become unreferenced
-                  ;; as their dead DB call-sites are peeled off, and the whole
-                  ;; namespace is deleted at the end of the layer.
-                  frontend.handler.db-based.property
-                  frontend.handler.db-based.property.util
-                  frontend.handler.db-based.page
                   ;; fsrs.cljs is a DB-only ns slated for full deletion (3c-iv-c);
                   ;; its call-sites were peeled off in 3d.
-                  frontend.extensions.fsrs
-                  ;; logseq.api.db-based is slated for full deletion (3e).
-                  logseq.api.db-based]
+                  frontend.extensions.fsrs]
  :report {:format :ignore}}
