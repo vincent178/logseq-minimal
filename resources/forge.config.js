@@ -3,10 +3,10 @@ const fs = require('fs')
 
 module.exports = {
   packagerConfig: {
-    name: 'LogseqOG',
+    name: 'Logseq Minimal',
     icon: './icons/logseq_big_sur.icns',
     buildVersion: "88",
-    appBundleId: "com.logseq.logseq-og",
+    appBundleId: "com.logseq.minimal",
     protocols: [
       {
         "protocol": "logseq",
@@ -14,25 +14,16 @@ module.exports = {
         "schemes": "logseq"
       }
     ],
-    osxSign: {
-      identity: 'Developer ID Application: Tiansheng Qin',
-      'hardened-runtime': true,
-      entitlements: 'entitlements.plist',
-      'entitlements-inherit': 'entitlements.plist',
-      'signature-flags': 'library'
-    },
-    osxNotarize: process.env['APPLE_ID'] ? {
-      tool: 'notarytool',
-      appleId: process.env['APPLE_ID'],
-      appleIdPassword: process.env['APPLE_ID_PASSWORD'],
-      teamId: process.env['APPLE_TEAM_ID']
-    } : undefined,
+    // Unsigned local build: no Apple Developer cert available on the build
+    // machine. Users bypass Gatekeeper via right-click → Open.
+    osxSign: undefined,
+    osxNotarize: undefined,
   },
   makers: [
     {
       'name': '@electron-forge/maker-squirrel',
       'config': {
-        'name': 'LogseqOG',
+        'name': 'LogseqMinimal',
         'setupIcon': './icons/logseq.ico',
         'loadingGif': './icons/installing.gif',
         'certificateFile': process.env.CODE_SIGN_CERTIFICATE_FILE,
@@ -43,11 +34,11 @@ module.exports = {
     {
       'name': '@electron-forge/maker-wix',
       'config': {
-        name: 'LogseqOG',
+        name: 'LogseqMinimal',
         icon: path.join(__dirname, './icons/logseq.ico'),
         language: 1033,
         manufacturer: 'Logseq',
-        appUserModelId: 'com.logseq.logseq-og',
+        appUserModelId: 'com.logseq.minimal',
         upgradeCode: "3778eb84-a0ce-4109-9120-5d4315e0d7cf",
         ui: {
           enabled: false,
@@ -76,7 +67,7 @@ module.exports = {
       config: {
         format: 'ULFO',
         icon: './icons/logseq_big_sur.icns',
-        name: 'LogseqOG'
+        name: 'Logseq Minimal'
       }
     },
     {
@@ -98,8 +89,8 @@ module.exports = {
       name: '@electron-forge/publisher-github',
       config: {
         repository: {
-          owner: 'logseq',
-          name: 'og'
+          owner: 'vincent178',
+          name: 'logseq-minimal'
         },
         prerelease: true
       }
