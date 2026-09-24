@@ -27,8 +27,6 @@ logseq.db.sqlite.build/create-blocks
 ;; API
 logseq.db.sqlite.export/build-export
 ;; API
-logseq.db.sqlite.export/validate-export
-;; API
 logseq.db.sqlite.export/build-import
 ;; API
 logseq.db.common.view/get-property-values
@@ -52,5 +50,7 @@ logseq.db.sqlite.gc/gc-kvs-table-node-version!
 logseq.db.sqlite.gc/ensure-no-garbage
 ;; API
 logseq.db.common.entity-util/entity->map
+;; API - used by test helpers and frontend entity-memoized cache
+logseq.db.common.entity-plus/reset-immutable-entities-cache!
 ;; documenting keywords
 logseq.db.frontend.kv-entity/kv-entities
