@@ -65,3 +65,35 @@ Run it after any change that could affect the file-graph runtime — especially
 the ongoing DB-removal work (Cut 3b/3c), which touches shared handlers,
 components, and the shortcut config. It complements `bb dev:lint-and-test`
 (unit + lint) with real-app coverage of the features users actually rely on.
+
+## Reliability
+
+The suite is designed to be a **trustworthy gate**: if it fails, the failure
+should mean a real regression, not an environment flake. Key properties:
+
+- **Deterministic navigation** — `gotoJournal()` resolves the current page via
+  the API and compares `journalDay`, then condition-waits for the router to
+  land. It never assumes a nav succeeded, and fails fast with a clear error if
+  it can't reach today's journal.
+- **View-independent appends** — blocks are always appended to today's journal
+  by explicit page name, so a check never depends on which page the app
+  happened to be showing.
+- **Self-cleaning** — every run deletes the pages and journal blocks it
+  created (looked up via the block-tree API, not the DOM, because virtualized
+  rendering keeps most blocks out of the DOM). Re-running never accumulates
+  `Smoke*` data, and the journal stays small enough to render new blocks.
+- **Async deletes are awaited** — `delete_page`/`remove_block` flush to disk
+  asynchronously; the suite condition-waits for pages to actually disappear
+  before exiting, so no ghost pages break the next run.
+
+### If the smoke suite fails
+
+1. Read the per-check detail (`ref=true nav=false ...`) — it says which step
+   broke.
+2. `❌ gotoJournal failed: current page is "..."` means the app couldn't reach
+   today's journal (app not ready, or a graph/page-state problem), not a flaky
+   timeout.
+3. Check for leftover `Smoke*` pages in the graph — they indicate an
+   interrupted earlier run; delete them and re-run.
+4. A failure that reproduces on a second run is a real regression —
+   investigate the change, not the suite.
