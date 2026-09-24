@@ -88,17 +88,15 @@
         "cljs:report": "clojure -M:cljs run shadow.cljs.build-report app db-worker report.html",
         "cljs:build-electron": "clojure -A:cljs compile app db-worker electron",
         "cljs:lint": "clojure -M:clj-kondo --parallel --lint src --cache false",
-        "tldraw:build": "yarn --cwd packages/tldraw install",
         "amplify:build": "yarn --cwd packages/amplify install",
         "ui:build": "yarn --cwd packages/ui install",
-        "postinstall": "yarn tldraw:build && yarn ui:build"
+        "postinstall": "yarn ui:build"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.0.8",
         "@dnd-kit/sortable": "^7.0.2",
         "@emoji-mart/data": "^1.1.2",
         "@emoji-mart/react": "^1.1.1",
-        "@excalidraw/excalidraw": "0.16.1",
         "@glidejs/glide": "^3.6.0",
         "@highlightjs/cdn-assets": "10.4.1",
         "@huggingface/transformers": "^3.6.3",

@@ -14,8 +14,6 @@
             [goog.dom :as gdom]
             [goog.object :as gobj]
             [logseq.common.path :as path]
-            [logseq.shui.dialog.core :as shui-dialog]
-            [logseq.shui.ui :as shui]
             [promesa.core :as p]
             [rum.core :as rum]))
 
@@ -74,8 +72,7 @@
 
 (defn toggle-settings-modal!
   []
-  (when-not (:srs/mode? @state/state)
-    (state/toggle-settings!)))
+  (state/toggle-settings!))
 
 (defn re-render-root!
   ([]
@@ -242,12 +239,6 @@
                 @current-idx))
       ((or on-shift-chosen on-chosen) (nth matched @current-idx) false)
       (and on-enter (on-enter state)))))
-
-(defn toggle-cards!
-  []
-  (if (shui-dialog/get-modal :srs)
-    (shui/dialog-close!)
-    (state/pub-event! [:modal/show-cards])))
 
 (defn open-new-window-or-tab!
   "Open a new Electron window."

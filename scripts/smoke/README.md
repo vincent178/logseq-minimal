@@ -11,7 +11,7 @@ working after every change.
 | 1 | journals | today's journal loads and a block can be appended |
 | 2 | bidirectional link | `[[ref]]` renders, click navigates, backlink shows under "Linked references" |
 | 3 | query | `{{query [[X]]}}` renders a live result list |
-| 4 | task | `TODO` block renders and cycles to `DOING`/`DONE` on click |
+| 4 | task | a task block renders its marker and cycles state on click. Workflow-aware: it reads the graph's `:preferred-workflow` and uses `LATER`→`NOW`/`DONE` for `:now` graphs, `TODO`→`DOING`/`DONE` for `:todo` graphs. A `TODO` block in a `:now` graph is plain text (no marker) by design, so the marker word must match the configured workflow. |
 | 5 | graph view | canvas + control panel render |
 | 6 | hygiene | no fatal console errors during the run |
 

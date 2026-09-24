@@ -236,17 +236,6 @@
         [?page :block/name]]
       tag-id))
 
-(defn <get-whiteboards
-  [graph]
-  (p/let [result (<q graph {:transact-db? false}
-                     '[:find [(pull ?page [:db/id :block/uuid :block/name :block/title :block/created-at :block/updated-at]) ...]
-                       :where
-                       [?page :block/type "whiteboard"]
-                       [?page :block/name]])]
-    (->> result
-         (sort-by :block/updated-at)
-         reverse)))
-
 (defn <get-pdf-annotations
   [graph pdf-id]
   (p/let [result (<q graph {:transact-db? true}

@@ -8,9 +8,7 @@
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
             [frontend.components.shell :as shell]
-            [frontend.components.whiteboard :as whiteboard]
             [frontend.context.i18n :refer [t]]
-            [frontend.extensions.srs :as srs]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.events :as events]
             [frontend.handler.file-based.native-fs :as nfs-handler]
@@ -77,12 +75,6 @@
 (defmethod events/handle :page/show-delete-dialog [[_ selected-rows ok-handler]]
   (shui/dialog-open!
    (component-page/batch-delete-dialog selected-rows ok-handler)))
-
-(defmethod events/handle :modal/show-cards [[_ _cards-id]]
-  (shui/dialog-open!
-   srs/global-cards
-   {:id :srs
-    :label "flashcards__cp"}))
 
 (defmethod events/handle :modal/show-themes-modal [[_ classic?]]
   (if classic?
@@ -204,12 +196,6 @@
   ;; no accounts in the minimal build — login is a no-op
   nil)
 
-(defmethod events/handle :whiteboard/onboarding [[_ opts]]
-  (shui/dialog-open!
-   (fn [{:keys [close]}] (whiteboard/onboarding-welcome close))
-   (merge {:close-btn?      false
-           :center?         true
-           :close-backdrop? false} opts)))
 
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
   ;; no accounts or remote graphs in the minimal build

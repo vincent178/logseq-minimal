@@ -31,7 +31,7 @@
   get-latest-journals get-page get-case-page get-page-alias-names
   get-page-format journal-page? page? sub-block
   page-empty? page-exists? get-alias-source-page
-  has-children? whiteboard-page?])
+  has-children?])
 
 (defn start-db-conn!
   ([repo]

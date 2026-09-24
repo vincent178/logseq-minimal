@@ -277,10 +277,6 @@
       :view/components                       {}
       :view/selected-blocks                  nil
 
-      :srs/mode?                             false
-
-      :srs/cards-due-count                   nil
-
       :reactive/query-dbs                    {}
 
       ;; login, userinfo, token, ...
@@ -306,10 +302,6 @@
       :graph/loading?                        nil
       :handbook/route-chan                   (async/chan (async/sliding-buffer 1))
 
-      :whiteboard/onboarding-whiteboard?     (or (storage/get :ls-onboarding-whiteboard?) false)
-      :whiteboard/onboarding-tour?           (or (storage/get :whiteboard-onboarding-tour?) false)
-      :whiteboard/last-persisted-at          {}
-      :whiteboard/pending-tx-data            {}
       :system/info                           {}
       ;; Whether block is selected
       :ui/select-query-cache                 (atom {})
@@ -531,13 +523,6 @@ should be done through this fn in order to get global config and config defaults
      (:journals-directory (get-config repo)))
    "journals"))
 
-(defn get-whiteboards-directory
-  []
-  (or
-   (when-let [repo (get-current-repo)]
-     (:whiteboards-directory (get-config repo)))
-   "whiteboards"))
-
 (defn org-mode-file-link?
   [repo]
   (:org-mode/insert-file-link? (get-config repo)))
@@ -704,12 +689,6 @@ Similar to re-frame subscriptions"
      true
      (not (false? (:feature/enable-journals? (sub-config repo)))))))
 
-(defn enable-flashcards?
-  ([]
-   (enable-flashcards? (get-current-repo)))
-  ([repo]
-   (not (false? (:feature/enable-flashcards? (sub-config repo))))))
-
 (defn enable-sync?
   []
   (sub :feature/enable-sync?))
@@ -717,12 +696,6 @@ Similar to re-frame subscriptions"
 (defn enable-sync-diff-merge?
   []
   (sub :feature/enable-sync-diff-merge?))
-
-(defn enable-whiteboards?
-  ([]
-   (enable-whiteboards? (get-current-repo)))
-  ([repo]
-   (not (false? (:feature/enable-whiteboards? (sub-config repo))))))
 
 (defn enable-git-auto-push?
   [repo]
@@ -870,10 +843,6 @@ Similar to re-frame subscriptions"
 (defn home?
   []
   (= :home (get-current-route)))
-
-(defn whiteboard-dashboard?
-  []
-  (= :whiteboards (get-current-route)))
 
 (defn get-current-page
   []
@@ -1698,16 +1667,6 @@ Similar to re-frame subscriptions"
     (when-let [hooks (sub :plugin/installed-hooks)]
       (contains? hooks (str "hook:editor:slot_" type)))))
 
-(defn active-tldraw-app
-  []
-  (when-let [tldraw-el (.querySelector js/document.body ".logseq-tldraw[data-tlapp]")]
-    (gobj/get js/window.tlapps (.. tldraw-el -dataset -tlapp))))
-
-(defn tldraw-editing-logseq-block?
-  []
-  (when-let [app (active-tldraw-app)]
-    (and (= 1 (.. app -selectedShapesArray -length))
-         (= (.. app -editingShape) (.. app -selectedShapesArray (at 0))))))
 
 (defn set-graph-syncing?
   [value]
@@ -1746,7 +1705,6 @@ Similar to re-frame subscriptions"
          (>= (- now last-input-time) diff))
 
        ;; not in editing mode
-       ;; Is this a good idea to put whiteboard check here?
        (not (get-edit-input-id))))))
 
 (defn set-nfs-refreshing!
@@ -1864,14 +1822,9 @@ Similar to re-frame subscriptions"
   [args]
   (set-state! :editor/args args))
 
-(defn editing-whiteboard-portal?
-  []
-  (and (active-tldraw-app) (tldraw-editing-logseq-block?)))
-
 (defn block-component-editing?
   []
-  (and (:block/component-editing-mode? @state)
-       (not (editing-whiteboard-portal?))))
+  (:block/component-editing-mode? @state))
 
 (defn set-block-component-editing-mode!
   [value]
@@ -2141,15 +2094,6 @@ Similar to re-frame subscriptions"
          (= #{:repo :old-path :new-path} (set (keys v)))]}
   (async/offer! (get-file-rename-event-chan) v))
 
-(defn set-onboarding-whiteboard!
-  [v]
-  (set-state! :whiteboard/onboarding-whiteboard? v)
-  (storage/set :ls-onboarding-whiteboard? v))
-
-(defn get-onboarding-whiteboard?
-  []
-  (get-in @state [:whiteboard/onboarding-whiteboard?]))
-
 (defn get-current-pdf
   []
   (:pdf/current @state))
@@ -2162,15 +2106,6 @@ Similar to re-frame subscriptions"
       (when (apply not= (map :identity [inflated-file (get-current-pdf)]))
         (set-state! :pdf/current nil)
         (js/setTimeout #(settle-file!) 16)))))
-
-(defn focus-whiteboard-shape
-  ([shape-id]
-   (focus-whiteboard-shape (active-tldraw-app) shape-id))
-  ([tln shape-id]
-   (when-let [^js api (gobj/get tln "api")]
-     (when (and shape-id (parse-uuid shape-id))
-       (. api selectShapes shape-id)
-       (. api zoomToSelection)))))
 
 (defn set-user-info!
   [info]

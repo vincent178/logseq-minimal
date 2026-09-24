@@ -14,7 +14,6 @@
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
             [frontend.db.react :as react]
-            [frontend.extensions.fsrs :as fsrs]
             [frontend.fs :as fs]
             [frontend.fs.watcher-handler :as fs-watcher]
             [frontend.handler.assets :as assets-handler]
@@ -143,7 +142,6 @@
                  :export-bullet-indentation (state/get-export-bullet-indentation)
                  :preferred-format (state/get-preferred-format)
                  :journals-directory (config/get-journals-directory)
-                 :whiteboards-directory (config/get-whiteboards-directory)
                  :pages-directory (config/get-pages-directory)}]
     (state/<invoke-db-worker :thread-api/set-context context)))
 
@@ -207,8 +205,6 @@
       (.setProperty (.-style html) "--ls-native-toolbar-opacity" 0)
       (.remove (.-classList html) "has-mobile-keyboard"))
     (when (mobile-util/native-ios?)
-      (when-let [card-preview-el (js/document.querySelector ".cards-review")]
-        (set! (.. card-preview-el -style -marginBottom) "0px"))
       (set! (.. main-node -style -marginBottom) "0px")
       (when-let [left-sidebar-node (gdom/getElement "left-sidebar")]
         (set! (.. left-sidebar-node -style -bottom) "0px"))
@@ -235,17 +231,8 @@
   (when graph (assets-handler/ensure-assets-dir! graph))
   (state/pub-event! [:graph/sync-context])
   (export/auto-db-backup! graph)
-  (fsrs/update-due-cards-count)
   (when-not (mobile-util/native-platform?)
     (state/pub-event! [:graph/ready graph])))
-
-(defmethod handle :whiteboard-link [[_ shapes]]
-  (route-handler/go-to-search! :whiteboard/link)
-  (state/set-state! :whiteboard/linked-shapes shapes))
-
-(defmethod handle :whiteboard-go-to-link [[_ link]]
-  (route-handler/redirect! {:to :page
-                            :path-params {:name link}}))
 
 (defmethod handle :graph/save-db-to-disk [[_ _opts]]
   (persist-db/export-current-graph! {:succ-notification? true :force-save? true}))

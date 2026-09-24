@@ -12,7 +12,6 @@
             [frontend.util :as util :refer [react]]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
-            [logseq.db.frontend.class :as db-class]
             ))
 
 ;; TODO: extract to specific models and move data transform logic to the
@@ -381,43 +380,12 @@ independent of format as format specific heading characters are stripped"
   [files]
   (mapv (fn [path] [:db.fn/retractEntity [:file/path path]]) files))
 
-(defn whiteboard-page?
-  "Given a page entity, page object or page name, check if it is a whiteboard page"
-  [page]
-  (let [page (if (string? page)
-               (get-page page)
-               page)]
-    (ldb/whiteboard? page)))
-
 ;; FIXME: use `Untitled` instead of UUID for db based graphs
 (defn untitled-page?
   [page-name]
   (when (some->> page-name (ldb/get-page (conn/get-db)))
     (some? (parse-uuid page-name))))
 
-(defn get-all-whiteboards
-  [repo]
-  (d/q
-   '[:find [(pull ?page [:db/id
-                         :block/uuid
-                         :block/name
-                         :block/title
-                         :block/created-at
-                         :block/updated-at]) ...]
-     :where
-     [?page :block/name]
-     [?page :block/type "whiteboard"]]
-   (conn/get-db repo)))
-
-(defn get-whiteboard-id-nonces
-  [_repo page-id]
-  (let [key :logseq.tldraw.shape
-        page (db-utils/entity page-id)]
-    (->> (:block/_page page)
-         (keep (fn [{:block/keys [uuid] :as b}]
-                 (when-let [shape (get (:block/properties b) key)]
-                   {:id (str uuid)
-                    :nonce (:nonce shape)}))))))
 
 (defn get-all-classes
   [repo & {:keys [except-root-class? except-private-tags?
@@ -445,23 +413,6 @@ independent of format as format specific heading characters are stripped"
   adding a tag to a node or creating a new node with a tag"
   [repo opts]
   (get-all-classes repo (merge opts {:except-private-tags? false})))
-
-(defn get-structured-children
-  [repo eid]
-  (db-class/get-structured-children (conn/get-db repo) eid))
-
-(defn get-class-objects
-  [repo class-id]
-  (when-let [class (db-utils/entity repo class-id)]
-    (->>
-     (if (first (:logseq.property.class/_extends class))        ; has children classes
-       (let [all-classes (conj (->> (get-structured-children repo class-id)
-                                    (map #(db-utils/entity repo %)))
-                               class)]
-         (->> (mapcat :block/_tags all-classes)
-              distinct))
-       (:block/_tags class))
-     (remove ldb/hidden?))))
 
 (comment
   ;; For debugging

@@ -17,7 +17,6 @@
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.whiteboard :as whiteboard-handler]
             [frontend.mixins :as mixins]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.modules.shortcut.utils :as shortcut-utils]
@@ -329,8 +328,7 @@
                      (and
                       f
                       (string/ends-with? f ".edn")
-                      (or (string/starts-with? f "whiteboards/")
-                          (string/starts-with? f "assets/")
+                      (or (string/starts-with? f "assets/")
                           (string/starts-with? f "logseq/version-files")
                           (contains? #{"logseq/metadata.edn" "logseq/pages-metadata.edn" "logseq/graphs-txid.edn"} f))))
                    files*)
@@ -459,8 +457,6 @@
         (when block
           (when-let [page (some-> block-id get-block-page)]
             (cond
-              (db/whiteboard-page? page)
-              (route-handler/redirect-to-page! (:block/uuid page) {:block-id block-id})
               (model/parents-collapsed? (state/get-current-repo) block-id)
               (route-handler/redirect-to-page! block-id)
               :else
@@ -544,10 +540,8 @@
 (defmethod handle-action :create [_ state _event]
   (let [item (state->highlighted-item state)
         !input (::input state)
-        create-whiteboard? (= :whiteboard (:source-create item))
         create-page? (= :page (:source-create item))]
     (p/let [_ (cond
-                create-whiteboard? (whiteboard-handler/<create-new-whiteboard-and-redirect! @!input)
                 ;; File graphs: a leading '#' is file-tag syntax; create a page.
                 create-page? (page-handler/<create! @!input {:redirect? true}))]
       (shui/dialog-close! :ls-dialog-cmdk))))

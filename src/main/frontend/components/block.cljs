@@ -32,7 +32,6 @@
             [frontend.extensions.pdf.assets :as pdf-assets]
             [frontend.extensions.sci :as sci]
             [frontend.extensions.video.youtube :as youtube]
-            [frontend.extensions.zotero :as zotero]
             [frontend.format.block :as block]
             [frontend.format.mldoc :as mldoc]
             [frontend.fs :as fs]
@@ -50,7 +49,6 @@
             [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.handler.whiteboard :as whiteboard-handler]
             [frontend.mixins :as mixins]
             [frontend.mobile.haptics :as haptics]
             [frontend.mobile.intent :as mobile-intent]
@@ -87,7 +85,7 @@
             [promesa.core :as p]
             [reitit.frontend.easy :as rfe]
             [rum.core :as rum]
-            [shadow.loader :as loader]))
+            ))
 
 ;; local state
 (defonce *dragging?
@@ -382,9 +380,7 @@
 (defn- open-pdf-file
   [e block href]
   (let [href (if-let [url (:logseq.property.asset/external-url block)]
-               (if (string/starts-with? url "zotero://")
-                 (zotero/zotero-full-path (last (string/split url #"/")) (:logseq.property.asset/external-file-name block))
-                 url)
+               url
                href)]
     (when-let [s (or href (some-> (.-target e) (.-dataset) (.-href)))]
       (let [load$ (fn []
@@ -580,11 +576,6 @@
            (state/get-current-repo)
            (:db/id page)
            :page))
-
-        (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-        (whiteboard-handler/add-new-block-portal-shape!
-         page-name
-         (whiteboard-handler/closest-shape (.-target e)))
 
         (nil? page)
         (state/pub-event! [:page/create page-name])
@@ -874,8 +865,7 @@
     (cond
       entity
       (let [page-name (some-> (:block/title entity) util/page-name-sanity-lc)
-            whiteboard-page? (model/whiteboard-page? entity)
-            inner (page-inner (assoc config :whiteboard-page? whiteboard-page?) entity children label)
+                inner (page-inner (assoc config :whiteboard-page? nil) entity children label)
             modal? (shui-dialog/has-modal?)]
         (if (and (not (util/mobile?))
                  (not= page-name (:id config))
@@ -942,19 +932,6 @@
        :else
        [:a.asset-ref {:target "_blank" :href real-path-url}
         title-or-path])]))
-
-(defonce excalidraw-loaded? (atom false))
-(rum/defc excalidraw < rum/reactive
-  {:init (fn [state]
-           (p/let [_ (loader/load :excalidraw)]
-             (reset! excalidraw-loaded? true))
-           state)}
-  [file block-uuid]
-  (let [loaded? (rum/react excalidraw-loaded?)
-        draw-component (when loaded?
-                         (resolve 'frontend.extensions.excalidraw/draw))]
-    (when draw-component
-      (draw-component {:file file :block-uuid block-uuid}))))
 
 (rum/defcs asset-cp < rum/reactive
   (rum/local nil ::file-exists?)
@@ -1048,11 +1025,6 @@
               (and asset? (img-audio-video? block))
               (asset-cp config block)
 
-              (and (string? uuid-or-title) (string/ends-with? uuid-or-title ".excalidraw"))
-              [:div.draw {:on-click (fn [e]
-                                      (.stopPropagation e))}
-               (excalidraw uuid-or-title (:block/uuid config))]
-
               :else
               (let [blank-title? (string/blank? (:block/title block))]
                 [:span.page-reference
@@ -1107,7 +1079,6 @@
   [config block]
   (let [current-page (state/get-current-page)
         block (db/sub-block (:db/id block))
-        whiteboard-page? (model/whiteboard-page? block)
         page-name (:block/name block)]
     [:div.color-level.embed.embed-page.bg-base-2
      {:class (when (:sidebar? config) "in-sidebar")
@@ -1120,16 +1091,14 @@
                   page-name)
             (not= (util/page-name-sanity-lc (get config :id ""))
                   page-name))
-       (if whiteboard-page?
-         ((state/get-component :whiteboard/tldraw-preview) (:block/uuid block))
-         (let [blocks (ldb/get-children block)
-               config' (assoc config
-                              :db/id (:db/id block)
-                              :id page-name
-                              :embed? true
-                              :page-embed? true
-                              :ref? false)]
-           (blocks-container config' blocks))))]))
+       (let [blocks (ldb/get-children block)
+             config' (assoc config
+                            :db/id (:db/id block)
+                            :id page-name
+                            :embed? true
+                            :page-embed? true
+                            :ref? false)]
+         (blocks-container config' blocks)))]))
 
 (rum/defc page-embed
   [config page-name]
@@ -1237,18 +1206,10 @@
                        (:db/id block)
                        :block-ref)
 
-                      (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-                      (whiteboard-handler/add-new-block-portal-shape!
-                       (:block/uuid block)
-                       (whiteboard-handler/closest-shape (.-target e)))
-
                       :else
                       (match [block-type (util/electron?)]
                              ;; pdf annotation
                         [:annotation true] (pdf-assets/open-block-ref! block)
-
-                        [:whiteboard-shape true] (route-handler/redirect-to-page!
-                                                  (get-in block [:block/page :block/uuid]) {:block-id block-id})
 
                              ;; default open block page
                         :else (route-handler/redirect-to-page! block-id))))))}
@@ -1809,15 +1770,6 @@
         (when-let [seconds (youtube/parse-timestamp timestamp')]
           (youtube/timestamp seconds)))
 
-      (= name "zotero-imported-file")
-      (let [[item-key filename] arguments]
-        (when (and item-key filename)
-          [:span.ml-1 (zotero/zotero-imported-file item-key filename)]))
-
-      (= name "zotero-linked-file")
-      (when-let [path (first arguments)]
-        [:span.ml-1 (zotero/zotero-linked-file path)])
-
       (= name "vimeo")
       (macro-vimeo-cp config arguments)
 
@@ -2012,11 +1964,6 @@
        :block)
       (util/stop e))
 
-    (and (util/meta-key? e) (whiteboard-handler/inside-portal? (.-target e)))
-    (do (whiteboard-handler/add-new-block-portal-shape!
-         uuid
-         (whiteboard-handler/closest-shape (.-target e)))
-        (util/stop e))
 
     :else
     (when uuid
@@ -2232,7 +2179,7 @@
 
      ;; children
      (let [area? (= :area (keyword (pu/lookup block :logseq.property.pdf/hl-type)))
-           hl-ref #(when (not (#{:default :whiteboard-shape} block-type))
+           hl-ref #(when (not (#{:default} block-type))
                      [:div.prefix-link
                       {:class (when area? "as-block")
                        :on-pointer-down
@@ -2279,22 +2226,7 @@
                               (= "Link" (ffirst block-ast-title)))
                          (assoc :node-ref-link-only? true))]
            (conj
-            (map-inline config' block-ast-title)
-            (when (= block-type :whiteboard-shape) [:span.mr-1 (ui/icon "whiteboard-element" {:extension? true})])))
-
-         (when (and (seq block-ast-title) (ldb/class-instance?
-                                           (entity-plus/entity-memoized (db/get-db) :logseq.class/Cards)
-                                           block))
-           [(ui/tooltip
-             (shui/button
-              {:variant :ghost
-               :size :sm
-               :class "ml-2 !px-1 !h-5 text-xs text-muted-foreground"
-               :on-click (fn [e]
-                           (util/stop e)
-                           (state/pub-event! [:modal/show-cards (:db/id block)]))}
-              "Practice")
-             [:div "Practice cards"])])))))))
+            (map-inline config' block-ast-title)))))))))
 
 (rum/defc block-title-aux
   [config block {:keys [query? *show-query?]}]
@@ -3725,8 +3657,7 @@
             {:keys [lines language]} options
             attr (when language
                    {:data-lang language})
-            code (if lines (apply str lines) (:block/title block))
-            [inside-portal? set-inside-portal?] (rum/use-state nil)]
+            code (if lines (apply str lines) (:block/title block))]
         (cond
           html-export?
           (highlight/html-export attr code)
@@ -3734,23 +3665,11 @@
           :else
           (let [language (if (contains? #{"edn" "clj" "cljc" "cljs" "clojurescript"} language) "clojure" language)]
             [:div.ui-fenced-code-editor.flex.w-full
-             {:ref (fn [el]
-                     (set-inside-portal? (and el (whiteboard-handler/inside-portal? el))))
-              :on-mouse-over #(dom/add-class! (hooks/deref *actions-ref) "!opacity-100")
+             {:on-mouse-over #(dom/add-class! (hooks/deref *actions-ref) "!opacity-100")
               :on-mouse-leave (fn [e]
                                 (when (dom/has-class? (.-target e) "code-editor")
                                   (dom/remove-class! (hooks/deref *actions-ref) "!opacity-100")))}
-             (cond
-               (nil? inside-portal?) nil
-
-               inside-portal?
-               (highlight/highlight (str (random-uuid))
-                                    {:class (str "language-" language)
-                                     :data-lang language}
-                                    code)
-
-               :else
-               [:div.ls-code-editor-wrap
+             [:div.ls-code-editor-wrap
                 [:div.code-block-actions
                  {:ref *actions-ref}
                  (shui/button
@@ -3766,7 +3685,7 @@
                 (lazy-editor/editor config (str (d/squuid)) attr code options)
                 (let [options (:options options) block (:block config)]
                   (when (and (= language "clojure") (contains? (set options) ":results"))
-                    (sci/eval-result code block)))])]))))))
+                    (sci/eval-result code block)))]]))))))
 
 (defn ^:large-vars/cleanup-todo markup-element-cp
   [{:keys [html-export?] :as config} item]
@@ -4185,15 +4104,14 @@
           (let [blocks (remove nil? blocks)]
             (when (seq blocks)
               (let [alias? (:block/alias? page)
-                    page (db/entity (:db/id page))
-                    whiteboard? (model/whiteboard-page? page)]
+                    page (db/entity (:db/id page))]
                 [:div.my-2 {:key (str "page-" (:db/id page))}
                  (ui/foldable
                   [:div
                    (page-cp config page)
                    (when alias? [:span.text-sm.font-medium.opacity-50 " Alias"])]
                   (fn []
-                    (when-not whiteboard? (blocks-container config blocks)))
+                    (blocks-container config blocks))
                   {})])))))]
 
      :else

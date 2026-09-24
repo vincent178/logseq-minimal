@@ -17,7 +17,6 @@
             [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
             [frontend.db.async :as db-async]
-            [frontend.db.model :as db-model]
             [frontend.handler.common :as common-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.route :as route-handler]
@@ -417,8 +416,7 @@
         onboarding-state (state/sub :file-sync/onboarding-state)
         right-sidebar-blocks (state/sub-right-sidebar-blocks)
         route-name (get-in route-match [:data :name])
-        margin-less-pages? (or (boolean (#{:graph} route-name))
-                               (db-model/whiteboard-page? (state/get-current-page)))
+        margin-less-pages? (boolean (#{:graph} route-name))
         db-restoring? (state/sub :db/restoring?)
         page? (= :page route-name)
         home? (= :home route-name)

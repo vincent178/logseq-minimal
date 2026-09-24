@@ -814,9 +814,6 @@
     @result))
 
 #?(:cljs
-   (def concat-without-nil common-util/concat-without-nil))
-
-#?(:cljs
    (defn set-title!
      [title]
      (set! (.-title js/document) title)))

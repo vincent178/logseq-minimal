@@ -9,7 +9,6 @@
             [frontend.components.editor :as editor]
             [frontend.components.page :as page]
             [frontend.components.reference :as reference]
-            [frontend.components.whiteboard :as whiteboard]
             [frontend.config :as config]
             [frontend.context.i18n :as i18n]
             [frontend.db.react :as react]
@@ -35,7 +34,6 @@
             [frontend.persist-db.browser :as db-browser]
             [frontend.state :as state]
             [frontend.util :as util]
-            [frontend.util.persist-var :as persist-var]
             [goog.object :as gobj]
             [lambdaisland.glogi :as log]
             [promesa.core :as p]))
@@ -108,7 +106,6 @@
   (state/set-page-blocks-cp! page/page-cp)
   (state/set-component! :block/->hiccup block/->hiccup)
   (state/set-component! :block/linked-references reference/references)
-  (state/set-component! :whiteboard/tldraw-preview whiteboard/tldraw-preview)
   (state/set-component! :block/single-block block/single-block-cp)
   (state/set-component! :block/container block/block-container)
   (state/set-component! :block/inline-title block/inline-title)
@@ -192,10 +189,7 @@
                       ;; vector-search / inference worker removed
                       nil)))
 
-     (util/<app-wake-up-from-sleep-loop (atom false))
-
-     (when-not (util/mobile?)
-       (persist-var/load-vars)))))
+     (util/<app-wake-up-from-sleep-loop (atom false)))))
 
 (defn stop! []
   (prn "stop!"))

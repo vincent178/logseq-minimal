@@ -557,22 +557,6 @@
             (let [value (not enable-all-pages-public?)]
               (config-handler/set-config! :publishing/all-pages-public? value)))))
 
-(defn zotero-settings-row []
-  [:div.it.sm:grid.sm:grid-cols-3.sm:gap-4.sm:items-center
-   [:label.block.text-sm.font-medium.leading-5.opacity-70
-    {:for "zotero_settings"}
-    "Zotero"]
-   [:div.mt-1.sm:mt-0.sm:col-span-2
-    [:div
-     (ui/button
-      (t :settings)
-      :class "text-sm"
-      :style {:margin-top "0px"}
-      :on-click
-      (fn []
-        (state/close-settings!)
-        (route-handler/redirect! {:to :zotero-setting})))]]])
-
 (defn auto-push-row [_t current-repo enable-git-auto-push?]
   (when (and current-repo (string/starts-with? current-repo "https://"))
     (toggle "enable_git_auto_push"
@@ -640,14 +624,6 @@
                   :on-click #(js/logseq.api.relaunch)
                   :small? true :intent "logseq"))]))
 
-(rum/defc flashcards-enabled-switcher
-  [enable-flashcards?]
-  (ui/toggle enable-flashcards?
-             (fn []
-               (let [value (not enable-flashcards?)]
-                 (config-handler/set-config! :feature/enable-flashcards? value)))
-             true))
-
 (rum/defc user-proxy-settings
   [{:keys [type protocol host port] :as agent-opts}]
   (ui/button [:span.flex.items-center
@@ -669,11 +645,6 @@
   (row-with-button-action
    {:left-label "HTTP API server"
     :action (http-server-enabled-switcher t)}))
-
-(defn flashcards-switcher-row [enable-flashcards?]
-  (row-with-button-action
-   {:left-label (t :settings-page/enable-flashcards)
-    :action (flashcards-enabled-switcher enable-flashcards?)}))
 
 (defn https-user-agent-row [agent-opts]
   (row-with-button-action
@@ -817,25 +788,10 @@
      ;;  [:p (t :settings-page/clear-cache-warning)])
      ]))
 
-(rum/defc whiteboards-enabled-switcher
-  [enabled?]
-  (ui/toggle enabled?
-             (fn []
-               (let [value (not enabled?)]
-                 (config-handler/set-config! :feature/enable-whiteboards? value)))
-             true))
-
-(defn whiteboards-switcher-row [enabled?]
-  (row-with-button-action
-   {:left-label (t :settings-page/enable-whiteboards)
-    :action (whiteboards-enabled-switcher enabled?)}))
-
 (rum/defc settings-features < rum/reactive
   []
   (let [current-repo (state/get-current-repo)
-        enable-journals? (state/enable-journals? current-repo)
-        enable-flashcards? (state/enable-flashcards? current-repo)
-        enable-whiteboards? (state/enable-whiteboards? current-repo)]
+        enable-journals? (state/enable-journals? current-repo)]
     [:div.panel-wrap.is-features.mb-8
      (journal-row enable-journals?)
      (when (not enable-journals?)
@@ -851,13 +807,10 @@
             :on-key-press  (fn [e]
                              (when (= "Enter" (util/ekey e))
                                (update-home-page e)))}]]]])
-     (whiteboards-switcher-row enable-whiteboards?)
      (when (and web-platform? config/feature-plugin-system-on?)
        (plugin-system-switcher-row))
      (when (util/electron?)
-       (http-server-switcher-row))
-     (flashcards-switcher-row enable-flashcards?)
-     (zotero-settings-row)]))
+       (http-server-switcher-row))]))
 
      ;; (when-not web-platform?
      ;;   [:<>

@@ -4,7 +4,6 @@
             [frontend.date :as date]
             [frontend.db :as db]
             [frontend.extensions.video.youtube :as youtube]
-            [frontend.handler.draw :as draw]
             [frontend.handler.file-based.property :as file-property-handler]
             [frontend.handler.file-based.status :as file-based-status]
             [frontend.handler.notification :as notification]
@@ -15,10 +14,8 @@
             [frontend.util :as util]
             [frontend.util.cursor :as cursor]
             [frontend.util.file-based.priority :as priority]
-            [frontend.util.ref :as ref]
             [goog.dom :as gdom]
             [goog.object :as gobj]
-            [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
             [logseq.common.util.block-ref :as block-ref]
             [logseq.common.util.macro :as macro-util]
@@ -72,15 +69,6 @@
                         {:command :image-link
                          :id :label
                          :placeholder "Label"}]]])
-
-(defn zotero-steps []
-  [[:editor/input (str command-trigger "zotero")]
-   [:editor/show-zotero]])
-
-(def *extend-slash-commands (atom []))
-
-(defn register-slash-command [cmd]
-  (swap! *extend-slash-commands conj cmd))
 
 (defn ->marker
   [marker]
@@ -347,19 +335,10 @@
       ;; advanced
       [["Query" (query-steps) query-doc :icon/query "ADVANCED"]
        ["Advanced Query" (advanced-query-steps) "Create an advanced query block" :icon/query]
-       ["Zotero" (zotero-steps) "Import Zotero journal article" :icon/circle-letter-z]
        ["Query function" [[:editor/input "{{function }}" {:backward-pos 2}]] "Create a query function" :icon/queryCode]
        ["Calculator"
         (calc-steps)
         "Insert a calculator" :icon/calculator]
-       ["Draw" (fn []
-                 (let [file (draw/file-name)
-                       path (str common-config/default-draw-directory "/" file)
-                       text (ref/->page-ref path)]
-                   (p/let [_ (draw/create-draw-with-default-content path)]
-                     (println "draw file created, " path))
-                   text)) "Draw a graph with Excalidraw"]
-
        ["Upload an asset"
         [[:editor/click-hidden-file-input :id]]
         "Upload file types like image, pdf, docx, etc.)"
@@ -380,11 +359,6 @@
        ["Embed Twitter tweet" [[:editor/input "{{tweet }}" {:last-pattern command-trigger
                                                             :backward-pos 2}]] ""
         :icon/xEmbed]]
-
-      (let [commands @*extend-slash-commands]
-        commands)
-
-;; Allow user to modify or extend, should specify how to extend.
 
       (state/get-commands)
       (when-let [plugin-commands (seq (some->> (state/get-plugins-slash-commands)
@@ -734,9 +708,6 @@
 
 (defmethod handle-step :editor/show-input [[_ option]]
   (state/set-editor-show-input! option))
-
-(defmethod handle-step :editor/show-zotero [[_]]
-  (state/set-editor-action! :zotero))
 
 (defn insert-youtube-timestamp
   []

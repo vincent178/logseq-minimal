@@ -309,7 +309,6 @@
         new-name      (string/trim new-name)
         old-page-name (common-util/page-name-sanity-lc old-name)
         new-page-name (common-util/page-name-sanity-lc new-name)
-        new-page-e (d/entity db [:block/name new-page-name])
         name-changed? (not= old-name new-name)]
     (cond
       (ldb/built-in? page-e)
@@ -317,11 +316,6 @@
 
       (string/blank? new-name)
       :invalid-empty-name
-
-      (and page-e new-page-e
-           (or (file-entity-util/whiteboard? page-e)
-               (file-entity-util/whiteboard? new-page-e)))
-      :merge-whiteboard-pages
 
       (and old-name new-name name-changed?)
       (do

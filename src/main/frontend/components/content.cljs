@@ -9,7 +9,6 @@
             [frontend.components.page-menu :as page-menu]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
-            [frontend.extensions.srs :as srs]
             [frontend.handler.common.developer :as dev-common-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
@@ -77,8 +76,7 @@
                           (let [block-uuids (state/get-selection-block-ids)]
                             (shui/popup-hide!)
                             (shui/dialog-open!
-                             #(export/export-blocks block-uuids {:whiteboard? false
-                                                                 :export-type :selected-nodes}))))}
+                             #(export/export-blocks block-uuids {:export-type :selected-nodes}))))}
       (t :content/copy-export-as))
 
      (shui/dropdown-menu-item
@@ -92,12 +90,6 @@
       (t :content/copy-block-emebed))
 
      (shui/dropdown-menu-separator)
-
-     (when (state/enable-flashcards?)
-       (shui/dropdown-menu-item
-        {:key "Make a Card"
-         :on-click #(srs/batch-make-cards!)}
-        (t :context-menu/make-a-flashcard)))
 
      (shui/dropdown-menu-item
       {:key "Toggle number list"
@@ -252,8 +244,7 @@
           {:key      "Copy as"
            :on-click (fn [_]
                        (shui/dialog-open!
-                        #(export/export-blocks [block-id] {:whiteboard? false
-                                                           :export-type :block})))}
+                        #(export/export-blocks [block-id] {:export-type :block})))}
           (t :content/copy-export-as))
 
          (when-not property-default-value?
@@ -274,20 +265,6 @@
          (shui/dropdown-menu-separator)
 
          (block-template block-id)
-
-         (cond
-           (srs/card-block? block)
-           (shui/dropdown-menu-item
-            {:key      "Preview Card"
-             :on-click #(srs/preview (:db/id block))}
-            (t :context-menu/preview-flashcard))
-           (state/enable-flashcards?)
-           (shui/dropdown-menu-item
-            {:key      "Make a Card"
-             :on-click #(srs/batch-make-cards! [block-id])}
-            (t :context-menu/make-a-flashcard))
-           :else
-           nil)
 
          (shui/dropdown-menu-item
           {:key "Toggle number list"

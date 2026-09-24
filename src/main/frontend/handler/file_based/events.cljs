@@ -1,7 +1,6 @@
 (ns frontend.handler.file-based.events
   "Events that are only for file graphs"
   (:require [clojure.set :as set]
-            [clojure.string :as string]
             [frontend.components.diff :as diff]
             [frontend.components.file-based.git :as git-component]
             [frontend.config :as config]
@@ -23,7 +22,6 @@
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
-            [logseq.common.config :as common-config]
             [logseq.shui.ui :as shui]
             [promesa.core :as p]
             [rum.core :as rum]))
@@ -189,59 +187,19 @@
   (p/let [_ (file-handler/alter-file repo path content {:from-disk? true})]
     (ui-handler/re-render-root!)))
 
-(rum/defcs file-id-conflict-item <
-  (rum/local false ::resolved?)
-  [state repo file data]
-  (let [resolved? (::resolved? state)
-        id (last (:assertion data))]
-    [:li {:key file}
-     [:div
-      [:a {:on-click #(js/window.apis.openPath file)} file]
-      (if @resolved?
-        [:div.flex.flex-row.items-center
-         (ui/icon "circle-check" {:style {:font-size 20}})
-         [:div.ml-1 "Resolved"]]
-        [:div
-         [:p
-          (str "It seems that another whiteboard file already has the ID \"" id
-               "\". You can fix it by changing the ID in this file with another UUID.")]
-         [:p
-          "Or, let me"
-          (ui/button "Fix"
-                     :on-click (fn []
-                                 (let [dir (config/get-repo-dir repo)]
-                                   (p/let [content (fs/read-file dir file)]
-                                     (let [new-content (string/replace content (str id) (str (random-uuid)))]
-                                       (p/let [_ (fs/write-plain-text-file! repo
-                                                                            dir
-                                                                            file
-                                                                            new-content
-                                                                            {})]
-                                         (reset! resolved? true))))))
-                     :class "inline mx-1")
-          "it."]])]]))
-
-(defmethod events/handle :file/parse-and-load-error [[_ repo parse-errors]]
+(defmethod events/handle :file/parse-and-load-error [[_ _repo parse-errors]]
   (state/pub-event! [:notification/show
                      {:content
                       [:div
                        [:h2.title "Oops. These files failed to import to your graph:"]
                        [:ol.my-2
                         (for [[file error] parse-errors]
-                          (let [data (ex-data error)]
-                            (cond
-                              (and (common-config/whiteboard? file)
-                                   (= :transact/upsert (:error data))
-                                   (uuid? (last (:assertion data))))
-                              (rum/with-key (file-id-conflict-item repo file data) file)
-
-                              :else
-                              (do
-                                (state/pub-event! [:capture-error {:error error
-                                                                   :payload {:type :file/parse-and-load-error}}])
-                                [:li.my-1 {:key file}
-                                 [:a {:on-click #(js/window.apis.openPath file)} file]
-                                 [:p (.-message error)]]))))]
+                          (do
+                            (state/pub-event! [:capture-error {:error error
+                                                               :payload {:type :file/parse-and-load-error}}])
+                            [:li.my-1 {:key file}
+                             [:a {:on-click #(js/window.apis.openPath file)} file]
+                             [:p (.-message error)]]))]
                        [:p "Don't forget to re-index your graph when all the conflicts are resolved."]]
                       :status :error}]))
 

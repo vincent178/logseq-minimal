@@ -89,9 +89,3 @@
      ast)
     @*result))
 
-(defn get-title&body
-  "parses content and returns [title body]
-   returns nil if no title"
-  [content format]
-  (when-let [repo (state/get-current-repo)]
-    (gp-mldoc/get-title&body repo content format)))
