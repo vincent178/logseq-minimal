@@ -228,18 +228,17 @@
       (util/input "page reference")
       (w/click "a.menu-link:has-text('page reference')")
       (w/click "a.menu-link:has-text('foo')")
-      (assert/assert-is-visible "div:text('Live query (2)')"))))
+      ;; file graph query header renders "Live query" and "2 results" separately
+      (assert/assert-is-visible "div:text('Live query')")
+      (assert/assert-is-visible "span.results-count:text('2 results')"))))
 
 (deftest advanced-query-test
   (testing "query"
     (b/new-blocks ["[[bar]] block" "[[bar]] another" ""])
-    (util/input-command "advanced query")
-    ;; file graph: /Advanced Query inserts #+BEGIN_QUERY block, edit directly
-    (util/input "{:query [:find (pull ?b [*])
-:where [?b :block/refs ?r]
-[?r :block/title \"bar\"]]}")
+    ;; file graph: write an explicit #+BEGIN_QUERY EDN block directly
+    (b/new-block "#+BEGIN_QUERY\n{:query [:find (pull ?b [*]) :where [?b :block/refs ?r] [?r :block/title \"bar\"]]}\n#+END_QUERY")
     (util/exit-edit)
-    (is (some? (w/find-one-by-text "div" "2 results")))))
+    (is (some? (w/find-one-by-text "span" "2 results")))))
 
 (deftest calculator-test
   (testing "calculator"
