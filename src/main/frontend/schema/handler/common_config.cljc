@@ -17,7 +17,6 @@
     [:ui/show-brackets? :boolean]
     [:feature/enable-search-remove-accents? :boolean]
     [:feature/enable-journals? :boolean]
-    [:feature/enable-flashcards? :boolean]
     [:feature/enable-whiteboards? :boolean]
     [:feature/disable-scheduled-and-deadline-query? :boolean]
     [:scheduled/future-days :int]
@@ -63,9 +62,6 @@
     [:graph/settings [:map-of :keyword [:or :boolean :int :nil]]]
     [:graph/forcesettings [:map-of :keyword :int]]
     [:favorites [:vector :string]]
-    ;; There isn't a :float yet
-    [:srs/learning-fraction float?]
-    [:srs/initial-interval :int]
     [:block-hidden-properties [:set :keyword]]
     [:property-pages/enabled? :boolean]
     [:property-pages/excludelist [:set :keyword]]

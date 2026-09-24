@@ -14,7 +14,6 @@
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
             [frontend.db.react :as react]
-            [frontend.extensions.fsrs :as fsrs]
             [frontend.fs :as fs]
             [frontend.fs.watcher-handler :as fs-watcher]
             [frontend.handler.assets :as assets-handler]
@@ -207,8 +206,6 @@
       (.setProperty (.-style html) "--ls-native-toolbar-opacity" 0)
       (.remove (.-classList html) "has-mobile-keyboard"))
     (when (mobile-util/native-ios?)
-      (when-let [card-preview-el (js/document.querySelector ".cards-review")]
-        (set! (.. card-preview-el -style -marginBottom) "0px"))
       (set! (.. main-node -style -marginBottom) "0px")
       (when-let [left-sidebar-node (gdom/getElement "left-sidebar")]
         (set! (.. left-sidebar-node -style -bottom) "0px"))
@@ -235,7 +232,6 @@
   (when graph (assets-handler/ensure-assets-dir! graph))
   (state/pub-event! [:graph/sync-context])
   (export/auto-db-backup! graph)
-  (fsrs/update-due-cards-count)
   (when-not (mobile-util/native-platform?)
     (state/pub-event! [:graph/ready graph])))
 

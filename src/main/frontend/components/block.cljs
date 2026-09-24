@@ -2280,21 +2280,7 @@
                          (assoc :node-ref-link-only? true))]
            (conj
             (map-inline config' block-ast-title)
-            (when (= block-type :whiteboard-shape) [:span.mr-1 (ui/icon "whiteboard-element" {:extension? true})])))
-
-         (when (and (seq block-ast-title) (ldb/class-instance?
-                                           (entity-plus/entity-memoized (db/get-db) :logseq.class/Cards)
-                                           block))
-           [(ui/tooltip
-             (shui/button
-              {:variant :ghost
-               :size :sm
-               :class "ml-2 !px-1 !h-5 text-xs text-muted-foreground"
-               :on-click (fn [e]
-                           (util/stop e)
-                           (state/pub-event! [:modal/show-cards (:db/id block)]))}
-              "Practice")
-             [:div "Practice cards"])])))))))
+            (when (= block-type :whiteboard-shape) [:span.mr-1 (ui/icon "whiteboard-element" {:extension? true})])))))))))
 
 (rum/defc block-title-aux
   [config block {:keys [query? *show-query?]}]

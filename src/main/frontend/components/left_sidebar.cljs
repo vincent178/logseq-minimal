@@ -11,7 +11,6 @@
             [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
             [frontend.db.model :as db-model]
-            [frontend.extensions.fsrs :as fsrs]
             [frontend.handler.block :as block-handler]
             [frontend.handler.page :as page-handler]
             [frontend.handler.recent :as recent-handler]
@@ -201,14 +200,14 @@
       (when child [:div.bd child])]]))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-navigations
-  [{:keys [default-home route-match route-name srs-open? db-based? enable-whiteboards?]}]
-  (let [navs (cond-> [:flashcards :all-pages :graph-view]
+  [{:keys [default-home route-match route-name db-based? enable-whiteboards?]}]
+  (let [navs (cond-> [:all-pages :graph-view]
                db-based?
                (concat [:tag/tasks :tag/assets])
                (not db-based?)
                (#(cons :whiteboards %)))
         [checked-navs set-checked-navs!] (rum/use-state (or (storage/get :ls-sidebar-navigations)
-                                                            [:whiteboards :flashcards :all-pages :graph-view]))]
+                                                            [:whiteboards :all-pages :graph-view]))]
 
     (hooks/use-effect!
      (fn []
@@ -238,8 +237,7 @@
            {:class "home-nav"
             :title page
             :on-click-handler route-handler/redirect-to-home!
-            :active (and (not srs-open?)
-                         (= route-name :page)
+            :active (and (= route-name :page)
                          (= page (get-in route-match [:path-params :name])))
             :icon "home"
             :shortcut :go/home})
@@ -247,8 +245,7 @@
           (when enable-journals?
             (sidebar-item
              {:class "journals-nav"
-              :active (and (not srs-open?)
-                           (or (= route-name :all-journals) (= route-name :home)))
+              :active (or (= route-name :all-journals) (= route-name :home))
               :title (t :left-side-bar/journals)
               :on-click-handler (fn [e]
                                   (if (gobj/get e "shiftKey")
@@ -267,30 +264,16 @@
                 :title (t :right-side-bar/whiteboards)
                 :href (rfe/href :whiteboards)
                 :on-click-handler (fn [_e] (whiteboard-handler/onboarding-show))
-                :active (and (not srs-open?) (#{:whiteboard :whiteboards} route-name))
+                :active (#{:whiteboard :whiteboards} route-name)
                 :icon "writing"
                 :shortcut :go/whiteboards})))
-
-          (= nav :flashcards)
-          (when (state/enable-flashcards? (state/get-current-repo))
-            (let [num (state/sub :srs/cards-due-count)]
-              (sidebar-item
-               {:class "flashcards-nav"
-                :title (t :right-side-bar/flashcards)
-                :icon "infinity"
-                :shortcut :go/flashcards
-                :active srs-open?
-                :on-click-handler #(do (fsrs/update-due-cards-count)
-                                       (state/pub-event! [:modal/show-cards]))
-                :more (when (and num (not (zero? num)))
-                        [:span.ml-1.inline-block.py-0.5.px-3.text-xs.font-medium.rounded-full.fade-in num])})))
 
           (= nav :graph-view)
           (sidebar-item
            {:class "graph-view-nav"
             :title (t :right-side-bar/graph-view)
             :href (rfe/href :graph)
-            :active (and (not srs-open?) (= route-name :graph))
+            :active (= route-name :graph)
             :icon "hierarchy"
             :shortcut :go/graph-view})
 
@@ -299,7 +282,7 @@
            {:class "all-pages-nav"
             :title (t :right-side-bar/all-pages)
             :href (rfe/href :all-pages)
-            :active (and (not srs-open?) (= route-name :all-pages))
+            :active (= route-name :all-pages)
             :icon "files"})
 
           (= (namespace nav) "tag")
@@ -358,7 +341,7 @@
          (page-name page true)])])))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-container
-  [route-match close-modal-fn left-sidebar-open? enable-whiteboards? srs-open?
+  [route-match close-modal-fn left-sidebar-open? enable-whiteboards?
    *closing? close-signal touching-x-offset]
   (let [[local-closing? set-local-closing?] (rum/use-state false)
         [el-rect set-el-rect!] (rum/use-state nil)
@@ -443,8 +426,7 @@
           :route-match route-match
           :db-based? db-based?
           :enable-whiteboards? enable-whiteboards?
-          :route-name route-name
-          :srs-open? srs-open?})]
+          :route-name route-name})]
 
        [:div.sidebar-contents-container
         {:on-scroll on-contents-scroll}
@@ -509,7 +491,6 @@
         *close-signal (::close-signal s)
         enable-whiteboards? (state/enable-whiteboards?)
         touch-point-fn (fn [^js e] (some-> (gobj/get e "touches") (aget 0) (#(hash-map :x (.-clientX %) :y (.-clientY %)))))
-        srs-open? (= :srs (state/sub :modal/id))
         touching-x-offset (and (some-> @*touch-state :after)
                                (some->> @*touch-state
                                         ((juxt :after :before))
@@ -539,7 +520,7 @@
         (reset! *touch-state nil))}
 
      ;; sidebar contents
-     (sidebar-container route-match close-fn left-sidebar-open? enable-whiteboards? srs-open? *closing?
+     (sidebar-container route-match close-fn left-sidebar-open? enable-whiteboards? *closing?
                         @*close-signal (and touch-pending? touching-x-offset))
 
      ;; resizer

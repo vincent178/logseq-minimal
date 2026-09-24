@@ -7,7 +7,6 @@
             [frontend.config :as config]
             [frontend.dicts :as dicts]
             [frontend.extensions.pdf.utils :as pdf-utils]
-            [frontend.extensions.srs.handler :as srs]
             [frontend.handler.config :as config-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.export :as export-handler]
@@ -165,33 +164,6 @@
    :auto-complete/meta-complete             {:binding "mod+enter"
                                              :fn      (fn [state e]
                                                         (ui-handler/auto-complete-complete state e))}
-
-   :cards/toggle-answers                    {:binding "s"
-                                             :fn      srs/toggle-answers}
-
-   :cards/next-card                         {:binding "n"
-                                             :fn      srs/next-card}
-
-   :cards/forgotten                         {:binding "f"
-                                             :fn      srs/forgotten}
-
-   :cards/remembered                        {:binding "r"
-                                             :fn      srs/remembered}
-
-   :cards/recall                            {:binding "t"
-                                             :fn      srs/recall}
-
-   :cards/again                             {:binding "1"
-                                             :fn      srs/card-again}
-
-   :cards/hard                              {:binding "2"
-                                             :fn      srs/card-hard}
-
-   :cards/good                              {:binding "3"
-                                             :fn      srs/card-good}
-
-   :cards/easy                              {:binding "4"
-                                             :fn      srs/card-easy}
 
    :editor/escape-editing                   {:binding []
                                              :fn      (fn [_ _]
@@ -514,9 +486,6 @@
    :go/prev-journal                         {:binding "g p"
                                              :fn      journal-handler/go-to-prev-journal!}
 
-   :go/flashcards                           {:binding ["g f" "t c"]
-                                             :fn      ui-handler/toggle-cards!}
-
    :ui/toggle-document-mode                 {:binding "t d"
                                              :fn      state/toggle-document-mode!}
 
@@ -818,7 +787,6 @@
          [:go/home
           :go/journals
           :go/all-pages
-          :go/flashcards
           :go/graph-view
           :go/all-graphs
           :go/whiteboards
@@ -921,7 +889,6 @@
      :go/graph-view
      :go/all-graphs
      :go/whiteboards
-     :go/flashcards
      :go/tomorrow
      :go/next-journal
      :go/prev-journal

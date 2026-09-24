@@ -8,8 +8,5 @@
                   frontend.worker.debug
                   ;; Ignore because of dev work
                   helper
-                  logseq.api
-                  ;; fsrs.cljs is a DB-only ns slated for full deletion (3c-iv-c);
-                  ;; its call-sites were peeled off in 3d.
-                  frontend.extensions.fsrs]
+                  logseq.api]
  :report {:format :ignore}}

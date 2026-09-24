@@ -12,7 +12,6 @@
             [frontend.util :as util :refer [react]]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
-            [logseq.db.frontend.class :as db-class]
             ))
 
 ;; TODO: extract to specific models and move data transform logic to the
@@ -445,23 +444,6 @@ independent of format as format specific heading characters are stripped"
   adding a tag to a node or creating a new node with a tag"
   [repo opts]
   (get-all-classes repo (merge opts {:except-private-tags? false})))
-
-(defn get-structured-children
-  [repo eid]
-  (db-class/get-structured-children (conn/get-db repo) eid))
-
-(defn get-class-objects
-  [repo class-id]
-  (when-let [class (db-utils/entity repo class-id)]
-    (->>
-     (if (first (:logseq.property.class/_extends class))        ; has children classes
-       (let [all-classes (conj (->> (get-structured-children repo class-id)
-                                    (map #(db-utils/entity repo %)))
-                               class)]
-         (->> (mapcat :block/_tags all-classes)
-              distinct))
-       (:block/_tags class))
-     (remove ldb/hidden?))))
 
 (comment
   ;; For debugging

@@ -77,11 +77,6 @@
   [[:editor/input (str command-trigger "zotero")]
    [:editor/show-zotero]])
 
-(def *extend-slash-commands (atom []))
-
-(defn register-slash-command [cmd]
-  (swap! *extend-slash-commands conj cmd))
-
 (defn ->marker
   [marker]
   [[:editor/clear-current-slash]
@@ -380,11 +375,6 @@
        ["Embed Twitter tweet" [[:editor/input "{{tweet }}" {:last-pattern command-trigger
                                                             :backward-pos 2}]] ""
         :icon/xEmbed]]
-
-      (let [commands @*extend-slash-commands]
-        commands)
-
-;; Allow user to modify or extend, should specify how to extend.
 
       (state/get-commands)
       (when-let [plugin-commands (seq (some->> (state/get-plugins-slash-commands)

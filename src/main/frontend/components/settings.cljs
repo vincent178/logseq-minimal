@@ -640,14 +640,6 @@
                   :on-click #(js/logseq.api.relaunch)
                   :small? true :intent "logseq"))]))
 
-(rum/defc flashcards-enabled-switcher
-  [enable-flashcards?]
-  (ui/toggle enable-flashcards?
-             (fn []
-               (let [value (not enable-flashcards?)]
-                 (config-handler/set-config! :feature/enable-flashcards? value)))
-             true))
-
 (rum/defc user-proxy-settings
   [{:keys [type protocol host port] :as agent-opts}]
   (ui/button [:span.flex.items-center
@@ -669,11 +661,6 @@
   (row-with-button-action
    {:left-label "HTTP API server"
     :action (http-server-enabled-switcher t)}))
-
-(defn flashcards-switcher-row [enable-flashcards?]
-  (row-with-button-action
-   {:left-label (t :settings-page/enable-flashcards)
-    :action (flashcards-enabled-switcher enable-flashcards?)}))
 
 (defn https-user-agent-row [agent-opts]
   (row-with-button-action
@@ -834,7 +821,6 @@
   []
   (let [current-repo (state/get-current-repo)
         enable-journals? (state/enable-journals? current-repo)
-        enable-flashcards? (state/enable-flashcards? current-repo)
         enable-whiteboards? (state/enable-whiteboards? current-repo)]
     [:div.panel-wrap.is-features.mb-8
      (journal-row enable-journals?)
@@ -856,7 +842,6 @@
        (plugin-system-switcher-row))
      (when (util/electron?)
        (http-server-switcher-row))
-     (flashcards-switcher-row enable-flashcards?)
      (zotero-settings-row)]))
 
      ;; (when-not web-platform?

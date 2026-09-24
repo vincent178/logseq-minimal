@@ -70,19 +70,6 @@
             (recur (second r))
             r))))))
 
-(defn clock
-  "Return a flow that emits `value` every `interval-ms`."
-  ([interval-ms]
-   (clock interval-ms nil))
-  ([interval-ms value]
-   (->>
-    (m/ap
-      (loop []
-        (m/amb
-         (m/? (m/sleep interval-ms value))
-         (recur))))
-    (continue-flow value))))
-
 (defn concurrent-exec-flow
   "Return a flow.
   Concurrent exec `f` on `flow` with max concurrent count `par`.

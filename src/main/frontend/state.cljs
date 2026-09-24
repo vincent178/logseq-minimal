@@ -277,10 +277,6 @@
       :view/components                       {}
       :view/selected-blocks                  nil
 
-      :srs/mode?                             false
-
-      :srs/cards-due-count                   nil
-
       :reactive/query-dbs                    {}
 
       ;; login, userinfo, token, ...
@@ -703,12 +699,6 @@ Similar to re-frame subscriptions"
    (if (sqlite-util/db-based-graph? repo) ; db graphs rely on journals for quick capture/sharing/assets, etc.
      true
      (not (false? (:feature/enable-journals? (sub-config repo)))))))
-
-(defn enable-flashcards?
-  ([]
-   (enable-flashcards? (get-current-repo)))
-  ([repo]
-   (not (false? (:feature/enable-flashcards? (sub-config repo))))))
 
 (defn enable-sync?
   []

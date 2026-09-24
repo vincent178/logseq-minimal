@@ -39,7 +39,7 @@
   (file-property-handler/batch-set-block-property! block-ids key value))
 
 (defn set-block-properties!
-  "DB-graph-only (fsrs/asset-size); file graphs never call this with real props.
+  "DB-graph-only; file graphs never call this with real props.
   No file version exists — kept as a no-op so DB-only callers are safe."
   [_repo block-id _properties]
   (assert (uuid? block-id))

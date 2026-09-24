@@ -1356,13 +1356,6 @@
      (when (db/entity repo [:block/uuid (:block/uuid block)])
        (save-block-aux! block value opts)))))
 
-(defn save-blocks!
-  [blocks]
-  (ui-outliner-tx/transact!
-   {:outliner-op :save-block}
-   (doseq [[block value] blocks]
-     (save-block-if-changed! block value))))
-
 (defonce *auto-save-timeout (atom nil))
 (defn- clear-block-auto-save-timeout!
   []
