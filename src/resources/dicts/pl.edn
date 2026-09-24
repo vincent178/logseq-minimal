@@ -495,7 +495,6 @@
  :right-side-bar/toggle-right-sidebar             "Przełącz prawy panel"
  :search-item/no-result                           "Brak pasujących rezultatów"
  :search-item/page                                "Strona"
- :search-item/whiteboard                          "Tablica"
  :select/default-select-multiple                  "Zaznacz jeden lub wiele"
  :settings-page/alpha-features                    "Funkcjonalności alfa"
  :settings-page/app-updated                       "Twoja aplikacja jest aktualna 🎉"

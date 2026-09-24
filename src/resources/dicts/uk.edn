@@ -18,7 +18,6 @@
  :help/reference-autocomplete "Автозаповнення посилання на сторінку"
  :help/block-reference "Посилання на блок"
  :help/open-link-in-sidebar "Відкрити посилання у бічній панелі"
- :search-item/whiteboard "Дошка"
  :search-item/page "Сторінка"
  :help/context-menu "Контекстне меню блоку"
  :help/markdown-syntax "Синтаксис Markdown"

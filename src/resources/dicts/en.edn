@@ -81,7 +81,6 @@
  :help/reference-autocomplete "Page reference autocomplete"
  :help/block-reference "Block reference"
  :help/open-link-in-sidebar "Open link in sidebar"
- :search-item/whiteboard "Whiteboard"
  :search-item/page "Page"
  :search-item/no-result "No matched result"
  :help/context-menu "Block context menu"

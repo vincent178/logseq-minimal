@@ -174,7 +174,6 @@
     :right-side-bar/separator "Poignée de redimensionnement de la barre latérale droite"
     :right-side-bar/show-journals "Montrer les journaux"
     :search-item/page "Page"
-    :search-item/whiteboard "Tableau blanc"
     :select/default-prompt "Sélectionnez"
     :select.graph/add-graph "Oui, ajouter un autre graphe"
     :select.graph/empty-placeholder-description "Aucun graphe trouvé. Souhaitez-vous en ajouter un ?"

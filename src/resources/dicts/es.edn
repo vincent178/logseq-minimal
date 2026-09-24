@@ -428,7 +428,6 @@
  :right-side-bar/toggle-right-sidebar               "Alternar barra lateral derecha"
  :search-item/no-result                             "Sin resultados que coincidan"
  :search-item/page                                  "Página"
- :search-item/whiteboard                            "Pizarra"
  :select/default-prompt                             "Seleccione uno"
  :select/default-select-multiple                    "Seleccionar uno o varios"
  :select.graph/add-graph                            "Sí, añadir otro grafo"

@@ -391,7 +391,6 @@
  :plugin/search-plugin "Søk utvidelser"
  :plugin/security-warning "Utvidelser kan få tilgang til din graf og dine lokale filer..."
  :right-side-bar/toggle-right-sidebar "Veksle høyre sidestolpe"
- :search-item/whiteboard "Whiteboard"
  :settings-page/native-titlebar "Native tittellinje"
  :settings-page/native-titlebar-desc "Skrur på Windows native tittellinje på vinduet..."
  :settings-page/preferred-pasting-file-hint "Når skrudd på gir dette et hint når du limer inn et bile fra internett..."

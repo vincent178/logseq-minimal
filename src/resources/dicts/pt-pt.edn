@@ -17,7 +17,6 @@
  :help/reference-autocomplete "Autocompletar referência de página"
  :help/block-reference "Referência de bloco"
  :help/open-link-in-sidebar "Abrir ligação na barra lateral"
- :search-item/whiteboard "Quadro branco"
  :search-item/page "Página"
  :help/context-menu "Menu de contexto"
  :help/markdown-syntax "Sintaxe de Markdown"

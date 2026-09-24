@@ -72,7 +72,6 @@
  :help/reference-autocomplete "Pelengkapan otomatis referensi halaman"
  :help/block-reference "Blok referensi"
  :help/open-link-in-sidebar "Buka tautan di bilah sisi"
- :search-item/whiteboard "Papan tulis"
  :search-item/page "Halaman"
  :search-item/no-result "Tidak ada hasil yang cocok"
  :help/context-menu "Blokir menu konteks"

@@ -429,7 +429,6 @@
  :right-side-bar/toggle-right-sidebar               "Alternar panell lateral dret"
  :search-item/no-result                             "Sense resultats coincidents"
  :search-item/page                                  "Pàgina"
- :search-item/whiteboard                            "Pissarra"
  :select/default-prompt                             "Seleccioni un"
  :select/default-select-multiple                    "Seleccioni un o varis"
  :select.graph/add-graph                            "Si, afegir un altre graf"

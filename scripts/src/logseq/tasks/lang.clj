@@ -126,7 +126,7 @@
 
    ;; from 3 files
    "(t (if" [:asset/show-in-folder :asset/open-in-browser
-             :search-item/whiteboard :search-item/page
+             :search-item/page
              :page/make-private :page/make-public]
    "(t (name" [] ;; shortcuts related
    "(t (dh/decorate-namespace" [] ;; shortcuts related
@@ -135,16 +135,6 @@
    "(t title" []
    "(t (or title-key" [:views.table/live-query-title :views.table/default-title :all-pages/table-title]
    "(t subtitle" [:asset/physical-delete]})
-
-(defn- whiteboard-dicts
-  []
-  (if (fs/exists? "packages/tldraw/apps/tldraw-logseq/src/components")
-    (->> (shell {:out :string}
-                "grep -E -oh" "\\bt\\('[^ ']+" "-r" "packages/tldraw/apps/tldraw-logseq/src/components")
-         :out
-         string/split-lines
-         (map #(keyword (subs % 3))))
-    []))
 
 (defn- delete-not-used-key-from-dict-file
   [invalid-keys]
@@ -171,7 +161,6 @@
                           string/split-lines
                           (map #(keyword (subs % 4)))
                           (concat (mapcat val manual-ui-dicts))
-                          (concat (whiteboard-dicts))
                           ;; Temporarily unused as they will be brought back soon
                           (concat [:download])
                           set)

@@ -81,7 +81,6 @@
  :help/reference-autocomplete "ページ参照の自動補完"
  :help/block-reference "ブロック参照"
  :help/open-link-in-sidebar "サイドバーでリンクを開く"
- :search-item/whiteboard "ホワイトボード"
  :search-item/page "ページ"
  :search-item/no-result "一致する結果がありません"
  :help/context-menu "ブロックのコンテキストメニュー"

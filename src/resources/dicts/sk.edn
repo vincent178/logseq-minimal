@@ -79,7 +79,6 @@
  :help/reference-autocomplete                      "Automatické dopĺňanie referencie na stránku"
  :help/block-reference                             "Referencia na blok"
  :help/open-link-in-sidebar                        "Otvoriť odkaz v bočnom paneli"
- :search-item/whiteboard                           "Tabuľa"
  :search-item/page                                 "Stránka"
  :search-item/no-result                            "Žiadne zhody"
  :help/context-menu                                "Kontextové menu bloku"

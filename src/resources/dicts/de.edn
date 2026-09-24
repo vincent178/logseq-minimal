@@ -367,7 +367,6 @@
 
  :search-item/no-result "Keine übereinstimmenden Treffer"
  :search-item/page "Seite"
- :search-item/whiteboard "Whiteboard"
 
  :select/default-prompt "Wählen Sie einen"
 
