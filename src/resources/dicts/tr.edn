@@ -81,7 +81,6 @@
  :help/reference-autocomplete "Sayfa referansı otomatik tamamlama"
  :help/block-reference "Blok referansı"
  :help/open-link-in-sidebar "Bağlantıyı kenar çubuğunda aç"
- :search-item/whiteboard "Beyaz tahta"
  :search-item/page "Sayfa"
  :search-item/no-result "Eşleşen sonuç yok"
  :help/context-menu "Blok kısayol menüsü"

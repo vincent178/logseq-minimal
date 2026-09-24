@@ -20,6 +20,8 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
   no e2ee password flows
 - ❌ **Mobile clients** — no iOS/Android (Capacitor) apps, no native shells,
   no `src/main/mobile`, no `@capacitor/*` deps. Desktop (Electron) + web only.
+  `frontend.mobile.*` namespaces remain as compile-stable stubs (all native
+  checks return false) so ~20 desktop call sites compile without refactoring.
 - ❌ **Flashcards (SRS/FSRS)** — no spaced-repetition engine, no card review
   UI, no cloze flashcard hooks. Existing `#card` blocks remain plain blocks.
 - ❌ **Whiteboards (tldraw)** — no whiteboard UI, routes, shortcuts, worker/db
@@ -30,6 +32,17 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
   modules, no `@excalidraw` dependency.
 - ❌ **Zotero** — no Zotero extension, settings, routes, or slash commands.
 - ❌ Anything requiring a Logseq server
+
+## Inert data-preservation layer
+Some schema/parser code for removed features is intentionally kept as inert
+data-preservation so existing user graphs keep loading without migration:
+- `graph-parser/whiteboard.cljs` + `extract-whiteboard-edn` — parses old `.edn`
+  whiteboard files (never modifies them)
+- `shape-block?` predicate (`frontend.handler.property.util`) — identifies
+  whiteboard shape blocks so they render as inert blocks
+- `:logseq.property.fsrs/*` and `:logseq.property.tldraw/*` property defs,
+  `:logseq.class/Card`/`:logseq.class/Whiteboard` class defs — schema so old
+  `#card` blocks and whiteboard pages validate
 
 ## Why this matters for reliability
 - Removing DB graphs transitively removes RTC, e2ee, vector search, and the

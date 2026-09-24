@@ -898,24 +898,6 @@ a.filter svg {
   background: var(--ls-page-properties-background-color);
 }
 
-.ls-card {
-  height: 100%;
-}
-
-.ls-card a[data-ref="card"], .ls-card .page-reference[data-ref="card"] {
-  display: none;
-}
-
-a.cloze {
-  color: var(--ls-cloze-text-color);
-}
-
-a.cloze-revealed {
-  color: var(--ls-cloze-text-color);
-  text-decoration: underline;
-  text-underline-position: under;
-}
-
 .page-property-key {
   @apply font-medium whitespace-nowrap;
   color: var(--ls-secondary-text-color);

@@ -1,7 +1,5 @@
 (ns frontend.components.content
-  (:require [cljs-time.coerce :as tc]
-            [cljs.pprint :as pp]
-            [clojure.string :as string]
+  (:require [clojure.string :as string]
             [dommy.core :as d]
             [frontend.commands :as commands]
             [frontend.components.editor :as editor]
@@ -24,7 +22,6 @@
             [goog.dom :as gdom]
             [goog.object :as gobj]
             [logseq.common.util :as common-util]
-            [logseq.db :as ldb]
             [logseq.shui.ui :as shui]
             [promesa.core :as p]
             [rum.core :as rum]))
@@ -315,24 +312,7 @@
                             (let [block (db/entity [:block/uuid block-id])]
                               (dev-common-handler/show-content-ast (:block/title block)
                                                                    (get block :block/format :markdown))))}
-               (t :dev/show-block-ast))
-              (shui/dropdown-menu-item
-               {:key "(Dev) Show block content history"
-                :on-click
-                (fn []
-                  (let [token (state/get-auth-id-token)
-                        graph-uuid (ldb/get-graph-rtc-uuid (db/get-db))]
-                    (p/let [blocks-versions (state/<invoke-db-worker :thread-api/rtc-get-block-content-versions token graph-uuid block-id)]
-                      (prn :Dev-show-block-content-history)
-                      (doseq [[block-uuid versions] blocks-versions]
-                        (prn :block-uuid block-uuid)
-                        (pp/print-table [:content :created-at]
-                                        (map (fn [version]
-                                               {:created-at (tc/from-long (* (:created-at version) 1000))
-                                                :content (:value version)})
-                                             versions))))))}
-
-               "(Dev) Show block content history")))])]))))
+               (t :dev/show-block-ast))))])]))))
 
 (rum/defc block-ref-custom-context-menu-content
   [block block-ref-id]

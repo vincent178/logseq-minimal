@@ -585,7 +585,6 @@
  :on-boarding/quick-tour-journal-page-desc-2 "[[link]]"
  :plugin/downloads "Downloads"
  :plugin/popular "Popular"
- :search-item/whiteboard "Whiteboard"
  :settings-page/plugin-system "Plugins"
  ;; Allowed duplicates - end
 

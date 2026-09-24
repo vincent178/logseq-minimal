@@ -1476,7 +1476,4 @@ Arg *stop: atom, reset to true to stop the loop"
      (when target
        (some-> target (.querySelector ".CodeMirror") (.-CodeMirror)))))
 
-#?(:cljs
-   (defn rtc-test?
-     []
-     (string/includes? js/window.location.search "?rtc-test=true")))
+

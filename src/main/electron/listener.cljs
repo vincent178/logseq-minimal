@@ -10,7 +10,6 @@
             [frontend.db.file-based.model :as file-model]
             [frontend.fs.watcher-handler :as watcher-handler]
             [frontend.handler.notification :as notification]
-            [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
             [frontend.handler.search :as search-handler]
             [frontend.handler.ui :as ui-handler]
@@ -79,9 +78,7 @@
                        block-id
                        (p/let [block (db-async/<get-block (state/get-current-repo) block-id {:children? false})]
                          (if block
-                           (if (pu/shape-block? block)
-                             (route-handler/redirect-to-page! (get-in block [:block/page :block/uuid]) {:block-id block-id})
-                             (route-handler/redirect-to-page! block-id))
+                           (route-handler/redirect-to-page! block-id)
                            (notification/show! (str "Open link failed. Block-id `" block-id "` doesn't exist in the graph.") :error false)))
 
                        file

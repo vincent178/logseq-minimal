@@ -79,7 +79,6 @@
  :help/reference-autocomplete                      "Automatické dokončování odkazů na stránky"
  :help/block-reference                             "Reference na blok"
  :help/open-link-in-sidebar                        "Otevřít odkaz v postranním panelu"
- :search-item/whiteboard                           "Tabule"
  :search-item/page                                 "Stránka"
  :search-item/no-result                            "Žádný odpovídající výsledek"
  :help/context-menu                                "Kontextová nabídka bloku"

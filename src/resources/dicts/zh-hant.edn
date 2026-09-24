@@ -18,7 +18,6 @@
  :help/reference-autocomplete "頁面引用自動完成"
  :help/block-reference "區塊引用"
  :help/open-link-in-sidebar "在側邊欄開啟連結r"
- :search-item/whiteboard "白板"
  :search-item/page "頁面"
  :help/context-menu "區塊內容選單"
  :help/markdown-syntax "Markdown 格式"

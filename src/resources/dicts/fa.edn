@@ -54,7 +54,6 @@
  :help/search                 "جستجو در برگه‌ها/بلوک‌ها/نظرات"
  :help/block-reference        "ارجاع بلوک"
  :help/open-link-in-sidebar   "باز کردن پیوند در نوار کناری"
- :search-item/whiteboard "تخته‌سفید"
  :search-item/page       "برگه"
  :search-item/no-result  "نتایجی یافت نشد"
  :help/context-menu    "فهرست زمینه‌ای بلوک"

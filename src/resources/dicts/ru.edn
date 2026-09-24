@@ -23,7 +23,6 @@
  :help/reference-autocomplete                          "Автодополнение ссылок на страницу"
  :help/block-reference                                 "Ссылка на блок"
  :help/open-link-in-sidebar                            "Открыть ссылку на боковой панели"
- :search-item/whiteboard                               "Интерактивная доска"
  :search-item/page                                     "Страница"
  :help/context-menu                                    "Контекстное меню блока"
  :help/markdown-syntax                                 "Markdown синтаксис"

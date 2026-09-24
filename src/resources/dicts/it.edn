@@ -471,7 +471,6 @@
  :right-side-bar/toggle-right-sidebar "Attiva/disattiva pannello laterale destro"
  :search-item/no-result "Nessun risultato"
  :search-item/page "Pagina"
- :search-item/whiteboard "Lavagna"
  :select/default-select-multiple "Seleziona uno o molteplici"
  :settings-page/alpha-features "Funzionalità in Alpha"
  :settings-page/app-updated "La tua app è aggiornata 🎉"

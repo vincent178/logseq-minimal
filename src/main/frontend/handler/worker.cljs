@@ -35,18 +35,11 @@
   (state/add-repo! {:url (:repo data)})
   (state/pub-event! [:graph/switch (:repo data) {:rtc-download? true}]))
 
-(defmethod handle :rtc-sync-state [_ _worker data]
-  (let [state data]
-    (state/pub-event! [:rtc/sync-state state])))
-
 (defmethod handle :sync-db-changes [_ _worker data]
   (state/pub-event! [:db/sync-changes data]))
 
 (defmethod handle :clear-undo-history [_ _worker [repo]]
   (undo-redo/clear-history! repo))
-
-(defmethod handle :rtc-log [_ _worker log]
-  (state/pub-event! [:rtc/log log]))
 
 (defmethod handle :export-current-db [_]
   (state/pub-event! [:db/export-sqlite]))
@@ -63,9 +56,6 @@
 
 (defmethod handle :notify-existing-file  [_ _worker data]
   (state/pub-event! [:graph/notify-existing-file data]))
-
-(defmethod handle :remote-graph-gone []
-  (state/pub-event! [:rtc/remote-graph-gone]))
 
 (defmethod handle :default [_ _worker data]
   (prn :debug "Worker data not handled: " data))

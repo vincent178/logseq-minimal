@@ -20,7 +20,6 @@
             [frontend.handler.code :as code-handler]
             [frontend.handler.common.page :as page-common-handler]
             [frontend.handler.editor :as editor-handler]
-            [frontend.handler.export :as export]
             [frontend.handler.graph :as graph-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
@@ -91,7 +90,6 @@
 (defmethod handle :graph/switch [[_ graph opts]]
   (let [switch-promise
         (p/do!
-         (export/cancel-db-backup!)
          (persist-db/export-current-graph!)
          (state/set-state! :db/async-queries {})
          (st/refresh!)
@@ -104,8 +102,7 @@
                 :warning))
              (graph-switch-on-persisted graph opts))))]
     (p/then switch-promise
-            (fn [_]
-              (export/backup-db-graph (state/get-current-repo))))))
+            (fn [_] nil))))
 
 (defmethod handle :graph/open-new-window [[_ev target-repo]]
   (ui-handler/open-new-window-or-tab! target-repo))
@@ -230,7 +227,6 @@
 (defmethod handle :graph/restored [[_ graph]]
   (when graph (assets-handler/ensure-assets-dir! graph))
   (state/pub-event! [:graph/sync-context])
-  (export/auto-db-backup! graph)
   (when-not (mobile-util/native-platform?)
     (state/pub-event! [:graph/ready graph])))
 
@@ -300,10 +296,6 @@
     (pipeline/invoke-hooks (assoc data :tx-data tx-data))
 
     nil))
-
-(defmethod handle :db/export-sqlite [_]
-  (export/export-repo-as-sqlite-db! (state/get-current-repo))
-  nil)
 
 (defmethod handle :editor/run-query-command [_]
   (editor-handler/run-query-command!))
