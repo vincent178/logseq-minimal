@@ -564,6 +564,14 @@
                  repo (state/get-current-repo)]
              (when (:block.temp/load-status page) (reset! *loading? false))
              (p/let [page-block (db-async/<get-block repo page-id-uuid-or-name)
+                     ;; A referenced-only page exists in the worker but is not
+                     ;; materialized on the frontend conn, so <get-block returns nil.
+                     ;; Create it (as a reference, no redirect) so it can render.
+                     page-block (if (and (nil? page-block) page-name (not page-uuid?))
+                                  (p/let [_ (page-handler/<create! page-name {:redirect? false
+                                                                              :reference? true})]
+                                    (db-async/<get-block repo page-id-uuid-or-name))
+                                  page-block)
                      page-id (:db/id page-block)
                      refs-count (when-not (or (ldb/class? page-block) (ldb/property? page-block))
                                   (db-async/<get-block-refs-count repo page-id))]
