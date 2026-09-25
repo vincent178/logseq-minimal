@@ -421,11 +421,13 @@
         (ldb/get-block-refs-count db eid)
         ;; referenced-only page has no entity (refs are dangling), so detect
         ;; incoming refs by matching page-link syntax in block content.
-        (let [needle (str "[[" page-name "]]")]
+        ;; Use case-insensitive matching because page names are normalized
+        ;; with page-name-sanity-lc elsewhere in the codebase.
+        (let [needle (string/lower-case (str "[[" page-name "]]"))]
           (count (filter (fn [d]
                            (let [content (:v d)]
                              (and (string? content)
-                                  (string/includes? content needle))))
+                                  (string/includes? (string/lower-case content) needle))))
                          (d/datoms db :avet :block/title))))))))
 
 (def-thread-api :thread-api/get-block-source
