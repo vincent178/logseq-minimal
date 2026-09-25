@@ -36,7 +36,7 @@
  * Exit 0 always (reports results); non-zero only if the app is unreachable.
  */
 
-import { chromium } from 'playwright-core';
+import { chromium } from 'playwright';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
