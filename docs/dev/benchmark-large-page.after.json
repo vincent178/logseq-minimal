@@ -1,6 +1,6 @@
 {
   "meta": {
-    "date": "2026-09-25T07:16:52.153Z",
+    "date": "2026-09-25T13:34:01.547Z",
     "blocks": 1000,
     "refs": 50,
     "runs": 3,
@@ -10,26 +10,26 @@
   },
   "largePage": {
     "openMs": {
-      "median": 257,
+      "median": 255,
       "runs": [
-        257,
         255,
-        258
+        254,
+        255
       ]
     },
     "blankRuns": 0,
-    "keystrokeMs": 164,
-    "charInsertMs": 2,
+    "keystrokeMs": 113,
+    "charInsertMs": 1,
     "domBlocks": 38,
     "longTasks": 3
   },
   "referencedPage": {
     "openMs": {
-      "median": 256,
+      "median": 255,
       "runs": [
         256,
         255,
-        507
+        254
       ]
     },
     "blankRuns": 0,

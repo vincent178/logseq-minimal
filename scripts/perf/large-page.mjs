@@ -69,7 +69,7 @@ const seedReferencers = async ({ srcName, targetName, n }) => {
 };
 
 // ---- one scenario measurement --------------------------------------------
-async function measureOpen(page, target, { ownContent }) {
+async function measureOpen(page, target) {
   // navigate via the router (same-document) and detect route-OWNED render
   await page.evaluate((nm) => { window.__navT = performance.now(); location.hash = '#/page/' + encodeURIComponent(nm); }, target);
   const deadline = Date.now() + TIMEOUT;
@@ -82,8 +82,13 @@ async function measureOpen(page, target, { ownContent }) {
       const title = (mc.querySelector('h1.page-title, .ls-page-title h1, h1')?.innerText || '').trim();
       const notFound = /page not found/i.test(mc.innerText || '');
       const blocks = mc.querySelectorAll('.ls-block').length;
-      // route-owned: the page title matches target OR explicit not-found OR blocks for this page
-      return { ok: notFound || blocks > 0 || (title && title.toLowerCase() === want.toLowerCase()), blocks, notFound, title };
+      // Route-owned detection must NOT trust `blocks > 0` alone: during a
+      // same-document route transition the previous page's .ls-block nodes can
+      // still be in the DOM, which would produce a false-positive open time
+      // (and mask a blank render) for the next route. Require the page title
+      // to match the target (or an explicit not-found state) instead.
+      const titleMatch = title && title.toLowerCase() === want.toLowerCase();
+      return { ok: Boolean(notFound || titleMatch), blocks, notFound, title };
     }, target);
     if (state.ok) { rendered = true; break; }
   }
@@ -158,14 +163,14 @@ async function oneRun() {
 
     // Scenario A: large plain page (baseline render path)
     await page.evaluate(seedPlain, { name: PLAIN, n: BLOCKS });
-    const a = await measureOpen(page, PLAIN, {});
+    const a = await measureOpen(page, PLAIN);
     const editA = a.blank ? { keystrokeMs: null, charInsertMs: null } : await measureEditing(page);
     // domBlocks from the settled editing pass is more reliable than open-time
     if (editA.domBlocks) a.domBlocks = editA.domBlocks;
 
     // Scenario B: large referenced page (the blank-bug scenario)
     await page.evaluate(seedReferencers, { srcName: SRC, targetName: GHOST, n: REFS });
-    const b = await measureOpen(page, GHOST, {});
+    const b = await measureOpen(page, GHOST);
 
     // cleanup
     for (const p of [PLAIN, SRC, GHOST]) await page.evaluate(async (nm) => { try { await window.logseq.api.delete_page(nm); } catch (_) {} }, p);

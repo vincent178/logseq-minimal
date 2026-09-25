@@ -564,16 +564,23 @@
                  repo (state/get-current-repo)]
              (when (:block.temp/load-status page) (reset! *loading? false))
              (p/let [page-block (db-async/<get-block repo page-id-uuid-or-name)
-                     ;; A referenced-only page exists in the worker but is not
-                     ;; materialized on the frontend conn, so <get-block returns nil.
-                     ;; Create it (as a reference, no redirect) so it can render.
+                     ;; A referenced-only page exists in the worker (it has incoming
+                     ;; references) but is not materialized on the frontend conn, so
+                     ;; <get-block returns nil. Only then do we create it (as a
+                     ;; reference, no redirect) so it can render; a genuinely
+                     ;; nonexistent name (e.g. a typo) keeps the not-found path.
                      page-block (if (and (nil? page-block) page-name (not page-uuid?))
-                                  (p/let [_ (page-handler/<create! page-name {:redirect? false
-                                                                              :reference? true})]
-                                    (db-async/<get-block repo page-id-uuid-or-name))
+                                  (p/let [refs-count (db-async/<page-refs-count repo page-name)]
+                                    (if (and refs-count (pos? refs-count))
+                                      (p/let [_ (page-handler/<create! page-name {:redirect? false
+                                                                                  :reference? true})]
+                                        (db-async/<get-block repo page-id-uuid-or-name))
+                                      nil))
                                   page-block)
                      page-id (:db/id page-block)
-                     refs-count (when-not (or (ldb/class? page-block) (ldb/property? page-block))
+                     refs-count (when (and (some? page-id)
+                                          (not (ldb/class? page-block))
+                                          (not (ldb/property? page-block)))
                                   (db-async/<get-block-refs-count repo page-id))]
                (reset! *loading? false)
                (reset! *page (db/entity (:db/id page-block)))
@@ -597,7 +604,9 @@
   (let [loading? (rum/react (::loading? state))
         page (rum/react (::*page state))
         refs-count (rum/react (::*refs-count state))]
-    (when (and page (not loading?))
+    (when-not loading?
+      ;; Always call page-inner when loading is done. If page is nil (genuinely
+      ;; nonexistent page with no references), page-inner shows "Page not found".
       (page-inner (assoc option
                          :page page
                          :refs-count refs-count)))))

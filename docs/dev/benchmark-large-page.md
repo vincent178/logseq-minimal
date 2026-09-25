@@ -107,21 +107,32 @@ Full analysis: `docs/dev/root-cause-large-page.md`.
 ## Fix & post-fix results (committed as `benchmark-large-page.after.json`)
 
 Fix (`page-aux` `:init`, page.cljs): when `<get-block` returns nil for a
-name-route page, create it via `page-handler/<create!` with
-`{:redirect? false :reference? true}`, then re-fetch — so the referenced-only
-page is materialized and renders like a normal page.
+name-route page, check the worker for incoming references via the new
+`<page-refs-count` endpoint. If the page has references (it is a "ghost" page
+that exists only as a `[[...]]` target), create it via `page-handler/<create!`
+with `{:redirect? false :reference? true}`, then re-fetch — so the
+referenced-only page is materialized and renders like a normal page. If the
+page has no references (a typo or nonexistent name), leave it nil so
+`page-inner` shows "Page not found" instead of persisting an empty page.
 
 | Metric | largePage (1000 blocks) | referencedPage (50 refs) |
 |---|---|---|
-| openMs (median) | 257 ms (was 256) | **256 ms (was 15222 timeout)** |
+| openMs (median) | 256 ms (was 256) | **255 ms (was 15222 timeout)** |
 | blankRuns | 0 / 3 | **0 / 3 (was 3 / 3)** |
-| keystrokeMs | 164 ms (was 179) | — |
-| charInsertMs | 2 ms (was 2) | — |
+| keystrokeMs | 115 ms (was 179) | — |
+| charInsertMs | 1 ms (was 2) | — |
 | domBlocks | 38 (virtualized) | 1 (page shell) |
 
 **Primary metric `referencedPage.blankRuns`: 3/3 → 0/3**, and `openMs` ~98%
-faster (15222 → 256 ms). Secondary `largePage` metrics flat (no regression).
+faster (15222 → 255 ms). Secondary `largePage` metrics flat (no regression).
 `bb dev:lint-and-test`: 171 tests, 0 failures.
+
+### Typo / nonexistent page behavior
+
+Pages that have no incoming references (e.g. a typo in the URL) now render
+"Page not found" instead of being silently persisted as empty pages. The
+benchmark harness detects this as a valid rendered state (`notFound: true`),
+so `blankRuns` remains 0/3.
 
 ### Known limitation (pre-existing, not caused by the fix)
 

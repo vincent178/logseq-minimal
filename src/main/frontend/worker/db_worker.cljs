@@ -411,6 +411,23 @@
   (when-let [conn (worker-state/get-datascript-conn repo)]
     (ldb/get-block-refs-count @conn id)))
 
+(def-thread-api :thread-api/get-page-refs-count-by-name
+  [repo page-name]
+  (when-let [conn (worker-state/get-datascript-conn repo)]
+    (let [db @conn
+          eid (:db/id (ldb/get-page db page-name))]
+      (if eid
+        ;; materialized page: count refs via the normal path
+        (ldb/get-block-refs-count db eid)
+        ;; referenced-only page has no entity (refs are dangling), so detect
+        ;; incoming refs by matching page-link syntax in block content.
+        (let [needle (str "[[" page-name "]]")]
+          (count (filter (fn [d]
+                           (let [content (:v d)]
+                             (and (string? content)
+                                  (string/includes? content needle))))
+                         (d/datoms db :avet :block/title))))))))
+
 (def-thread-api :thread-api/get-block-source
   [repo id]
   (when-let [conn (worker-state/get-datascript-conn repo)]

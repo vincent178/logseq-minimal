@@ -176,6 +176,13 @@
   (assert (integer? eid))
   (state/<invoke-db-worker :thread-api/get-block-refs-count graph eid))
 
+(defn <page-refs-count
+  "Like `<get-block-refs-count` but takes a page name and resolves it against
+  the worker db, so it can count references to a page that has not been
+  materialized onto the frontend conn. Returns 0 for nonexistent pages."
+  [graph page-name]
+  (state/<invoke-db-worker :thread-api/get-page-refs-count-by-name graph page-name))
+
 (defn <get-all-referenced-blocks-uuid
   "Get all uuids of blocks with any back link exists."
   [graph]

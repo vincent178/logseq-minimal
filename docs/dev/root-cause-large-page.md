@@ -89,17 +89,36 @@ So the primary metric to fix is `referencedPage.blankRuns` → 0 (and
 `referencedPage.openMs` down to a normal-page ballpark), which is a >99%
 "improvement" on the failing scenario — far beyond the 30% bar.
 
-## Fix (implemented in task-3)
+## Fix (implemented in task-3, refined in PR review)
 
 In `page-aux` `:init` (page.cljs ~L566), when `<get-block` returns nil and the
-route is a name-route (not a uuid route), create the page as a reference page
-via `page-handler/<create!` with `{:redirect? false :reference? true}`, then
-re-fetch. This materializes the page onto the frontend conn so `page-inner`
-mounts and renders normally — the page behaves exactly like a page the user
-visited and created.
+route is a name-route (not a uuid route), the code now checks whether the page
+has any incoming references before deciding to create it:
+
+1. **New worker endpoint** `:thread-api/get-page-refs-count-by-name`
+   (db_worker.cljs) resolves the page name against the worker db. If the page
+   exists as a materialized entity, it uses the normal `get-block-refs-count`.
+   If the page is a "ghost" (referenced-only, no entity), it scans `:block/title`
+   datoms for `[[page-name]]` matches to detect dangling references.
+
+2. **Frontend `<page-refs-count`** (async.cljs) calls this endpoint.
+
+3. **page-aux init** (page.cljs) gates creation on `refs-count > 0`:
+   - If positive → create via `page-handler/<create!` with `{:redirect? false
+     :reference? true}`, then re-fetch. The ghost page renders normally.
+   - If 0 → leave the page nil. `page-inner`'s built-in "Page not found"
+     fallback renders (the render gate was also changed from `(when (and page
+     (not loading?)) ...)` to `(when-not loading? ...)` so the fallback is
+     reachable for nil pages).
+
+4. **Nil-safety guard**: `<get-block-refs-count` asserts `(integer? eid)`;
+   when `page-block` is nil, `page-id` is nil, so the init code now guards
+   with `(when (and (some? page-id) ...))` to avoid an assertion error that
+   would silently kill the promise chain.
 
 **Result:** `referencedPage` went from 3/3 blank (15 s timeout) to 0 blank,
-openMs ~255 ms (same as a normal page). See `benchmark-large-page.md`.
+openMs ~255 ms (same as a normal page). Typo pages now show "Page not found"
+instead of being silently persisted. See `benchmark-large-page.md`.
 
 ### Known limitation (pre-existing, out of scope)
 
