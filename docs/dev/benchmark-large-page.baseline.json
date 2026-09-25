@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "date": "2026-09-25T04:13:00.590Z",
+    "blocks": 1000,
+    "refs": 50,
+    "runs": 3,
+    "timeout": 15000,
+    "appUrl": "http://localhost:3001",
+    "host": "GG-12076"
+  },
+  "largePage": {
+    "openMs": {
+      "median": 256,
+      "runs": [
+        276,
+        256,
+        255
+      ]
+    },
+    "blankRuns": 0,
+    "keystrokeMs": 179,
+    "charInsertMs": 2,
+    "domBlocks": 38,
+    "longTasks": 3
+  },
+  "referencedPage": {
+    "openMs": {
+      "median": 15222,
+      "runs": [
+        15222,
+        15222,
+        15212
+      ]
+    },
+    "blankRuns": 3,
+    "domBlocks": 0
+  }
+}
