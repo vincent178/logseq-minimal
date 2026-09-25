@@ -1,6 +1,6 @@
 {
   "meta": {
-    "date": "2026-09-25T13:34:01.547Z",
+    "date": "2026-09-25T23:26:13.533Z",
     "blocks": 1000,
     "refs": 50,
     "runs": 3,
@@ -13,12 +13,12 @@
       "median": 255,
       "runs": [
         255,
-        254,
+        255,
         255
       ]
     },
     "blankRuns": 0,
-    "keystrokeMs": 113,
+    "keystrokeMs": 104,
     "charInsertMs": 1,
     "domBlocks": 38,
     "longTasks": 3
@@ -27,9 +27,9 @@
     "openMs": {
       "median": 255,
       "runs": [
-        256,
+        254,
         255,
-        254
+        256
       ]
     },
     "blankRuns": 0,
