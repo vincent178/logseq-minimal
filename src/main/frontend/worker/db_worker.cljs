@@ -420,14 +420,17 @@
         ;; materialized page: count refs via the normal path
         (ldb/get-block-refs-count db eid)
         ;; referenced-only page has no entity (refs are dangling), so detect
-        ;; incoming refs by matching page-link syntax in block content.
-        ;; Use case-insensitive matching because page names are normalized
-        ;; with page-name-sanity-lc elsewhere in the codebase.
-        (let [needle (string/lower-case (str "[[" page-name "]]"))]
+        ;; incoming refs by extracting page names from link syntax and
+        ;; normalizing them with page-name-sanity-lc before comparison.
+        (let [normalized-name (common-util/page-name-sanity-lc page-name)
+              page-ref-re #"\[\[([^\[\]]+)\]\]"]
           (count (filter (fn [d]
                            (let [content (:v d)]
                              (and (string? content)
-                                  (string/includes? (string/lower-case content) needle))))
+                                  (some (fn [[_ link-name]]
+                                          (= normalized-name
+                                             (common-util/page-name-sanity-lc link-name)))
+                                        (re-seq page-ref-re content)))))
                          (d/datoms db :avet :block/title))))))))
 
 (def-thread-api :thread-api/get-block-source
