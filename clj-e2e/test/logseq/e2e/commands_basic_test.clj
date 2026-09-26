@@ -203,11 +203,22 @@
     ;; reveal the time input and set a time
     (w/click "#time-repeater a:has-text('Add time')")
     (w/wait-for "input#time")
-    (w/fill "input#time" "14:00")
-    ;; focus the time input then submit with Enter — regression test for the
-    ;; bug where Enter was bound to the blurred editor textarea and never
-    ;; reached on-submit, silently dropping the time.
+    ;; Click the time input to focus it with the mouse, then select-all and
+    ;; type via the keyboard. This is a regression test for the bug where the
+    ;; editor's outside-mousedown handler called preventDefault, so a mouse
+    ;; click never focused the popup input (only programmatic w/fill worked).
+    ;; Click-then-type proves the input is genuinely mouse-focusable/editable.
     (w/click "input#time")
+    (is (= "time" (w/eval-js "document.activeElement && document.activeElement.id"))
+        "mouse click must focus the time input")
+    (k/press "ControlOrMeta+a")
+    (run! #(k/press (str %)) "14:00")
+    (util/wait-timeout 300)
+    (is (= "14:00" (w/value "input#time"))
+        "typing via keyboard must update the focused time input")
+    ;; Submit with Enter — regression test for the bug where Enter was bound to
+    ;; the blurred editor textarea and never reached on-submit, silently
+    ;; dropping the time.
     (k/enter)
     (util/wait-timeout 1000)
     ;; Exit editing. (k/esc) is unreliable here — see the FIXME in
