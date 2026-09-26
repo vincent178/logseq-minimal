@@ -116,10 +116,19 @@
 (rum/defc time-repeater < rum/reactive
   (mixins/event-mixin
    (fn [state]
-     (when-let [input (state/get-input)]
-       (js/setTimeout #(mixins/on-enter state
-                                        :node input
-                                        :on-enter on-submit) 100))))
+     ;; Listen for Enter on the date-picker container rather than the editor
+     ;; textarea. When the date-picker popup is open, focus lives inside the
+     ;; popup (calendar day button / time input), so the editor textarea never
+     ;; receives the Enter keyup and the previous listener could not reach
+     ;; `on-submit` — the chosen time/repeater was silently dropped. Listening
+     ;; on the container makes Enter submit regardless of which inner control
+     ;; currently has focus. (editor input may be nil/blurred, so don't use it)
+     (js/setTimeout
+      #(when-let [node (js/document.getElementById "date-time-picker")]
+         (mixins/on-enter state
+                          :node node
+                          :on-enter on-submit))
+      100)))
   []
   (let [{:keys [time repeater]} (rum/react *timestamp)]
     [:div#time-repeater.py-1.px-4
