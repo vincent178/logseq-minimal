@@ -193,6 +193,32 @@
       (and (string/starts-with? text "[[")
            (string/ends-with? text "]]")))))
 
+(deftest scheduled-with-time-test
+  (testing "/scheduled with time — Enter submit must save the timer"
+    ;; Wait for the app to settle to a clean normal state before starting, to
+    ;; avoid the flaky first-block-open race that affects new-block on a
+    ;; freshly-created page.
+    (assert/assert-in-normal-mode?)
+    (b/new-block "task with time")
+    (util/input-command "Scheduled")
+    (w/wait-for "#date-time-picker")
+    ;; pick the 15th in the calendar
+    (w/click "#date-time-picker button:has-text('15')")
+    ;; reveal the time input and set a time
+    (w/click "#time-repeater a:has-text('Add time')")
+    (w/wait-for "input#time")
+    (w/fill "input#time" "14:00")
+    ;; focus the time input then submit with Enter — regression test for the
+    ;; bug where Enter was bound to the blurred editor textarea and never
+    ;; reached on-submit, silently dropping the time.
+    (w/click "input#time")
+    (k/enter)
+    (util/wait-timeout 1000)
+    (util/exit-edit)
+    (let [text (util/get-text ".ls-block .timestamp")]
+      (is (string/includes? text "<"))
+      (is (string/includes? text "14:00")))))
+
 (deftest number-list-test
   (testing "number list commands"
     (util/input-command "number list")
