@@ -118,11 +118,7 @@
      (fn []
        (when-not db-restoring?
          (let [repos (state/get-repos)]
-           (if-not (or
-                    ;; not in publishing mode
-                    config/publishing?
-                    ;; other graphs exists
-                    (seq repos))
+           (if-not (seq repos)
              (route-handler/redirect! {:to :graphs})
              (do
                (ui-handler/restore-right-sidebar-state!)

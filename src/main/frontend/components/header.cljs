@@ -69,9 +69,7 @@
 (rum/defc ^:large-vars/cleanup-todo toolbar-dots-menu < rum/reactive
   [{:keys [current-repo t]}]
   (let [page (some-> (sidebar/get-current-page) db/get-page)
-        ;; FIXME: in publishing? :block/tags incorrectly returns integer until fully restored
-        working-page? (if config/publishing? (not (state/sub :db/restoring?)) true)
-        page-menu (if (and working-page? (ldb/page? page))
+        page-menu (if (ldb/page? page)
                     (page-menu/page-menu page)
                     nil)
         page-menu-and-hr (concat page-menu [{:hr true}])
@@ -99,12 +97,7 @@
                   (when (and current-repo (state/enable-editing?))
                     {:title (t :import)
                      :options {:href (rfe/href :import)}
-                     :icon (ui/icon "file-upload")})
-
-                  (when config/publishing?
-                    {:title (t :toggle-theme)
-                     :options {:on-click #(state/toggle-theme!)}
-                     :icon (ui/icon "bulb")})]
+                     :icon (ui/icon "file-upload")})]
                  (concat page-menu-and-hr)
                  (remove nil?)))]
 
@@ -256,9 +249,7 @@
   [page-name]
   (when-let [page (when (and page-name (common-util/uuid-string? page-name))
                     (db/entity [:block/uuid (uuid page-name)]))]
-    ;; FIXME: in publishing? :block/tags incorrectly returns integer until fully restored
-    (when (and (if config/publishing? (not (state/sub :db/restoring?)) true)
-               (ldb/page? page) (:block/parent page))
+    (when (and (ldb/page? page) (:block/parent page))
       [:div.ls-block-breadcrumb
        [:div.text-sm
         (component-block/breadcrumb {}
@@ -330,10 +321,6 @@
 
        (when-not (mobile-util/native-platform?)
          (new-block-mode))
-
-       (when config/publishing?
-         [:a.text-sm.font-medium.button {:href (rfe/href :graph)}
-          (t :graph)])
 
        (toolbar-dots-menu {:t            t
                            :current-repo current-repo

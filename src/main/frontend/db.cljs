@@ -1,7 +1,6 @@
 (ns frontend.db
   "Main entry ns for db related fns"
-  (:require [frontend.config :as config]
-            [frontend.db.conn :as conn]
+  (:require [frontend.db.conn :as conn]
             [frontend.db.model]
             [frontend.db.utils]
             [frontend.modules.outliner.op :as outliner-op]
@@ -46,14 +45,9 @@
    (transact! (state/get-current-repo) tx-data nil))
   ([repo tx-data]
    (transact! repo tx-data nil))
-  ([repo tx-data tx-meta]
-   (if config/publishing?
-     ;; :save-block is for query-table actions like sorting and choosing columns
-     (when (or (#{:collapse-expand-blocks :save-block} (:outliner-op tx-meta))
-               (:init-db? tx-meta))
-       (conn/transact! repo tx-data tx-meta))
-     (ui-outliner-tx/transact! tx-meta
-                               (outliner-op/transact! tx-data tx-meta)))))
+  ([_repo tx-data tx-meta]
+   (ui-outliner-tx/transact! tx-meta
+                             (outliner-op/transact! tx-data tx-meta))))
 
 (defn set-file-last-modified-at!
   "Refresh file timestamps to DB"

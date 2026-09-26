@@ -1,5 +1,5 @@
 (ns frontend.page
-  "Provides root component for both Logseq app and publishing build"
+  "Provides root component for the Logseq app"
   (:require [frontend.components.container :as container]
             [frontend.components.onboarding.quick-tour :as quick-tour]
             [frontend.components.plugins :as plugin]

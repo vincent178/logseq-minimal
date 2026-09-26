@@ -452,7 +452,7 @@
     :query-table :query-properties :query-sort-by :query-sort-desc
     :ls-type :hl-type :hl-color :hl-page :hl-stamp :hl-value :file :file-path
     :logseq.order-list-type :logseq.tldraw.page :logseq.tldraw.shape
-    :icon :public :exclude-from-graph-view :filters})
+    :icon :exclude-from-graph-view :filters})
 
 (assert (set/subset? file-built-in-property-names all-built-in-property-file-ids)
         "All file-built-in properties are used in db graph")
@@ -681,7 +681,8 @@
    ;; Not supported as they have been ignored for a long time and cause invalid built-in pages
    :now :later :doing :done :canceled :cancelled :in-progress :todo :wait :waiting
    ;; deprecated in db graphs
-   :background-image :macros :logseq.query/nlp-date
+   ;; :public was only used by the removed publishing feature
+   :public :background-image :macros :logseq.query/nlp-date
    :card-last-interval :card-repeats :card-last-reviewed :card-next-schedule
    :card-ease-factor :card-last-score
    :logseq.color :logseq.table.borders :logseq.table.stripes :logseq.table.max-width

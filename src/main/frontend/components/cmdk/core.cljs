@@ -80,8 +80,7 @@
 
 (defn create-items [q]
   (when (and (not (string/blank? q))
-             (not (#{"config.edn" "custom.js" "custom.css"} q))
-             (not config/publishing?))
+             (not (#{"config.edn" "custom.js" "custom.css"} q)))
     (let [class nil]
       (->> [{:text "Create page"
              :icon "new-page"

@@ -40,33 +40,6 @@
   dev:app-watch
   logseq.tasks.dev.mobile/app-watch
 
-  -dev:build-publishing-frontend
-  logseq.tasks.dev/build-publishing-frontend
-
-  dev:publishing-backend
-  logseq.tasks.dev/publishing-backend
-
-  -dev:publishing-release
-  {:depends [-dev:build-publishing-frontend]
-   :doc "Build release publishing spa app given graph and output dirs"
-   :task (run 'dev:publishing-backend)}
-
-  -dev:watch-publishing-frontend
-  logseq.tasks.dev/watch-publishing-frontend
-
-  -dev:watch-publishing-backend
-  logseq.tasks.dev/watch-publishing-backend
-
-  -dev:publishing-dev
-  {:depends [-dev:watch-publishing-frontend -dev:watch-publishing-backend]
-   :doc "Watch dev publishing spa app given graph and output dirs"}
-
-  dev:publishing
-  {:doc "Builds full publishing app given graph and output dirs. Append --dev to watch frontend"
-   :task (if ((set *command-line-args*) "--dev")
-           (run '-dev:publishing-dev {:parallel true})
-           (run '-dev:publishing-release))}
-
   dev:cli
   {:doc "Run CLI with current deps/db code. Commands with JS deps are not usable e.g. mcp-server"
    :task (apply shell {:dir "deps/db"}

@@ -156,8 +156,7 @@
   ;; FIXME: an ugly implementation for redirecting to page on new window is restored
   (repo-handler/graph-ready! repo)
 
-  (when-not config/publishing?
-    (fs-watcher/load-graph-files! repo)))
+  (fs-watcher/load-graph-files! repo))
 
 (defmethod handle :instrument [[_ {:keys [type payload] :as opts}]]
   (when-not (empty? (dissoc opts :type :payload))

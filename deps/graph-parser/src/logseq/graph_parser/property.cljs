@@ -52,7 +52,7 @@
 (defn editable-built-in-properties
   "Properties used by logseq that user can edit"
   []
-  (set/union #{:title :icon :template :template-including-parent :public :filters :exclude-from-graph-view
+  (set/union #{:title :icon :template :template-including-parent :filters :exclude-from-graph-view
                :logseq.query/nlp-date
                ;; org-mode only
                :macro :filetags}
@@ -76,7 +76,6 @@
   "Types for built-in properties. Built-in properties whose values are to be
   parsed by gp-text/parse-non-string-property-value should be added here"
   {:template-including-parent :boolean
-   :public :boolean
    :exclude-from-graph-view :boolean
    :logseq.query/nlp-date :boolean
    :heading :boolean                    ; FIXME: or integer

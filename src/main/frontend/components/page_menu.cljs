@@ -46,22 +46,20 @@
           page-title (:block/title page)
           block? (and page (util/uuid-string? page-name))
           contents? (= page-name "contents")
-          public? (get-in page [:block/properties :public])
           _favorites-updated? (state/sub :favorites/updated?)
           favorited? (page-handler/favorited? page-title)
           developer-mode? (state/sub [:ui/developer-mode?])
           file-rpath (when (util/electron?) (page-util/get-page-file-rpath page-name))]
       (when (not block?)
         (->>
-         [(when-not config/publishing?
-            {:title   (if favorited?
-                        (t :page/unfavorite)
-                        (t :page/add-to-favorites))
-             :options {:on-click
-                       (fn []
-                         (if favorited?
-                           (page-handler/<unfavorite-page! page-title)
-                           (page-handler/<favorite-page! page-title)))}})
+         [{:title   (if favorited?
+                      (t :page/unfavorite)
+                      (t :page/add-to-favorites))
+           :options {:on-click
+                     (fn []
+                       (if favorited?
+                         (page-handler/<unfavorite-page! page-title)
+                         (page-handler/<favorite-page! page-title)))}}
 
           (when (util/electron?)
             {:title   (t :page/version-history)
@@ -74,8 +72,7 @@
             {:title   (t :page/copy-page-url)
              :options {:on-click #(page-handler/copy-page-url page-title)}})
 
-          (when-not (or contents?
-                        config/publishing?)
+          (when-not contents?
             {:title   (t :page/delete)
              :options {:on-click #(delete-page-confirm! page)}})
 
@@ -97,15 +94,6 @@
                                    (fn []
                                      (export/export-blocks [(:block/uuid page)] {:export-type :page}))
                                    {:class "w-auto md:max-w-4xl max-h-[80vh] overflow-y-auto"})}})
-
-          (when (util/electron?)
-            {:title   (t (if public? :page/make-private :page/make-public))
-             :options {:on-click
-                       (fn []
-                         (page-handler/update-public-attribute!
-                          repo
-                          page
-                          (if public? false true)))}})
 
           (when (and (util/electron?) file-rpath)
             {:title   (t :page/open-backup-directory)

@@ -16,11 +16,9 @@
             [electron.updater :refer [init-updater] :as updater]
             [electron.url :refer [logseq-url-handler]]
             [electron.utils :refer [*win mac? linux? dev? get-win-from-sender
-                                    decode-protected-assets-schema-path send-to-renderer]
+                                    decode-protected-assets-schema-path]
              :as utils]
-            [electron.window :as win]
-            [logseq.publishing.export :as publish-export]
-            [promesa.core :as p]))
+            [electron.window :as win]))
 
 ;; Keep same as main/frontend.util.url
 (defonce LSP_SCHEME "logseq")
@@ -101,26 +99,11 @@
      (.unregisterProtocol protocol FILE_LSP_SCHEME)
      (.unregisterProtocol protocol FILE_ASSETS_SCHEME)))
 
-(defn- handle-export-publish-assets [_event html repo-path asset-filenames output-path]
-  (p/let [app-path (. app getAppPath)
-          asset-filenames (->> (js->clj asset-filenames) (remove nil?))
-          root-dir (or output-path (handler/open-dir-dialog))]
-    (when root-dir
-      (publish-export/create-export
-       html
-       app-path
-       repo-path
-       root-dir
-       {:asset-filenames asset-filenames
-        :log-error-fn logger/error
-        :notification-fn #(send-to-renderer :notification %)}))))
-
 (defn setup-app-manager!
   [^js win]
   (let [toggle-win-channel "toggle-max-or-min-active-win"
         call-app-channel "call-application"
         call-win-channel "call-main-win"
-        export-publish-assets "export-publish-assets"
         quit-dirty-state "set-quit-dirty-state"
         clear-win-effects! (win/setup-window-listeners! win)]
 
@@ -140,8 +123,6 @@
                        (.unmaximize active-win)
                        (.maximize active-win))))))
 
-      (.handle export-publish-assets handle-export-publish-assets)
-
       (.handle call-app-channel
                (fn [_ type & args]
                  (try
@@ -159,7 +140,6 @@
 
     #(do (clear-win-effects!)
          (.removeHandler ipcMain toggle-win-channel)
-         (.removeHandler ipcMain export-publish-assets)
          (.removeHandler ipcMain quit-dirty-state)
          (.removeHandler ipcMain call-app-channel)
          (.removeHandler ipcMain call-win-channel))))

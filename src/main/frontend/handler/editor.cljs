@@ -497,8 +497,7 @@
    (insert-new-block! state nil))
   ([_state block-value]
    (->
-    (when (not config/publishing?)
-      (when-let [state (get-state)]
+    (when-let [state (get-state)]
         (state/set-state! :editor/async-unsaved-chars "")
         (let [{:keys [block value config]} state
               value (if (string? block-value) block-value value)
@@ -542,7 +541,7 @@
           (p/do!
            (state/set-state! :editor/edit-block-fn edit-block-f)
            result-promise
-           (clear-when-saved!)))))
+           (clear-when-saved!))))
     (p/finally (fn []
                  (state/set-state! :editor/async-unsaved-chars nil))))))
 

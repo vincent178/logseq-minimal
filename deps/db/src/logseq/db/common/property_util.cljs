@@ -10,8 +10,7 @@
   ;; Map of unique cases where the db graph keyword name is different than the file graph id
   (let [unique-file-ids {:logseq.property/order-list-type :logseq.order-list-type
                          :logseq.property.tldraw/page :logseq.tldraw.page
-                         :logseq.property.tldraw/shape :logseq.tldraw.shape
-                         :logseq.property/publishing-public? :public}]
+                         :logseq.property.tldraw/shape :logseq.tldraw.shape}]
     (or (get unique-file-ids db-ident)
         (keyword (name db-ident)))))
 

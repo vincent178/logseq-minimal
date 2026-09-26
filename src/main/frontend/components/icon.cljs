@@ -4,7 +4,6 @@
             [camel-snake-kebab.core :as csk]
             [cljs-bean.core :as bean]
             [clojure.string :as string]
-            [frontend.config :as config]
             [frontend.handler.property.util :as pu]
             [frontend.search :as search]
             [frontend.storage :as storage]
@@ -459,15 +458,13 @@
   [icon-value {:keys [empty-label disabled? initial-open? del-btn? on-chosen icon-props popup-opts button-opts]}]
   (let [*trigger-ref (rum/use-ref nil)
         content-fn
-        (if config/publishing?
-          (constantly [])
-          (fn [{:keys [id]}]
-            (icon-search
-             {:on-chosen (fn [e icon-value keep-popup?]
-                           (on-chosen e icon-value)
-                           (when-not (true? keep-popup?) (shui/popup-hide! id)))
-              :icon-value icon-value
-              :del-btn? del-btn?})))]
+        (fn [{:keys [id]}]
+          (icon-search
+           {:on-chosen (fn [e icon-value keep-popup?]
+                         (on-chosen e icon-value)
+                         (when-not (true? keep-popup?) (shui/popup-hide! id)))
+            :icon-value icon-value
+            :del-btn? del-btn?}))]
     (hooks/use-effect!
      (fn []
        (when initial-open?

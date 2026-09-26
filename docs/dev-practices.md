@@ -301,30 +301,6 @@ point out:
   ```
 
 
-* `dev:publishing` - Build a publishing app for a given graph dir. If the
-  publishing frontend is out of date, it builds that first which takes time.
-  Subsequent runs are quick.
-
-  ```sh
-  # One time setup
-  $ cd scripts && yarn install && cd -
-
-  # Build a release publishing app
-  $ bb dev:publishing /path/to/graph-dir tmp/publish
-
-  # OR build a dev publishing app that watches frontend changes
-  $ bb dev:publishing /path/to/graph-dir tmp/publish --dev
-
-  # View the publishing app in a browser
-  $ python3 -m http.server 8080 -d tmp/publish &; open http://localhost:8080
-
-  # Rebuild the publishing backend for dev/release.
-  # Handy when making backend changes in deps/publishing or
-  # to test a different graph
-  $ bb dev:publishing-backend /path/graph-dir tmp/publish
-
-  ```
-
 There are also some tasks under `nbb:` which are useful for inspecting database
 changes in realtime. See [these
 docs](https://github.com/logseq/bb-tasks#logseqbb-tasksnbbwatch) for more info.

@@ -77,8 +77,7 @@
     ;; Don't have to unlisten the old listener, as it will be destroyed with the conn
    (when-not (true? (:ignore-style? opts))
      (ui-handler/add-style-if-exists!))
-   (when-not config/publishing?
-     (state/set-db-restoring! false))))
+   (state/set-db-restoring! false)))
 
 (defn rebuild-index!
   [url]

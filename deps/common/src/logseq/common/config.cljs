@@ -2,8 +2,6 @@
   "Common config constants and fns that are shared between deps and app"
   (:require [clojure.string :as string]))
 
-(goog-define PUBLISHING false)
-
 (defn hidden?
   [path patterns]
   (let [path (if (and (string? path)
