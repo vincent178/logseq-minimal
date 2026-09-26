@@ -6,43 +6,14 @@
    [clojure.string :as string]
    [clojure.walk :as walk]
    [frontend.config :as config]
-   [frontend.db :as db]
    [frontend.extensions.zip :as zip]
    [frontend.external.roam-export :as roam-export]
    [frontend.handler.export.common :as export-common-handler]
-   [frontend.state :as state]
    [frontend.util :as util]
    [goog.dom :as gdom]
-   [logseq.publishing.html :as publish-html]
    [promesa.core :as p])
   (:import
    [goog.string StringBuffer]))
-
-(defn download-repo-as-html!
-  "download public pages as html"
-  [repo]
-  (when-let [db (db/get-db repo)]
-    (let [{:keys [asset-filenames html]}
-          (publish-html/build-html db
-                                   {:repo repo
-                                    :app-state (select-keys @state/state
-                                                            [:ui/theme
-                                                             :ui/sidebar-collapsed-blocks])
-                                    :repo-config (get-in @state/state [:config repo])
-                                    :db-graph? false})
-          html-str     (str "data:text/html;charset=UTF-8,"
-                            (js/encodeURIComponent html))]
-      (if (util/electron?)
-        (js/window.apis.exportPublishAssets
-         html
-         (config/get-repo-dir repo)
-         (clj->js asset-filenames)
-         (util/mocked-open-dir-path))
-
-        (when-let [anchor (gdom/getElement "download-as-html")]
-          (.setAttribute anchor "href" html-str)
-          (.setAttribute anchor "download" "index.html")
-          (.click anchor))))))
 
 (defn file-based-export-repo-as-zip!
   [repo]

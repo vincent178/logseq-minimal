@@ -20,8 +20,7 @@
                    {:platform (cond
                                 (util/electron?) "electron"
                                 (mobile-util/native-platform?) "mobile"
-                                :else "web")
-                    :publishing config/publishing?}
+                                :else "web")}
                     (not-empty config/revision)
                     (assoc :revision config/revision))}
    ;; :integrations [(new posthog/SentryIntegration posthog "logseq" 5311485)

@@ -439,13 +439,9 @@ should be done through this fn in order to get global config and config defaults
     (get-global-config)
     (get-graph-config repo-url))))
 
-(defn publishing-enable-editing?
-  []
-  (and common-config/PUBLISHING (:publishing/enable-editing? (get-config))))
-
 (defn enable-editing?
   []
-  (or (not common-config/PUBLISHING) (:publishing/enable-editing? (get-config))))
+  true)
 
 (defonce built-in-macros
   {"img" "[:img.$4 {:src \"$1\" :style {:width $2 :height $3}}]"})
@@ -480,12 +476,6 @@ should be done through this fn in order to get global config and config defaults
   (when-let [template (get-in (get-config) [:default-templates :journals])]
     (when-not (string/blank? template)
       (string/trim template))))
-
-(defn all-pages-public?
-  []
-  (let [value (:publishing/all-pages-public? (get-config))
-        value (if (some? value) value (:all-pages-public? (get-config)))]
-    (true? value)))
 
 (defn get-default-home
   []
@@ -1868,10 +1858,7 @@ Similar to re-frame subscriptions"
   [edit-input-id content block cursor-range & {:keys [db move-cursor? container-id property-block direction event pos]
                                                :or {move-cursor? true}}]
   (when-not (exists? js/process)
-    (when (and edit-input-id block
-               (or
-                (publishing-enable-editing?)
-                (not common-config/PUBLISHING)))
+    (when (and edit-input-id block)
       (let [block-element (gdom/getElement (string/replace edit-input-id "edit-block" "ls-block"))
             container (util/get-block-container block-element)
             block (if container

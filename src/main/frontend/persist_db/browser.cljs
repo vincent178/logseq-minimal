@@ -116,12 +116,10 @@
   (when-not util/node-test?
     (p/do!
      (reload-app-if-old-db-worker-exists)
-     (let [worker-url (if config/publishing? "static/js/db-worker.js" "js/db-worker.js")
-           worker (js/Worker.
-                   (str worker-url
+     (let [worker (js/Worker.
+                   (str "js/db-worker.js"
                         "?electron=" (util/electron?)
-                        "&capacitor=" (util/capacitor?)
-                        "&publishing=" config/publishing?))
+                        "&capacitor=" (util/capacitor?)))
            _ (set-worker-fs worker)
            wrapped-worker* (Comlink/wrap worker)
            wrapped-worker (fn [qkw direct-pass? & args]

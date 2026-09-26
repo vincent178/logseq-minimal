@@ -15,7 +15,6 @@
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
             [frontend.handler.file-based.page :as file-page-handler]
-            [frontend.handler.file-based.page-property :as file-page-property]
             [frontend.handler.graph :as graph-handler]
             [frontend.handler.notification :as notification]
             [frontend.handler.plugin :as plugin-handler]
@@ -111,10 +110,6 @@
             (when (not= page-block-db-id (:db/id (:block/link block)))
               (outliner-op/save-block! (assoc block :block/link page-block-db-id)))))
          (state/update-favorites-updated!))))))
-
-(defn update-public-attribute!
-  [_repo page value]
-  (file-page-property/add-property! page :public value))
 
 (defn get-page-ref-text
   [page]
@@ -275,8 +270,7 @@
                ;; We should implement an app-wide check rather than list them all here
                (not (:graph/loading? @state/state))
                (not (:graph/importing @state/state))
-               (not (state/loading-files? repo))
-               (not config/publishing?))
+               (not (state/loading-files? repo)))
       (when-let [title (date/today)]
         (state/set-today! title)
         (when (config/local-file-based-graph? repo)

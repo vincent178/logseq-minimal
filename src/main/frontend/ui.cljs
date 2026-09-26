@@ -393,7 +393,7 @@
                             (some-> on-change' (apply [e]))))))]
     (shui/checkbox
      (merge option
-            {:disabled (or (:disabled option) config/publishing?)}))))
+            {:disabled (:disabled option)}))))
 
 (defn main-node
   []
@@ -411,7 +411,6 @@
 (defn inject-document-devices-envs!
   []
   (let [^js cl (.-classList js/document.documentElement)]
-    (when config/publishing? (.add cl "is-publish-mode"))
     (when util/mac? (.add cl "is-mac"))
     (when util/win32? (.add cl "is-win32"))
     (when util/linux? (.add cl "is-linux"))

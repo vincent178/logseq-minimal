@@ -16,8 +16,6 @@
 (defonce dev-release? DEV-RELEASE)
 (defonce dev? ^boolean (or dev-release? goog.DEBUG))
 
-(defonce publishing? common-config/PUBLISHING)
-
 (goog-define REVISION "unknown")
 (defonce revision REVISION)
 
@@ -392,8 +390,7 @@
 
     ;; nfs, browser-fs-access
     ;; Format: logseq_local_{dir-name}
-        (or (local-file-based-graph? repo-url)
-            (and publishing? (not db-based?)))
+        (local-file-based-graph? repo-url)
         (string/replace-first repo-url local-db-prefix "")
 
      ;; unit test

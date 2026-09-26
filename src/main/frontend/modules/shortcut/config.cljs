@@ -9,7 +9,6 @@
             [frontend.extensions.pdf.utils :as pdf-utils]
             [frontend.handler.config :as config-handler]
             [frontend.handler.editor :as editor-handler]
-            [frontend.handler.export :as export-handler]
             [frontend.handler.history :as history]
             [frontend.handler.journal :as journal-handler]
             [frontend.handler.jump :as jump-handler]
@@ -336,10 +335,6 @@
    :misc/copy                               {:binding "mod+c"
                                              :fn      (fn [] (js/document.execCommand "copy"))}
 
-   :graph/export-as-html                    {:fn      #(export-handler/download-repo-as-html!
-                                                        (state/get-current-repo))
-                                             :binding []}
-
    :graph/open                              {:fn      #(do
                                                          (editor-handler/escape-editing)
                                                          (state/pub-event! [:dialog-select/graph-open]))
@@ -351,7 +346,6 @@
                                              :binding []}
 
    :graph/add                               {:fn      (fn [] (route-handler/redirect! {:to :graphs}))
-                                             :inactive config/publishing?
                                              :binding []}
 
    :graph/db-save                           {:fn #(state/pub-event! [:graph/save-db-to-disk])
@@ -423,7 +417,6 @@
 
    :editor/quick-add                        {:binding (if mac? "mod+e" "mod+alt+e")
                                              :db-graph? true
-                                             :inactive config/publishing?
                                              :fn      editor-handler/quick-add}
    :editor/jump                             {:binding "mod+j"
                                              :fn      jump-handler/jump-to}
@@ -622,8 +615,7 @@
 
     :shortcut.handler/editor-global
     (-> (build-category-map
-         [:graph/export-as-html
-          :graph/open
+         [:graph/open
           :graph/remove
           :graph/add
           :graph/db-save
@@ -862,7 +854,6 @@
      :pdf/find
      :command/toggle-favorite
      :command/run
-     :graph/export-as-html
      :graph/open
      :graph/remove
      :graph/add

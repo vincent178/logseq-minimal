@@ -11,8 +11,7 @@
             [clojure.java.io :as io]
             [clojure.pprint :as pp]
             [clojure.string :as string]
-            [logseq.tasks.dev.lint :as dev-lint]
-            [logseq.tasks.util :as task-util]))
+            [logseq.tasks.dev.lint :as dev-lint]))
 
 (defn test
   "Run tests. Pass args through to cmd 'yarn cljs:run-test'"
@@ -66,41 +65,6 @@
                        ;; Remove nils as we're only interested in diffs
                        (mapv #(vec (remove nil? %))))]
     (pp/pprint data-diff)))
-
-(defn build-publishing-frontend
-  "Builds frontend release publishing asset when files have changed"
-  [& _args]
-  (if-let [_files (and (not (System/getenv "SKIP_ASSET"))
-                       (seq (set (fs/modified-since (fs/file "static/js/publishing/main.js")
-                                                    (fs/glob "." "{src/main,deps/graph-parser/src}/**")))))]
-    (do
-      (println "Building publishing js asset...")
-      (shell "clojure -M:cljs release publishing db-worker"))
-    (println "Publishing js asset is up to date")))
-
-(defn publishing-backend
-  "Builds publishing backend and copies over supporting frontend assets"
-  [& args]
-  (apply shell {:dir "deps/publishing" :extra-env {"ORIGINAL_PWD" (fs/cwd)}}
-         "yarn -s nbb-logseq -cp src:../graph-parser/src script/publishing.cljs"
-         (into ["static"] args)))
-
-(defn watch-publishing-frontend
-  [& _args]
-  (shell "npx shadow-cljs watch publishing"))
-
-(defn watch-publishing-backend
-  "Builds publishing backend once watch-publishing-frontend has built initial frontend"
-  [& args]
-  (let [start-time (java.time.Instant/now)]
-    (Thread/sleep 3000)
-    (loop [n 1000]
-      (if (and (fs/exists? "static/js/publishing/main.js")
-               (task-util/file-modified-later-than? "static/js/publishing/main.js" start-time))
-        (apply publishing-backend args)
-        (do (println "Waiting for publishing frontend to build...")
-            (Thread/sleep 1000)
-            (recur (inc n)))))))
 
 (defn db-import-many
   [& args]

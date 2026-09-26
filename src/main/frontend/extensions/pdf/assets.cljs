@@ -25,7 +25,6 @@
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.graph-parser.exporter :as gp-exporter]
-            [logseq.publishing.db :as publish-db]
             [medley.core :as medley]
             [promesa.core :as p]
             [reitit.frontend.easy :as rfe]
@@ -326,7 +325,7 @@
   (rum/local nil ::src)
   [state block]
   (let [*src (::src state)]
-    (when-let [asset-path' (and block (publish-db/get-area-block-asset-url
+    (when-let [asset-path' (and block (assets-handler/get-area-block-asset-url
                                        (conn/get-db (state/get-current-repo))
                                        block
                                        (db-utils/pull (:db/id (:block/page block)))))]
@@ -341,16 +340,15 @@
            [:div.asset-container
             {:style {:width (if style "100%" "auto")}}
             [:span.asset-action-bar
-             (when-not config/publishing?
-               [:button.asset-action-btn
-                {:title (t :asset/copy)
-                 :tabIndex "-1"
-                 :on-pointer-down util/stop
-                 :on-click (fn [e]
-                             (util/stop e)
-                             (-> (util/copy-image-to-clipboard (common-config/remove-asset-protocol @*src))
-                                 (p/then #(notification/show! "Copied!" :success))))}
-                (ui/icon "copy")])
+             [:button.asset-action-btn
+              {:title (t :asset/copy)
+               :tabIndex "-1"
+               :on-pointer-down util/stop
+               :on-click (fn [e]
+                           (util/stop e)
+                           (-> (util/copy-image-to-clipboard (common-config/remove-asset-protocol @*src))
+                               (p/then #(notification/show! "Copied!" :success))))}
+              (ui/icon "copy")]
 
              [:button.asset-action-btn
               {:title (t :asset/maximize)

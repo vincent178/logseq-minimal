@@ -383,12 +383,6 @@
 
      :logseq.property/icon {:title "Icon"
                             :schema {:type :map}}
-     :logseq.property/publishing-public? {:title "Publishing Public?"
-                                          :schema
-                                          {:type :checkbox
-                                           :hide? true
-                                           :view-context :page
-                                           :public? true}}
      :logseq.property/exclude-from-graph-view {:title "Excluded from Graph view?"
                                                :schema
                                                {:type :checkbox

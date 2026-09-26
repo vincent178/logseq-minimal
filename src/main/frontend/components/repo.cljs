@@ -176,20 +176,18 @@
                   (shui/tabler-icon "folder-plus")
                   [:span (t :new-graph)]))
 
-   (when-not config/publishing?
-     (shui/button
-      {:size :sm :variant :ghost
-       :on-click (fn [] (route-handler/redirect! {:to :import}))}
-      (shui/tabler-icon "database-import")
-      [:span (t :import-notes)]))
+   (shui/button
+    {:size :sm :variant :ghost
+     :on-click (fn [] (route-handler/redirect! {:to :import}))}
+    (shui/tabler-icon "database-import")
+    [:span (t :import-notes)])
 
-   (when-not config/publishing?
-     (shui/button {:size :sm :variant :ghost
-                   :on-click (fn []
-                               (if (util/mobile?)
-                                 (state/pub-event! [:mobile/set-tab "graphs"])
-                                 (route-handler/redirect-to-all-graphs)))}
-                  (shui/tabler-icon "layout-2") [:span (t :all-graphs)]))])
+   (shui/button {:size :sm :variant :ghost
+                 :on-click (fn []
+                             (if (util/mobile?)
+                               (state/pub-event! [:mobile/set-tab "graphs"])
+                               (route-handler/redirect-to-all-graphs)))}
+                (shui/tabler-icon "layout-2") [:span (t :all-graphs)])])
 
 (rum/defcs repos-dropdown-content < rum/reactive
   [_state & {:keys [contentid footer?] :as opts

@@ -402,8 +402,7 @@
       [:div.wrap
        [:div.sidebar-header-container
         ;; sidebar graphs
-        (when (not config/publishing?)
-          (sidebar-graphs))
+        (sidebar-graphs)
 
         ;; sidebar sticky navigations
         (sidebar-navigations
@@ -416,8 +415,7 @@
         {:on-scroll on-contents-scroll}
         (sidebar-favorites)
 
-        (when (not config/publishing?)
-          (sidebar-recent-pages))]]]
+        (sidebar-recent-pages)]]]
 
      [:span.shade-mask
       (cond-> {:on-click close-fn

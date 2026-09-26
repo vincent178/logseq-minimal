@@ -199,11 +199,6 @@
  ;;  - `:tab` as a tab character (default)
  ;; :export/bullet-indentation :tab
 
- ;; Publish all pages within the Graph
- ;; Regardless of whether individual pages have been marked as public.
- ;; Default value: false
- ;; :publishing/all-pages-public? false
-
  ;; Define the default home page and sidebar status.
  ;; If unspecified, the journal page will be loaded on startup and the right sidebar will stay hidden.
  ;; The `:page` value represents the name of the page displayed at startup.

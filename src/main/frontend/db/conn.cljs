@@ -7,7 +7,6 @@
             [frontend.util :as util]
             [frontend.util.text :as text-util]
             [logseq.common.util :as common-util]
-            [logseq.db :as ldb]
             [logseq.graph-parser.db :as gp-db]
             [logseq.graph-parser.text :as text]))
 
@@ -57,18 +56,6 @@
 (defn remove-conn!
   [repo]
   (swap! conns dissoc (db-conn-state/get-repo-path repo)))
-
-(if util/node-test?
-  (defn transact!
-    ([repo tx-data]
-     (transact! repo tx-data nil))
-    ([repo tx-data tx-meta]
-     (ldb/transact! (get-db repo false) tx-data tx-meta)))
-  (defn transact!
-    ([repo tx-data]
-     (transact! repo tx-data nil))
-    ([repo tx-data tx-meta]
-     (ldb/transact! repo tx-data tx-meta))))
 
 (defn destroy-all!
   []

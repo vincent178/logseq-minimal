@@ -24,7 +24,6 @@
     [:custom-js-url :string]
     [:export/bullet-indentation
      [:enum :eight-spaces :four-spaces :two-spaces :tab]]
-    [:publishing/all-pages-public? :boolean]
     [:default-home [:map
                     [:page {:optional true} :string]
                     [:sidebar {:optional true} [:or :string [:vector :string]]]]]

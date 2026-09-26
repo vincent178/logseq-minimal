@@ -56,7 +56,6 @@
 (defonce *sqlite-conns worker-state/*sqlite-conns)
 (defonce *datascript-conns worker-state/*datascript-conns)
 (defonce *opfs-pools worker-state/*opfs-pools)
-(defonce *publishing? (atom false))
 
 (defn- check-worker-scope!
   []
@@ -66,21 +65,17 @@
 
 (defn- <get-opfs-pool
   [graph]
-  (when-not @*publishing?
-    (or (worker-state/get-opfs-pool graph)
-        (p/let [^js pool (.installOpfsSAHPoolVfs ^js @*sqlite #js {:name (worker-util/get-pool-name graph)
-                                                                   :initialCapacity 20})]
-          (swap! *opfs-pools assoc graph pool)
-          pool))))
+  (or (worker-state/get-opfs-pool graph)
+      (p/let [^js pool (.installOpfsSAHPoolVfs ^js @*sqlite #js {:name (worker-util/get-pool-name graph)
+                                                                 :initialCapacity 20})]
+        (swap! *opfs-pools assoc graph pool)
+        pool)))
 
 (defn- init-sqlite-module!
   []
   (when-not @*sqlite
-    (p/let [href (.. js/location -href)
-            publishing? (string/includes? href "publishing=true")
-            sqlite (sqlite3InitModule (clj->js {:print #(log/info :init-sqlite-module! %)
+    (p/let [sqlite (sqlite3InitModule (clj->js {:print #(log/info :init-sqlite-module! %)
                                                 :printErr #(log/error :init-sqlite-module! %)}))]
-      (reset! *publishing? publishing?)
       (reset! *sqlite sqlite)
       nil)))
 
@@ -176,18 +171,13 @@
 
 (defn- get-dbs
   [repo]
-  (if @*publishing?
-    (p/let [^object DB (.-DB ^object (.-oo1 ^object @*sqlite))
-            db (new DB "/db.sqlite" "c")
-            search-db (new DB "/search-db.sqlite" "c")]
-      [db search-db])
-    (p/let [^js pool (<get-opfs-pool repo)
-            capacity (.getCapacity pool)
-            _ (when (zero? capacity)   ; file handle already releases since pool will be initialized only once
-                (.unpauseVfs pool))
-            db (new (.-OpfsSAHPoolDb pool) repo-path)
-            search-db (new (.-OpfsSAHPoolDb pool) (str "search" repo-path))]
-      [db search-db])))
+  (p/let [^js pool (<get-opfs-pool repo)
+          capacity (.getCapacity pool)
+          _ (when (zero? capacity)   ; file handle already releases since pool will be initialized only once
+              (.unpauseVfs pool))
+          db (new (.-OpfsSAHPoolDb pool) repo-path)
+          search-db (new (.-OpfsSAHPoolDb pool) (str "search" repo-path))]
+    [db search-db]))
 
 (defn- enable-sqlite-wal-mode!
   [^Object db]

@@ -309,13 +309,13 @@
                                    (js/window.apis.openExternal image-src)))}
                     [:span.flex.items-center.gap-1
                      (ui/icon "folder-pin") (t (if local? :asset/show-in-folder :asset/open-in-browser))]))
-                 (when-not config/publishing?
+                 
                    [:<>
                     (shui/dropdown-menu-separator)
                     (shui/dropdown-menu-item
                      {:on-click handle-delete!}
                      [:span.flex.items-center.gap-1.text-red-700
-                      (ui/icon "trash") (t :asset/delete)])])))]))])]))))
+                      (ui/icon "trash") (t :asset/delete)])]))]))])]))))
 
 (rum/defcs ^:large-vars/cleanup-todo resizable-image <
   (rum/local nil ::size)
@@ -510,9 +510,6 @@
 
                     (or (util/starts-with? href "/") (util/starts-with? href "~"))
                     href
-
-                    config/publishing?
-                    (subs href 1)
 
                     (= "Embed_data" (first url))
                     href
@@ -942,8 +939,7 @@
                        asset-type (:logseq.property.asset/type block)
                        external-url? (not (string/blank? (:logseq.property.asset/external-url block)))
                        path (path/path-join common-config/local-assets-dir (str (:block/uuid block) "." asset-type))]
-                   (p/let [result (if (or external-url? config/publishing?)
-                                                        ;; publishing doesn't have window.pfs defined
+                   (p/let [result (if external-url?
                                     true
                                     (fs/file-exists? (config/get-repo-dir (state/get-current-repo)) path))]
                      (reset! (::file-exists? state) result))
@@ -1327,9 +1323,6 @@
     (let [href (cond
                  (util/starts-with? href "http")
                  href
-
-                 config/publishing?
-                 (subs href 1)
 
                  (= "Embed_data" (first url))
                  href
@@ -2050,7 +2043,7 @@
                      (when (and (state/developer-mode?) (.-metaKey event))
                        (js/console.debug "[block config]==" config)))}
         [:span {:class (if (or (and control-show? (or collapsed? collapsable?))
-                               (and collapsed? (or page-title? order-list? config/publishing? (util/mobile?))))
+                               (and collapsed? (or page-title? order-list? (util/mobile?))))
                          "control-show cursor-pointer"
                          "control-hide")}
          (ui/rotating-arrow collapsed?)]])
@@ -3390,7 +3383,7 @@
                                    (:original-block config))]
              (when-not (:property-block? config)
                (cond
-                 (and (:page-title? config) (or (ldb/class? block) (ldb/property? block)) (not config/publishing?))
+                 (and (:page-title? config) (or (ldb/class? block) (ldb/property? block)))
                  (let [collapsed? (state/get-block-collapsed block-id)]
                    (set-collapsed-block! block-id (if (some? collapsed?) collapsed? true)))
 

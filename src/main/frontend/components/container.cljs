@@ -64,7 +64,6 @@
   [{:keys [route-match margin-less-pages? route-name db-restoring? main-content]}]
   (let [left-sidebar-open? (state/sub :ui/left-sidebar-open?)
         onboarding-and-home? (and (or (nil? (state/get-current-repo)) (config/demo-graph?))
-                                  (not config/publishing?)
                                   (= :home route-name))
         margin-less-pages? (or (and (mobile-util/native-platform?) onboarding-and-home?) margin-less-pages?)]
     [:div#main-container.cp__sidebar-main-layout.flex-1.flex
@@ -83,21 +82,16 @@
       [:div.cp__sidebar-main-content
        {:data-is-margin-less-pages margin-less-pages?
         :data-is-full-width (or margin-less-pages?
-                                (contains? #{:all-files :all-pages :my-publishing} route-name))}
+                                (contains? #{:all-files :all-pages} route-name))}
 
        (footer/footer)
 
        (cond
          db-restoring?
-         (if config/publishing?
-           [:div.space-y-2
-            (shui/skeleton {:class "h-8 w-1/3 mb-8 bg-gray-400"})
-            (shui/skeleton {:class "h-6 w-full bg-gray-400"})
-            (shui/skeleton {:class "h-6 w-full bg-gray-400"})]
-           [:div.space-y-2
-            (shui/skeleton {:class "h-8 w-1/3 mb-8"})
-            (shui/skeleton {:class "h-6 w-full"})
-            (shui/skeleton {:class "h-6 w-full"})])
+         [:div.space-y-2
+          (shui/skeleton {:class "h-8 w-1/3 mb-8"})
+          (shui/skeleton {:class "h-6 w-full"})
+          (shui/skeleton {:class "h-6 w-full"})]
 
          :else
          [:div
@@ -170,11 +164,7 @@
               (:page default-home))
          (route-handler/redirect-to-page! (:page default-home))
 
-         (or (not (state/enable-journals? current-repo))
-             (let [latest-journals (db/get-latest-journals (state/get-current-repo) 1)]
-               (and config/publishing?
-                    (not default-home)
-                    (empty? latest-journals))))
+         (not (state/enable-journals? current-repo))
          (route-handler/redirect! {:to :all-pages})
 
          loading-files?
@@ -523,11 +513,9 @@
       [:a#download-as-sqlite-db.hidden]
       [:a#download-as-db-edn.hidden]
       [:a#download-as-roam-json.hidden]
-      [:a#download-as-html.hidden]
       [:a#download-as-zip.hidden]
       [:a#export-as-markdown.hidden]
       [:a#export-as-opml.hidden]
       [:a#convert-markdown-to-unordered-list-or-heading.hidden]
-      (when (and (not config/mobile?)
-                 (not config/publishing?))
+      (when (not config/mobile?)
         (help-button))])))

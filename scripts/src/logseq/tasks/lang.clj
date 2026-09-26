@@ -126,8 +126,7 @@
 
    ;; from 3 files
    "(t (if" [:asset/show-in-folder :asset/open-in-browser
-             :search-item/page
-             :page/make-private :page/make-public]
+             :search-item/page]
    "(t (name" [] ;; shortcuts related
    "(t (dh/decorate-namespace" [] ;; shortcuts related
    "(t prompt-key" [:select/default-prompt :select/default-select-multiple :select.graph/prompt]

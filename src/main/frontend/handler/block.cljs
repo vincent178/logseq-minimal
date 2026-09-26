@@ -3,7 +3,6 @@
             [clojure.walk :as walk]
             [datascript.impl.entity :as de]
             [dommy.core :as dom]
-            [frontend.config :as config]
             [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
@@ -183,7 +182,7 @@
                 :or {tail-len 0
                      save-code-editor? true}
                 :as opts}]
-  (when (and (not config/publishing?) (:block/uuid block))
+  (when (:block/uuid block)
     (let [repo (state/get-current-repo)]
       (p/do!
        (db-async/<get-block repo (:db/id block) {:children? false})

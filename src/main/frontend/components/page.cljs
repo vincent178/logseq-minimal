@@ -55,7 +55,7 @@
   (let [route-match (first (:rum/args state))]
     (get-in route-match [:parameters :path :name])))
 
-;; Named block links only works on web (and publishing)
+;; Named block links only works on web
 (if util/web-platform?
   (defn- get-block-uuid-by-block-route-name
     "Return string block uuid for matching :name and :block-route-name params or
@@ -197,7 +197,6 @@
       (cond
         (and
          (not block?)
-         (not config/publishing?)
          (empty? children) block)
         (add-button block config)
 
@@ -363,7 +362,6 @@
                               :page)
                              (when (and (not hls-page?)
                                         (not journal?)
-                                        (not config/publishing?)
                                         (not (ldb/built-in? page)))
                                (reset! *input-value old-name)
                                (reset! *edit? true)))))}
@@ -449,11 +447,10 @@
 (rum/defc lsp-pagebar-slot <
   rum/static
   []
-  (when (not config/publishing?)
-    (when config/lsp-enabled?
-      [:div.flex.flex-row
-       (plugins/hook-ui-slot :page-head-actions-slotted nil)
-       (plugins/hook-ui-items :pagebar)])))
+  (when config/lsp-enabled?
+    [:div.flex.flex-row
+     (plugins/hook-ui-slot :page-head-actions-slotted nil)
+     (plugins/hook-ui-items :pagebar)]))
 
 ;; A page is just a logical block
 (rum/defcs ^:large-vars/cleanup-todo page-inner < rum/reactive db-mixins/query mixins/container-id

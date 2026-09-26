@@ -13,7 +13,6 @@
             [frontend.components.icon :as icon-component]
             [frontend.components.select :as select]
             [frontend.components.selection :as selection]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.date :as date]
             [frontend.db :as db]
@@ -1651,7 +1650,7 @@
   [state view-entity option]
   (rum/with-key (view-inner view-entity
                             (cond-> option
-                              (or config/publishing? (:logseq.property.view/group-by-property view-entity))
+                              (:logseq.property.view/group-by-property view-entity)
                               (dissoc :add-new-object!))
                             (::scroller-ref state))
     (str "view-" (:db/id view-entity))))

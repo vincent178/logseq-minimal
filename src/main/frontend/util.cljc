@@ -27,8 +27,7 @@
             [rum.core :as rum]
             [clojure.core.async :as async]
             [frontend.pubsub :as pubsub]
-            [datascript.impl.entity :as de]
-            [logseq.common.config :as common-config]))
+            [datascript.impl.entity :as de]))
   #?(:cljs (:import [goog.async Debouncer]))
   (:require
    [clojure.pprint]
@@ -156,7 +155,7 @@
      (def nfs? (and (not (electron?))
                     (not (mobile-util/native-platform?))))
      (def web-platform? nfs?)
-     (def plugin-platform? (or (and web-platform? (not common-config/PUBLISHING)) (electron?)))))
+     (def plugin-platform? (or web-platform? (electron?)))))
 
 #?(:cljs
    (def format common-util/format))

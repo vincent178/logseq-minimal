@@ -8,9 +8,27 @@
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
+            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.frontend.asset :as db-asset]
             [medley.core :as medley]
             [promesa.core :as p]))
+
+(defn get-area-block-asset-url
+  "Returns asset url for an area block used by pdf assets."
+  [db block page]
+  (let [db-based? (entity-plus/db-based-graph? db)]
+    (when-some [uuid' (:block/uuid block)]
+      (if db-based?
+        (when-let [image (:logseq.property.pdf/hl-image block)]
+          (str "./assets/" (:block/uuid image) ".png"))
+        (let [props (and block page (:block/properties block))
+              prop-lookup-fn #(get %1 (keyword (name %2)))]
+          (when-some [stamp (:hl-stamp props)]
+            (let [group-key      (string/replace-first (:block/title page) #"^hls__" "")
+                  hl-page        (prop-lookup-fn props :logseq.property.pdf/hl-page)
+                  encoded-chars? (boolean (re-find #"(?i)%[0-9a-f]{2}" group-key))
+                  group-key      (if encoded-chars? (js/encodeURI group-key) group-key)]
+              (str "./assets/" group-key "/" (str hl-page "_" uuid' "_" stamp ".png")))))))))
 
 (defn alias-enabled?
   []
@@ -49,19 +67,16 @@
   [repo rpath]
   (when-let [rpath (and (string? rpath)
                         (string/replace rpath #"^[.\/\\]+" ""))]
-    (if config/publishing?
-      (str "./" rpath)
-      (let [ret (let [rpath (if-not (string/starts-with? rpath common-config/local-assets-dir)
-                              (path/path-join common-config/local-assets-dir rpath)
-                              rpath)
-                      encoded-chars? (boolean (re-find #"(?i)%[0-9a-f]{2}" rpath))
-                      rpath (if encoded-chars? (js/decodeURI rpath) rpath)
-                      graph-root (config/get-repo-dir repo)
-                      has-schema? (string/starts-with? graph-root "file:")]
-                  (if has-schema?
-                    (path/path-join graph-root rpath)
-                    (path/prepend-protocol "file:" (path/path-join graph-root rpath))))]
-        ret))))
+    (let [rpath (if-not (string/starts-with? rpath common-config/local-assets-dir)
+                  (path/path-join common-config/local-assets-dir rpath)
+                  rpath)
+          encoded-chars? (boolean (re-find #"(?i)%[0-9a-f]{2}" rpath))
+          rpath (if encoded-chars? (js/decodeURI rpath) rpath)
+          graph-root (config/get-repo-dir repo)
+          has-schema? (string/starts-with? graph-root "file:")]
+      (if has-schema?
+        (path/path-join graph-root rpath)
+        (path/prepend-protocol "file:" (path/path-join graph-root rpath))))))
 
 (defn normalize-asset-resource-url
   "try to convert resource file to url asset link"
@@ -115,10 +130,7 @@
   ([path] (<make-asset-url path (try (js/URL. path) (catch :default _ nil))))
   ([path ^js js-url]
    ;; path start with "/assets"(editor)
-   (if config/publishing?
-     ;; Relative path needed since assets are not under '/' if published graph is not under '/'
-     (string/replace-first path #"^/" "")
-     (let [repo (state/get-current-repo)
+   (let [repo (state/get-current-repo)
            repo-dir (config/get-repo-dir repo)
            local-asset? (common-config/local-relative-asset? path)
            ;; Hack for path calculation
@@ -140,7 +152,7 @@
 
          ;(mobile-util/native-platform?)
          ;(mobile-util/convert-file-src full-path)
-         )))))
+         ))))
 
 (defn get-file-checksum
   [^js file]
