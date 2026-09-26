@@ -195,10 +195,6 @@
 
 (deftest scheduled-with-time-test
   (testing "/scheduled with time — Enter submit must save the timer"
-    ;; Wait for the app to settle to a clean normal state before starting, to
-    ;; avoid the flaky first-block-open race that affects new-block on a
-    ;; freshly-created page.
-    (assert/assert-in-normal-mode?)
     (b/new-block "task with time")
     (util/input-command "Scheduled")
     (w/wait-for "#date-time-picker")
@@ -214,7 +210,11 @@
     (w/click "input#time")
     (k/enter)
     (util/wait-timeout 1000)
-    (util/exit-edit)
+    ;; Exit editing. (k/esc) is unreliable here — see the FIXME in
+    ;; scheduled-deadline-test — so push focus out with a new block, then
+    ;; assert on the rendered timestamp directly.
+    (k/esc)
+    (b/new-block "temp")
     (let [text (util/get-text ".ls-block .timestamp")]
       (is (string/includes? text "<"))
       (is (string/includes? text "14:00")))))
