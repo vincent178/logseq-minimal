@@ -690,7 +690,14 @@
            action)
           (and (keyword? action)
                (= (namespace action) "editor.action")))
-      (when e (util/stop e))
+      ;; Only stop propagation — do NOT preventDefault. This mousedown handler
+      ;; fires for clicks inside editor popups (date-picker, property-search,
+      ;; etc.), which are portaled outside the editor node. Calling
+      ;; preventDefault here blocks the browser's default focus-on-mousedown, so
+      ;; inputs inside the popup (e.g. the /scheduled time input) could never be
+      ;; focused/editable by mouse. Stopping propagation is enough to keep the
+      ;; click from bubbling and closing the editor.
+      (when e (util/stop-propagation e))
 
       ;; editor/input component handles Escape directly, so just prevent handling it here
       (= :input action)
