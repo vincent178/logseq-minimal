@@ -136,7 +136,7 @@
         [:i.relative {:style {:top "4px"}} (shui/tabler-icon "dots")])])))
 
 (defn sidebar-item
-  [{:keys [on-click-handler class title icon icon-extension? active href shortcut more]}]
+  [{:keys [on-click-handler class title active href shortcut more]}]
   [:div
    {:key class
     :class (util/classnames [class {:active active}])}
@@ -144,7 +144,6 @@
     {:on-click on-click-handler
      :class (when active "active")
      :href href}
-    (ui/icon (str icon) {:extension? icon-extension? :size 16})
     [:span.flex-1 title]
     (when shortcut
       [:span.ml-1
@@ -236,7 +235,6 @@
             :on-click-handler route-handler/redirect-to-home!
             :active (and (= route-name :page)
                          (= page (get-in route-match [:path-params :name])))
-            :icon "home"
             :shortcut :go/home})
 
           (when enable-journals?
@@ -248,7 +246,6 @@
                                   (if (gobj/get e "shiftKey")
                                     (route-handler/sidebar-journals!)
                                     (route-handler/go-to-journals!)))
-              :icon "calendar"
               :shortcut :go/journals}))))
 
       (for [nav checked-navs]
@@ -259,7 +256,6 @@
             :title (t :right-side-bar/graph-view)
             :href (rfe/href :graph)
             :active (= route-name :graph)
-            :icon "hierarchy"
             :shortcut :go/graph-view})
 
           (= nav :all-pages)
@@ -267,8 +263,7 @@
            {:class "all-pages-nav"
             :title (t :right-side-bar/all-pages)
             :href (rfe/href :all-pages)
-            :active (= route-name :all-pages)
-            :icon "files"})
+            :active (= route-name :all-pages)})
 
           (= (namespace nav) "tag")
           (when db-based?
@@ -280,8 +275,7 @@
                   :title (tt (keyword "left-side-bar" name'')
                              (keyword "right-side-bar" name''))
                   :href (rfe/href :page {:name tag-uuid})
-                  :active (= (str tag-uuid) (get-in route-match [:path-params :name]))
-                  :icon "hash"}))))))])))
+                  :active (= (str tag-uuid) (get-in route-match [:path-params :name]))}))))))])))
 
 (rum/defc sidebar-favorites < rum/reactive
   []
