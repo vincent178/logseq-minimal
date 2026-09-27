@@ -699,7 +699,6 @@
                        "note" svg/note
                        "tip" svg/tip
                        "important" svg/important
-                       "caution" svg/caution
                        "warning" svg/warning
                        "pinned" svg/pinned
                        nil)]

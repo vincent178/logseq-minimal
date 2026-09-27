@@ -3763,9 +3763,6 @@
       ["Custom" "important" _options result _content]
       (ui/admonition "important" (markup-elements-cp config result))
 
-      ["Custom" "caution" _options result _content]
-      (ui/admonition "caution" (markup-elements-cp config result))
-
       ["Custom" "warning" _options result _content]
       (ui/admonition "warning" (markup-elements-cp config result))
 
