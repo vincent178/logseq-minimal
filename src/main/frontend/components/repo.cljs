@@ -159,13 +159,13 @@
                     :title (t :sync-from-local-files-detail)
                     :on-click (fn []
                                 (state/pub-event! [:graph/ask-for-re-fresh]))}
-                   (shui/tabler-icon "file-report") [:span (t :sync-from-local-files)])
+                   [:span (t :sync-from-local-files)])
 
       (shui/button {:size :sm :variant :ghost
                     :title (t :re-index-detail)
                     :on-click (fn []
                                 (state/pub-event! [:graph/ask-for-re-index multiple-windows? nil]))}
-                   (shui/tabler-icon "folder-bolt") [:span (t :re-index)])])
+                   [:span (t :re-index)])])
 
    (when (util/electron?)
      (shui/button {:size :sm :variant :ghost
@@ -173,13 +173,11 @@
                                (if (or (nfs-handler/supported?) (mobile-util/native-platform?))
                                  (state/pub-event! [:graph/setup-a-repo])
                                  (route-handler/redirect-to-all-graphs)))}
-                  (shui/tabler-icon "folder-plus")
                   [:span (t :new-graph)]))
 
    (shui/button
     {:size :sm :variant :ghost
      :on-click (fn [] (route-handler/redirect! {:to :import}))}
-    (shui/tabler-icon "database-import")
     [:span (t :import-notes)])
 
    (shui/button {:size :sm :variant :ghost
@@ -187,7 +185,7 @@
                              (if (util/mobile?)
                                (state/pub-event! [:mobile/set-tab "graphs"])
                                (route-handler/redirect-to-all-graphs)))}
-                (shui/tabler-icon "layout-2") [:span (t :all-graphs)])])
+                [:span (t :all-graphs)])])
 
 (rum/defcs repos-dropdown-content < rum/reactive
   [_state & {:keys [contentid footer?] :as opts
