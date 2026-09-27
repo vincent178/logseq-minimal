@@ -4,7 +4,6 @@
             [dommy.core :as d]
             [frontend.components.content :as cp-content]
             [frontend.components.find-in-page :as find-in-page]
-            [frontend.components.handbooks :as handbooks]
             [frontend.components.header :as header]
             [frontend.components.journal :as journal]
             [frontend.components.left-sidebar :as app-left-sidebar]
@@ -100,11 +99,7 @@
                                     margin-less-pages? 0
                                     onboarding-and-home? 0
                                     :else 120)}}
-          main-content])
-
-       (comment
-         (when onboarding-and-home?
-           (onboarding/intro onboarding-and-home?)))]]]))
+          main-content])]]]))
 
 (defonce sidebar-inited? (atom false))
 ;; TODO: simplify logic
@@ -230,8 +225,7 @@
         [:p.inline-block "to toggle document mode"]]]])))
 
 (def help-menu-items
-  [{:title "Handbook" :icon "book-2" :on-click #(handbooks/toggle-handbooks)}
-   {:title "Keyboard shortcuts" :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
+  [{:title "Keyboard shortcuts" :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
    {:title "Documentation" :icon "help" :href "https://docs.logseq.com/"}
    :hr
    {:title "Report bug" :icon "bug" :on-click #(rfe/push-state :bug-report)}
@@ -245,11 +239,6 @@
 
 (rum/defc help-menu-popup
   []
-
-  (hooks/use-effect!
-   (fn []
-     (state/set-state! :ui/handbooks-open? false))
-   [])
 
   (hooks/use-effect!
    (fn []
@@ -280,8 +269,7 @@
 
 (rum/defc help-button < rum/reactive
   []
-  (let [help-open? (state/sub :ui/help-open?)
-        handbooks-open? (state/sub :ui/handbooks-open?)]
+  (let [help-open? (state/sub :ui/help-open?)]
     [:<>
      [:div.cp__sidebar-help-btn
       [:div.inner
@@ -293,10 +281,7 @@
         [:path {:d "M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"}]]]]
 
      (when help-open?
-       (help-menu-popup))
-
-     (when handbooks-open?
-       (handbooks/handbooks-popup))]))
+       (help-menu-popup))]))
 
 (rum/defc app-context-menu-observer
   < rum/static
@@ -403,7 +388,6 @@
         left-sidebar-open? (state/sub :ui/left-sidebar-open?)
         wide-mode? (state/sub :ui/wide-mode?)
         ls-block-hl-colored? (state/sub :pdf/block-highlight-colored?)
-        onboarding-state (state/sub :file-sync/onboarding-state)
         right-sidebar-blocks (state/sub-right-sidebar-blocks)
         route-name (get-in route-match [:data :name])
         margin-less-pages? (boolean (#{:graph} route-name))
@@ -432,7 +416,6 @@
       :settings-open? settings-open?
       :sidebar-blocks-len (count right-sidebar-blocks)
       :system-theme? system-theme?
-      :onboarding-state onboarding-state
       :preferred-language preferred-language
       :on-click (fn [e]
                   (editor-handler/unhighlight-blocks!)

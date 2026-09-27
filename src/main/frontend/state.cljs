@@ -2,7 +2,7 @@
   "Provides main application state, fns associated to set and state based rum
   cursors"
   (:require [cljs-bean.core :as bean]
-            [cljs.core.async :as async :refer [>!]]
+            [cljs.core.async :as async]
             [clojure.set :as set]
             [clojure.string :as string]
             [datascript.core :as d]
@@ -107,7 +107,6 @@
       :ui/recent-pages                       (or (storage/get :ui/recent-pages) {})
 
       ;; right sidebar
-      :ui/handbooks-open?                    false
       :ui/help-open?                         false
       :ui/fullscreen?                        false
       :ui/settings-open?                     false
@@ -298,7 +297,6 @@
       :graph/importing                       nil
       :graph/importing-state                 {}
       :graph/loading?                        nil
-      :handbook/route-chan                   (async/chan (async/sliding-buffer 1))
 
       :system/info                           {}
       ;; Whether block is selected
@@ -2112,21 +2110,6 @@ Similar to re-frame subscriptions"
         config (if (map? config') (merge config' config) {})]
     (swap! state assoc :ui/editor-font config)
     (storage/set :ui/editor-font config)))
-
-(defn handbook-open?
-  []
-  (:ui/handbooks-open? @state))
-
-(defn get-handbook-route-chan
-  []
-  (:handbook/route-chan @state))
-
-(defn open-handbook-pane!
-  [k]
-  (when-not (handbook-open?)
-    (set-state! :ui/handbooks-open? true))
-  (js/setTimeout #(async/go
-                    (>! (get-handbook-route-chan) k))))
 
 (defn update-favorites-updated!
   []

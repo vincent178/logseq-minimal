@@ -101,12 +101,7 @@
                  ;; Handle open new window in renderer, until the destination graph doesn't rely on setting local storage
                  ;; No db cache persisting ensured. Should be handled by the caller
                  (fn [repo]
-                   (ui-handler/open-new-window-or-tab! repo)))
-
-  (safe-api-call "handbook"
-                 (fn [^js data]
-                   (when-let [k (and data (.-key data))]
-                     (state/open-handbook-pane! k)))))
+                   (ui-handler/open-new-window-or-tab! repo))))
 
 (defn listen!
   []

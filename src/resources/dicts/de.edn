@@ -126,14 +126,6 @@
  :graph/all-graphs "Alle Graphen"
  :graph/local-graphs "Lokale Graphen:"
 
- :handbook/close "Schließen"
- :handbook/help-categories "Hilfekategorien"
- :handbook/home "Startseite"
- :handbook/popular-topics "Beliebte Themen"
- :handbook/search "Suche"
- :handbook/settings "Einstellungen"
- :handbook/title "Hilfe"
- :handbook/topics "Themen"
 
  :header/go-back "Zurück"
  :header/go-forward "Vorwärts"
@@ -196,7 +188,6 @@
 
  :notification/clear-all "Alles löschen"
 
- :on-boarding/command-palette-quick-tour "Kurze Tour für Neueinsteiger"
  :on-boarding/importing-desc "Logseq importiert JSON, EDN und Markdown."
  :on-boarding/importing-lsq-desc "Ein früheres Backup eines Logseq-Graphen aus EDN oder JSON importieren"
  :on-boarding/importing-main-desc "Sie können dies auch später in der App tun."
@@ -207,22 +198,6 @@
 
  :on-boarding/main-desc "Wählen Sie ein Verzeichnis, wo Logseq Ihre Gedanken, Ideen und Notizen aufbewahren kann."
  :on-boarding/main-title (fn [] ["Willkommen bei " [:strong "Logseq!"]])
- :on-boarding/quick-tour-btn-back "Zurück"
- :on-boarding/quick-tour-btn-finish "Beenden"
- :on-boarding/quick-tour-btn-next "Weiter"
- :on-boarding/quick-tour-btn-skip "Tour überspringen"
- :on-boarding/quick-tour-favorites-desc-1 "Heften Sie Ihre Lieblingsseiten mit dem `... ` - Menu zu den Favoriten an."
- :on-boarding/quick-tour-favorites-desc-2 "Wir haben einige Vorlagenseiten hinzugefügt, um Ihnen beim Einstieg zu helfen. Sie können diese Seiten entfernen, wenn Sie sie nicht mehr benötigen."
- :on-boarding/quick-tour-favorites-title "⭐️ Favoriten"
- :on-boarding/quick-tour-help-desc "Hier können Sie jederzeit Hilfe und andere Informationen zu Logseq erhalten."
- :on-boarding/quick-tour-help-title "❓ Hilfe"
- :on-boarding/quick-tour-journal-page-desc-1 "Das ist die heutige Seite im Journal. Hier können Sie Ihre Überlegungen, Erkenntnisse und Ideen festhalten. Sorgen Sie sich nicht um Organisation. Schreiben Sie drauflos und"
- :on-boarding/quick-tour-journal-page-desc-2 "[[verlinken]]"
- :on-boarding/quick-tour-journal-page-desc-3 "Sie zu früheren Gedanken."
- :on-boarding/quick-tour-journal-page-title "📆 Seiten im täglichen Journal"
- :on-boarding/quick-tour-left-sidebar-desc "Öffnen Sie die linke Seitenleiste, um wichtige Menus in Logseq zu erkunden."
- :on-boarding/quick-tour-left-sidebar-title "👀 Linke Seitenleiste"
- :on-boarding/quick-tour-steps "SCHRITT "
 
 
 
