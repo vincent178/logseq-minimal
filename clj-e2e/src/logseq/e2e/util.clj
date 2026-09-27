@@ -70,7 +70,16 @@
 (defn exit-edit
   []
   (when (get-editor)
-    (k/esc))
+    (k/esc)
+    ;; A single Esc can be consumed by an open editor popup (page/block search,
+    ;; commands, datepicker) instead of exiting the editor (see
+    ;; `editor-on-hide`), leaving the editor open. If the editor is still in
+    ;; edit mode after the first Esc, press Esc again to actually exit.
+    (let [deadline (+ (System/currentTimeMillis) 2000)]
+      (while (and (< (System/currentTimeMillis) deadline)
+                  (get-editor))
+        (k/esc)
+        (Thread/sleep 100))))
   (assert/assert-non-editor-mode))
 
 (defn double-esc
@@ -189,7 +198,28 @@
   (press-seq "/" {:delay 20})
   (w/wait-for ".ui__popover-content")
   (press-seq command {:delay 20})
-  (w/click "a.menu-link.chosen"))
+  (w/click "a.menu-link.chosen")
+  ;; Some commands (e.g. link/image-link/page-reference) open a popover form.
+  ;; Under load the popover can render/grab focus asynchronously, so the next
+  ;; `press-seq` can otherwise send its first keystroke(s) to the still-focused
+  ;; block editor and leak the command text. Give the popover a brief window to
+  ;; appear; if one does open, wait until focus has moved into it (out of the
+  ;; block editor) before returning. Commands that act inline (no popover) skip
+  ;; the wait once the window elapses.
+  (let [popover? #(w/eval-js "() => !!document.querySelector('.ui__popover-content')")
+        focused? #(w/eval-js "() => {
+                               const p = document.querySelector('.ui__popover-content');
+                               const a = document.activeElement;
+                               return !!(p && a && p.contains(a));
+                             }")
+        wait-until (fn [pred timeout-ms]
+                     (let [deadline (+ (System/currentTimeMillis) timeout-ms)]
+                       (loop []
+                         (cond (pred) true
+                               (> (System/currentTimeMillis) deadline) false
+                               :else (do (Thread/sleep 20) (recur))))))]
+    (when (wait-until popover? 500)      ; grace window for the popover to render
+      (wait-until focused? 2000))))       ; then wait for focus to enter it
 
 (defn set-tag
   "`hidden?`: some tags may be hidden from the UI, e.g. Page"

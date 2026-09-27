@@ -37,13 +37,23 @@
              (when redirect?
                (route-handler/redirect-to-page! page-uuid)
                (when-not today-journal?
-                 (js/setTimeout
-                  (fn []
-                    (when-let [block-add-button (->> (dom/sel ".block-add-button")
-                                                     (filter #(= (str (:db/id page)) (dom/attr % "parentblockid")))
-                                                     first)]
-                      (.click block-add-button)))
-                  200)))
+                 ;; After redirecting to the new page, click its block-add-button
+                 ;; to open the editor. The page (and thus the button) is rendered
+                 ;; asynchronously by the route, and under load this can take longer
+                 ;; than a single fixed delay. A one-shot timeout loses the click and
+                 ;; leaves the page blank with no editor, so poll (bounded) until the
+                 ;; button appears before clicking.
+                 (let [page-id (str (:db/id page))
+                       find-button #(->> (dom/sel ".block-add-button")
+                                         (filter (fn [b] (= page-id (dom/attr b "parentblockid"))))
+                                         first)
+                       attempts 50                       ; 50 * 100ms = 5s max
+                       poll (fn poll [n]
+                              (when (pos? n)
+                                (if-let [block-add-button (find-button)]
+                                  (.click block-add-button)
+                                  (js/setTimeout (fn [] (poll (dec n))) 100))))]
+                   (js/setTimeout (fn [] (poll attempts)) 100))))
              page)))))))
 
 ;; favorite fns
