@@ -319,7 +319,6 @@
           ["Note" (->block "note") "Create a note block"]
           ["Tip" (->block "tip") "Create a tip block"]
           ["Important" (->block "important") "Create an important block"]
-          ["Caution" (->block "caution") "Create a caution block"]
           ["Pinned" (->block "pinned") "Create a pinned block"]
           ["Warning" (->block "warning") "Create a warning block"]
           ["Example" (->block "example") "Create an example block"]
