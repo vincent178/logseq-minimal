@@ -16,6 +16,7 @@
 - Search for `defkeywords` to find all the definitions.
 
 ## Testing Commands
+- Local smoke test (verify everything before merge): `npm run verify`
 - Run linters and unit-tests: `bb dev:lint-and-test`
 - Run single focused unit-test:
   - Add the `:focus` keyword to the test case: `(deftest ^:focus test-name ...)`
