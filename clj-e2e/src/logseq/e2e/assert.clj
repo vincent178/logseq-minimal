@@ -39,8 +39,13 @@
 
 (defn assert-graph-loaded?
   []
-  ;; there's some blocks visible now
-  (assert-is-visible (w/get-by-test-id "page title")))
+  ;; Wait for the SPA to boot and render the page title. `w/refresh` returns at
+  ;; the `load` event, before the app has mounted, so we must explicitly wait for
+  ;; the title element to be attached before asserting visibility. Uses the
+  ;; page's configured default timeout (see `logseq.e2e.config/*default-timeout`).
+  (let [title (w/get-by-test-id "page title")]
+    (.waitFor (.first (w/-query title)))
+    (assert-is-visible title)))
 
 (defn assert-editor-mode
   []

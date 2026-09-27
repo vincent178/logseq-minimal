@@ -17,7 +17,8 @@
   (w/with-page-open
     (w/make-page {:headless (or headless @config/*headless)
                   :persistent false
-                  :slow-mo @config/*slow-mo})
+                  :slow-mo @config/*slow-mo
+                  :default-timeout @config/*default-timeout})
     (w/grant-permissions :clipboard-write :clipboard-read)
     (binding [custom-report/*pw-contexts* #{(.context (w/get-page))}
               custom-report/*pw-page->console-logs* (atom {})]
@@ -38,7 +39,8 @@
   (let [headless (or headless @config/*headless)
         page-opts {:headless headless
                    :persistent false
-                   :slow-mo @config/*slow-mo}
+                   :slow-mo @config/*slow-mo
+                   :default-timeout @config/*default-timeout}
         p1 (w/make-page page-opts)
         p2 (w/make-page page-opts)
         port' (or port @config/*port)]
@@ -75,7 +77,8 @@
   [f]
   (let [page-opts {:headless @config/*headless
                    :persistent false
-                   :slow-mo @config/*slow-mo}
+                   :slow-mo @config/*slow-mo
+                   :default-timeout @config/*default-timeout}
         p @(w/make-page page-opts)
         ctx (.newContext (.browser (.context p)))]
     ;; context for p is no longer needed
