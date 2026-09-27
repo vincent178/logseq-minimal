@@ -77,27 +77,22 @@
                 (->>
                  [(when (state/enable-editing?)
                     {:title (t :settings)
-                     :options {:on-click state/open-settings!}
-                     :icon (ui/icon "settings")})
+                     :options {:on-click state/open-settings!}})
 
                   (when config/lsp-enabled?
                     {:title (t :plugins)
-                     :options {:on-click #(plugin-handler/goto-plugins-dashboard!)}
-                     :icon (ui/icon "apps")})
+                     :options {:on-click #(plugin-handler/goto-plugins-dashboard!)}})
 
                   {:title (t :appearance)
-                   :options {:on-click #(state/pub-event! [:ui/toggle-appearance])}
-                   :icon (ui/icon "color-swatch")}
+                   :options {:on-click #(state/pub-event! [:ui/toggle-appearance])}}
 
                   (when current-repo
                     {:title (t :export-graph)
-                     :options {:on-click #(shui/dialog-open! export/export)}
-                     :icon (ui/icon "database-export")})
+                     :options {:on-click #(shui/dialog-open! export/export)}})
 
                   (when (and current-repo (state/enable-editing?))
                     {:title (t :import)
-                     :options {:href (rfe/href :import)}
-                     :icon (ui/icon "file-upload")})]
+                     :options {:href (rfe/href :import)}})]
                  (concat page-menu-and-hr)
                  (remove nil?)))]
 
@@ -107,7 +102,7 @@
                              :on-pointer-down (fn [^js e]
                                                 (shui/popup-show! (.-target e)
                                                                   (fn [{:keys [id]}]
-                                                                    (for [{:keys [hr item title options icon]} (items)]
+                                                                    (for [{:keys [hr item title options]} (items)]
                                                                       (let [on-click' (:on-click options)
                                                                             href (:href options)]
                                                                         (if hr
@@ -123,10 +118,8 @@
                                                                                  [:a.flex.items-center.w-full
                                                                                   {:href href :on-click #(shui/popup-hide! id)
                                                                                    :style {:color "inherit"}}
-                                                                                  [:span.flex.items-center.gap-1.w-full
-                                                                                   icon [:div title]]]
-                                                                                 [:span.flex.items-center.gap-1.w-full
-                                                                                  icon [:div title]])))))))
+                                                                                  [:div title]]
+                                                                                 [:div title])))))))
                                                                   {:align "end"
                                                                    :as-dropdown? true
                                                                    :content-props {:class "w-64"
