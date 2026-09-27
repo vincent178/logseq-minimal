@@ -133,19 +133,11 @@
  :header/search "Suchen"
  :header/toggle-left-sidebar "Linke Seitenleiste umschalten"
 
- :help/about "Über Logseq"
  :help/block-reference "Blockverweis"
- :help/blog "Logseq Blog"
- :help/bug "Fehlerbericht"
- :help/changelog "Änderungsprotokoll"
  :help/context-menu "Kontextmenü"
- :help/docs "Dokumentation"
- :help/feature "Feature-Anfrage"
- :help/forum-community "Forum"
  :help/markdown-syntax "Syntax von Markdown"
  :help/open-link-in-sidebar "Link in Seitenleiste öffnen"
  :help/org-mode-syntax "Syntax von Org-mode"
- :help/privacy "Datenschutzrichtlinie"
  :help/reference-autocomplete "Seitenverweis Autovervollständigung"
  :help/search "Suche Seiten/Blöcke/Befehle"
  :help/shortcut "Tastaturkürzel"
@@ -154,12 +146,6 @@
  :help-shortcut-title "Hier klicken, um Tastenkombinationen und weitere Tipps zu sehen"
  :help/shortcuts-triggers "Auslöser"
  :help/slash-autocomplete "/-Autovervollständigung"
- :help/start "Einstieg"
- :help/terms "Nutzungsbedingungen"
- :help/title-about "Über"
- :help/title-development "Entwicklung"
- :help/title-terms "Rechtliches"
- :help/title-usage "Bedienung"
 
  :keymap/all "Alle"
  :keymap/conflicts-for-label "Tastenbelegung-Konflikte für"
@@ -196,8 +182,6 @@
  :on-boarding/importing-roam-desc "Einen Roam JSON Export importieren"
  :on-boarding/importing-title "Möchten Sie bestehende Notizen importieren?"
 
- :on-boarding/main-desc "Wählen Sie ein Verzeichnis, wo Logseq Ihre Gedanken, Ideen und Notizen aufbewahren kann."
- :on-boarding/main-title (fn [] ["Willkommen bei " [:strong "Logseq!"]])
 
 
 
@@ -285,7 +269,6 @@
  :right-side-bar/block-ref "Blockreferenz"
  :right-side-bar/contents "Inhalt"
  :right-side-bar/graph-view "Graph-Ansicht"
- :right-side-bar/help "Hilfe"
  :right-side-bar/page-graph "Seiten-Graph"
  :right-side-bar/pane-close "Schließen"
  :right-side-bar/pane-close-all "Alle schließen"

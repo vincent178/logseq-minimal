@@ -17,7 +17,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.handler.user :as user-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.data-helper :as shortcut-helper]
             [frontend.spec.storage :as storage-spec]
             [frontend.state :as state]
@@ -54,18 +53,6 @@
 
       [:div.mt-1.sm:mt-0.sm:col-span-2.flex.gap-4.items-center.flex-wrap
        [:div (cond
-               (mobile-util/native-android?)
-               (ui/button
-                (t :settings-page/check-for-updates)
-                :class "text-sm mr-1"
-                :href "https://github.com/logseq/og/releases")
-
-               (mobile-util/native-ios?)
-               (ui/button
-                (t :settings-page/check-for-updates)
-                :class "text-sm mr-1"
-                :href "https://apps.apple.com/app/logseq/id1601013908")
-
                (util/electron?)
                (ui/button
                 (if update-pending? (t :settings-page/checking) (t :settings-page/check-for-updates))
@@ -165,8 +152,7 @@
                          :on-click on-click}
                         (if (string/blank? href) button-label
                             (shui/link {:href href} button-label))))]
-    (when-not (or (util/mobile?)
-                  (mobile-util/native-platform?))
+    (when-not (util/mobile?)
       [:div.text-sm.flex desc])]])
 
 (defn edit-config-edn []
@@ -211,7 +197,7 @@
      (ui/toggle show-brackets?
                 config-handler/toggle-ui-show-brackets!
                 true)]]
-   (when (not (or (util/mobile?) (mobile-util/native-platform?)))
+   (when-not (util/mobile?)
      [:div {:style {:text-align "right"}}
       (ui/render-keyboard-shortcut (shortcut-helper/gen-shortcut-seq :ui/toggle-brackets))])])
 
@@ -225,7 +211,7 @@
      (ui/toggle wide-mode?
                 ui-handler/toggle-wide-mode!
                 true)]]
-   (when (not (or (util/mobile?) (mobile-util/native-platform?)))
+   (when-not (util/mobile?)
      [:div {:style {:text-align "right"}}
       (ui/render-keyboard-shortcut (shortcut-helper/gen-shortcut-seq :ui/toggle-wide-mode))])])
 
@@ -705,9 +691,9 @@
      (showing-full-blocks t show-full-blocks?)
      (preferred-pasting-file t preferred-pasting-file?)
      (auto-expand-row t auto-expand-block-refs?)
-     (when-not (or (util/mobile?) (mobile-util/native-platform?))
+     (when-not (util/mobile?)
        (shortcut-tooltip-row t enable-shortcut-tooltip?))
-     (when-not (or (util/mobile?) (mobile-util/native-platform?))
+     (when-not (util/mobile?)
        (tooltip-row t enable-tooltip?))
      (timetracking-row t enable-timetracking?)
      (auto-push-row t current-repo enable-git-auto-push?)]))
@@ -739,7 +725,7 @@
         https-agent-opts (state/sub [:electron/user-cfgs :settings/agent])]
     [:div.panel-wrap.is-advanced
      (when (and (or util/mac? util/win32?) (util/electron?)) (app-auto-update-row t))
-     (when-not (mobile-util/native-platform?) (developer-mode-row t developer-mode?))
+     (developer-mode-row t developer-mode?)
      (when (util/electron?) (https-user-agent-row https-agent-opts))
      (when (util/electron?) (auto-chmod-row t))
      ;; (clear-cache-row t)

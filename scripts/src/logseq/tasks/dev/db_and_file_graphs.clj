@@ -52,8 +52,6 @@
         ["deps/outliner/src/logseq/outliner/db_pipeline.cljs"
          "deps/outliner/src/logseq/outliner/validate.cljs"
          "deps/outliner/src/logseq/outliner/page.cljs"
-         ;; TODO: change to deps/cli/src when :block/name no longer in other cli namespaces
-         "deps/cli/src/logseq/cli/commands"
          "src/main/frontend/components/quick_add.cljs"
          "src/main/frontend/components/query/view.cljs"
          "src/electron/electron/db.cljs"]))

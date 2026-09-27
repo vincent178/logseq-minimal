@@ -9,7 +9,6 @@
             [frontend.handler.export.opml :as export-opml]
             [frontend.handler.export.text :as export-text]
             [frontend.image :as image]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -29,19 +28,16 @@
        [:a.font-medium {:on-click #(export/export-repo-as-json! current-repo)}
         (t :export-json)]]
 
-        (when-not (mobile-util/native-platform?)
-          [:div
-           [:a.font-medium {:on-click #(export-text/export-repo-as-markdown! current-repo)}
-            (t :export-markdown)]])
+        [:div
+         [:a.font-medium {:on-click #(export-text/export-repo-as-markdown! current-repo)}
+          (t :export-markdown)]]
 
-        (when-not (mobile-util/native-platform?)
-          [:div
-           [:a.font-medium {:on-click #(export-opml/export-repo-as-opml! current-repo)}
-            (t :export-opml)]])
-        (when-not (mobile-util/native-platform?)
-          [:div
-           [:a.font-medium {:on-click #(export/export-repo-as-roam-json! current-repo)}
-            (t :export-roam-json)]])
+        [:div
+         [:a.font-medium {:on-click #(export-opml/export-repo-as-opml! current-repo)}
+          (t :export-opml)]]
+        [:div
+         [:a.font-medium {:on-click #(export/export-repo-as-roam-json! current-repo)}
+          (t :export-roam-json)]]
         ]]))
 
 (def *export-block-type (atom :text))

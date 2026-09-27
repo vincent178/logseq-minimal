@@ -27,7 +27,6 @@
             [frontend.handler.repo-config :as repo-config-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.persist-db :as persist-db]
             [frontend.persist-db.browser :as db-browser]
@@ -154,7 +153,6 @@
                  _ (log/info ::db-worker-spent-time (- (util/time-ms) t2))
                  repos (repo-handler/get-repos)
                  _ (state/set-repos! repos)
-                 _ (mobile-util/hide-splash) ;; hide splash as early as ui is stable
                  repo (or (state/get-current-repo) (:url (first repos)))
                  ;; First run with no graphs:
                  ;;  - Electron: land on the folder picker (user picks a dir)
@@ -174,9 +172,7 @@
            (set-network-watcher!)
 
            (when (util/electron?)
-             (persist-db/run-export-periodically!))
-           (when (mobile-util/native-platform?)
-             (state/restore-mobile-theme!)))
+             (persist-db/run-export-periodically!)))
          (p/catch (fn [e]
                     (js/console.error "Error while restoring repos: " e)))
          (p/finally (fn []

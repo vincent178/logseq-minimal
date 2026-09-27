@@ -68,9 +68,7 @@
    {:id :https-proxy-panel :center? true :class "lg:max-w-2xl"}))
 
 (defmethod events/handle :redirect-to-home [_]
-  (page-handler/create-today-journal!)
-  (when (util/capacitor?)
-    (state/pub-event! [:mobile/set-tab "home"])))
+  (page-handler/create-today-journal!))
 
 (defmethod events/handle :page/show-delete-dialog [[_ selected-rows ok-handler]]
   (shui/dialog-open!
@@ -185,8 +183,7 @@
         :align :start}))))
 
 (defmethod events/handle :editor/hide-action-bar []
-  (hide-action-bar!)
-  (state/set-state! :mobile/show-action-bar? false))
+  (hide-action-bar!))
 
 (defmethod events/handle :user/logout [[_]]
   ;; no accounts in the minimal build — logout is a no-op

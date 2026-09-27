@@ -10,7 +10,6 @@
             [electron.ipc :as ipc]
             [frontend.db.conn-state :as db-conn-state]
             [frontend.flows :as flows]
-            [frontend.mobile.util :as mobile-util]
             [frontend.spec.storage :as storage-spec]
             [frontend.storage :as storage]
             [frontend.util :as util]
@@ -214,8 +213,6 @@
       :assets/asset-file-write-finish        (atom {})
 
       ;; mobile
-      :mobile/container-urls                 nil
-      :mobile/show-action-bar?               false
 
       ;; plugin
       :plugin/enabled                        (and util/plugin-platform?
@@ -721,7 +718,7 @@ Similar to re-frame subscriptions"
 
 (defn mobile?
   []
-  (or (util/mobile?) (mobile-util/native-platform?)))
+  (util/mobile?))
 
 (defn enable-tooltip?
   []
@@ -1327,13 +1324,7 @@ Similar to re-frame subscriptions"
 
 (defn set-theme-mode!
   ([mode] (set-theme-mode! mode (:ui/system-theme? @state)))
-  ([mode system-theme?]
-   (when (mobile-util/native-platform?)
-     (if (= mode "light")
-       (util/set-theme-light)
-       (util/set-theme-dark)))
-   (when (mobile-util/native-platform?)
-     (mobile-util/set-native-interface-style! mode system-theme?))
+  ([mode _system-theme?]
    (set-state! :ui/theme mode)
    (storage/set :ui/theme mode)))
 
@@ -1371,19 +1362,6 @@ Similar to re-frame subscriptions"
   ([mode theme]
    (set-state! (if mode [:ui/custom-theme (keyword mode)] :ui/custom-theme) theme)
    (storage/set :ui/custom-theme (:ui/custom-theme @state))))
-
-(defn restore-mobile-theme!
-  "Restore mobile theme setting from local storage"
-  []
-  (let [mode (or (storage/get :ui/theme) "light")
-        system-theme? (storage/get :ui/system-theme?)]
-    (when (mobile-util/native-platform?)
-      (mobile-util/set-native-interface-style! mode system-theme?))
-    (when (and (not system-theme?)
-               (mobile-util/native-platform?))
-      (if (= mode "light")
-        (util/set-theme-light)
-        (util/set-theme-dark)))))
 
 (defn set-root-component!
   [component]
@@ -1885,10 +1863,7 @@ Similar to re-frame subscriptions"
               (util/set-change-value input content))
 
             (when (and move-cursor? (not (block-component-editing?)))
-              (cursor/move-cursor-to input pos))
-
-            (when (mobile-util/native-platform?)
-              (set-state! :mobile/show-action-bar? false))))))))
+              (cursor/move-cursor-to input pos))))))))
 
 (defn get-git-auto-commit-enabled?
   []

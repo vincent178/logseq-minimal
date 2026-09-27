@@ -157,7 +157,8 @@
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center [:i (svg/logo 28)]]
               [:span.flex.flex-col
-               [[:strong "EDN / JSON to plain text graph"]
+               [:<>
+                [:strong "EDN / JSON to plain text graph"]
                 [:small (t :on-boarding/importing-lsq-desc)]]]
               [:input.absolute.hidden
                {:id "import-lsq"
@@ -168,7 +169,8 @@
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center [:i (svg/roam-research 28)]]
               [:div.flex.flex-col
-               [[:strong "RoamResearch"]
+               [:<>
+                [:strong "RoamResearch"]
                 [:small (t :on-boarding/importing-roam-desc)]]]
               [:input.absolute.hidden
                {:id "import-roam"
@@ -179,7 +181,8 @@
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center.ml-1 (ui/icon "sitemap" {:size 26})]
               [:span.flex.flex-col
-               [[:strong "OPML"]
+               [:<>
+                [:strong "OPML"]
                 [:small (t :on-boarding/importing-opml-desc)]]]
               [:input.absolute.hidden
                {:id "import-opml"

@@ -32,7 +32,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
             [frontend.mixins :as mixins]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -486,7 +485,7 @@
          [:div.relative.grid.gap-4.sm:gap-8.page-inner.mb-16
             (when-not (or block? sidebar?)
               [:div.flex.flex-row.space-between
-               (when (or (mobile-util/native-platform?) (util/mobile?))
+               (when (util/mobile?)
                  [:div.flex.flex-row.pr-2
                   {:style {:margin-left -15}
                    :on-mouse-over (fn [e]

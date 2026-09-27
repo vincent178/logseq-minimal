@@ -50,9 +50,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.mixins :as mixins]
-            [frontend.mobile.haptics :as haptics]
-            [frontend.mobile.intent :as mobile-intent]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.outliner.tree :as tree]
             [frontend.security :as security]
             [frontend.state :as state]
@@ -330,8 +327,7 @@
         *width (get state ::size)
         width (or @*width width)
         metadata' (assoc metadata :width width)
-        resizable? (and (not (mobile-util/native-platform?))
-                        (not breadcrumb?)
+        resizable? (and (not breadcrumb?)
                         (not positioned?))
         asset-container-cp (asset-container asset-block src title metadata'
                                             {:breadcrumb? breadcrumb?
@@ -387,7 +383,7 @@
     (when-let [s (or href (some-> (.-target e) (.-dataset) (.-href)))]
       (let [load$ (fn []
                     (p/let [href (or href
-                                     (if (or (mobile-util/native-platform?) (util/electron?))
+                                     (if (util/electron?)
                                        s
                                        (assets-handler/<make-asset-url s)))]
                       (when-let [current (pdf-assets/inflate-asset s {:block block
@@ -433,13 +429,7 @@
             path (str repo-dir href)
             share-fn (fn [event]
                        (util/stop event)
-                       (when (mobile-util/native-platform?)
-                         ;; File URL must be legal, so filename muse be URI-encoded
-                         ;; incoming href format: "/assets/whatever.ext"
-                         (let [[rel-dir basename] (util/get-dir-and-basename href)
-                               rel-dir (string/replace rel-dir #"^/+" "")
-                               asset-url (path/path-join repo-dir rel-dir basename)]
-                           (mobile-intent/open-or-share-file asset-url))))]
+nil)]
         (cond
           (and @src
                (or (contains? config/audio-formats ext)
@@ -2037,8 +2027,7 @@
                         (state/toggle-collapsed-block! uuid)
                         (if collapsed?
                           (editor-handler/expand-block! uuid)
-                          (editor-handler/collapse-block! uuid)))
-                      (haptics/haptics))
+                          (editor-handler/collapse-block! uuid))))
                      ;; debug config context
                      (when (and (state/developer-mode?) (.-metaKey event))
                        (js/console.debug "[block config]==" config)))}
@@ -2080,8 +2069,7 @@
                           order-list?
                            [:label (str order-list-idx ".")])])]]
              bullet' (cond
-                       (and (or (mobile-util/native-platform?)
-                                (:ui/show-empty-bullets? (state/get-config))
+                       (and (or (:ui/show-empty-bullets? (state/get-config))
                                 collapsed?
                                 collapsable?
                                 (< (- (util/time-ms) (:block/created-at block)) 500))
@@ -2419,7 +2407,7 @@
             (do
               (state/drop-selection-block! block-dom-element)
               (when (= 1 (count ids))
-                (state/set-state! :mobile/show-action-bar? false)))
+                nil))
             (state/conj-selection-block! block-dom-element)))
         (when-not (or
                    (:closed-values? config)
@@ -2464,7 +2452,6 @@
 
                 :else
                 (let [block (or (db/entity [:block/uuid (:block/uuid block)]) block)]
-                  (mobile-util/mobile-focus-hidden-input)
                   (editor-handler/clear-selection!)
                   (editor-handler/unhighlight-blocks!)
                   (p/do!
@@ -2921,8 +2908,6 @@
 
                           :else
                           :sibling)]
-      (when-not (= uuid @*dragging-over-block)
-        (haptics/haptics))
       (reset! *dragging-over-block uuid)
       (reset! *drag-to-block block-id)
       (reset! *move-to' move-to-value))))
@@ -2949,7 +2934,6 @@
   [^js event uuid target-block original-block *move-to']
   (when-not (dnd-same-block? uuid)
     (util/stop-propagation event)
-    (haptics/haptics)
     (let [block-uuids (state/get-selection-block-ids)
           lookup-refs (map (fn [id] [:block/uuid id]) block-uuids)
           selected (db/pull-many (state/get-current-repo) '[*] lookup-refs)
@@ -2960,7 +2944,6 @@
         (do
           (dnd/move-blocks event blocks target-block original-block @*move-to')
           (when (util/capacitor?)
-            (state/set-state! :mobile/show-action-bar? false)
             (state/clear-selection!)))
         ;; handle DataTransfer
         (let [repo (state/get-current-repo)

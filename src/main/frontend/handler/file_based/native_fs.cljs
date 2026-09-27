@@ -12,7 +12,6 @@
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.route :as route-handler]
             [frontend.idb :as idb]
-            [frontend.mobile.util :as mobile-util]
             [frontend.persist-db :as persist-db]
             [frontend.state :as state]
             [frontend.util :as util]
@@ -46,8 +45,7 @@
   [result nfs?]
   (->>
    (cond
-     (or (mobile-util/native-platform?)
-         (util/electron?)
+     (or (util/electron?)
          nfs?)
      (map (fn [{:keys [path content stat]}]
             {:file/path             (common-util/path-normalize path)
@@ -90,9 +88,7 @@
   ([ok-handler] (ls-dir-files-with-handler! ok-handler nil))
   ([ok-handler {:keys [on-open-dir dir-result-fn picked-root-fn dir]}]
    (let [electron? (util/electron?)
-         mobile-native? (mobile-util/native-platform?)
-         nfs? (and (not electron?)
-                   (not mobile-native?))
+         nfs? (not electron?)
          *repo (atom nil)]
      ;; TODO: add ext filter to avoid loading .git or other ignored file handlers
      (->
@@ -145,9 +141,6 @@
                            (log/error :exception error)))))))
       (p/catch (fn [error]
                  (log/error :exception error)
-                 (when mobile-native?
-                   (state/pub-event!
-                    [:notification/show {:content (str error) :status :error}]))
                  (when (contains? #{"AbortError" "Error"} (gobj/get error "name"))
                    (when @*repo (state/set-loading-files! @*repo false))
                    (throw error))))
@@ -244,14 +237,12 @@
           repo-dir (config/get-local-dir repo)
           handle-path (str "handle/" repo-dir)
           electron? (util/electron?)
-          mobile-native? (mobile-util/native-platform?)
-          nfs? (and (not electron?)
-                    (not mobile-native?))]
+          nfs? (not electron?)]
       (when re-index?
         (state/set-graph-syncing? true))
       (->
        (p/let [handle (when-not electron? (idb/get-item handle-path))]
-         (when (or handle electron? mobile-native?)
+         (when (or handle electron?)
            (p/let [local-files-result (fs/get-files repo-dir)
                    _ (when (config/global-config-enabled?)
                        ;; reload global config into state

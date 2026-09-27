@@ -6,7 +6,6 @@
             [frontend.handler.graph :as graph]
             [frontend.handler.repo :as repo-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -170,7 +169,7 @@
    (when (util/electron?)
      (shui/button {:size :sm :variant :ghost
                    :on-click (fn []
-                               (if (or (nfs-handler/supported?) (mobile-util/native-platform?))
+                               (if (nfs-handler/supported?)
                                  (state/pub-event! [:graph/setup-a-repo])
                                  (route-handler/redirect-to-all-graphs)))}
                   [:span (t :new-graph)]))
@@ -181,10 +180,7 @@
     [:span (t :import-notes)])
 
    (shui/button {:size :sm :variant :ghost
-                 :on-click (fn []
-                             (if (util/mobile?)
-                               (state/pub-event! [:mobile/set-tab "graphs"])
-                               (route-handler/redirect-to-all-graphs)))}
+                 :on-click (fn [] (route-handler/redirect-to-all-graphs))}
                 [:span (t :all-graphs)])])
 
 (rum/defcs repos-dropdown-content < rum/reactive

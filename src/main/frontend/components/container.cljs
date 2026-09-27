@@ -21,8 +21,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
             [frontend.mixins :as mixins]
-            [frontend.mobile.footer :as footer]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.data-helper :as shortcut-dh]
             [frontend.state :as state]
             [frontend.ui :as ui]
@@ -64,7 +62,7 @@
   (let [left-sidebar-open? (state/sub :ui/left-sidebar-open?)
         onboarding-and-home? (and (or (nil? (state/get-current-repo)) (config/demo-graph?))
                                   (= :home route-name))
-        margin-less-pages? (or (and (mobile-util/native-platform?) onboarding-and-home?) margin-less-pages?)]
+        margin-less-pages? margin-less-pages?]
     [:div#main-container.cp__sidebar-main-layout.flex-1.flex
      {:class (util/classnames [{:is-left-sidebar-open left-sidebar-open?}])}
 
@@ -83,7 +81,6 @@
         :data-is-full-width (or margin-less-pages?
                                 (contains? #{:all-files :all-pages} route-name))}
 
-       (footer/footer)
 
        (cond
          db-restoring?
@@ -354,7 +351,7 @@
                 (.closest (.-target e) "input")
                 (.closest (.-target e) "textarea")
                 (.closest (.-target e) "a"))
-    (editor-handler/show-action-bar!)))
+    nil))
 
 (rum/defcs ^:large-vars/cleanup-todo root-container < rum/reactive
   (mixins/event-mixin
@@ -400,7 +397,6 @@
         default-home (app-left-sidebar/get-default-home-if-valid)
         logged? (user-handler/logged-in?)
         fold-button-on-right? (state/enable-fold-button-right?)
-        show-action-bar? (state/sub :mobile/show-action-bar?)
         preferred-language (state/sub [:preferred-language])]
     (theme/container
      {:t t
@@ -467,7 +463,7 @@
                  :light? light?
                  :db-restoring? db-restoring?
                  :main-content main-content'
-                 :show-action-bar? show-action-bar?}))]
+                 :show-action-bar? false}))]
 
        (when window-controls?
          (window-controls/container))

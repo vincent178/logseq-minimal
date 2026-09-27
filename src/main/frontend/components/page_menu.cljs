@@ -9,7 +9,6 @@
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.shell :as shell]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.util :as util]
             [frontend.util.page :as page-util]
@@ -67,8 +66,7 @@
                        (fn [] (shell/get-file-latest-git-log page 100))
                        :class "cp__btn_history_version"}})
 
-          (when (or (util/electron?)
-                    (mobile-util/native-platform?))
+          (when (util/electron?)
             {:title   (t :page/copy-page-url)
              :options {:on-click #(page-handler/copy-page-url page-title)}})
 

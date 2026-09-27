@@ -29,7 +29,6 @@
             [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.outliner.op :as outliner-op]
             [frontend.modules.outliner.tree :as tree]
             [frontend.modules.outliner.ui :as ui-outliner-tx]
@@ -846,7 +845,6 @@
                   concat-prev-block?
                   (let [children (:block/_parent (db/entity (:db/id block)))]
                     (p/do!
-                     (mobile-util/mobile-focus-hidden-input)
                      (state/set-state! :editor/edit-block-fn edit-block-f)
                      (ui-outliner-tx/transact!
                       transact-opts
@@ -1260,7 +1258,6 @@
                     (state/conj-selection-block! blocks direction)))
               (state/exit-editing-and-set-selected-blocks! blocks direction))))))))
 
-(defonce *action-bar-timeout (atom nil))
 
 (defn popup-exists?
   [id]
@@ -1270,13 +1267,6 @@
 (defn dialog-exists?
   [id]
   (shui-dialog/get-modal id))
-
-(defn show-action-bar!
-  "DB-graph-only selection action bar; no-op in file graphs (db-based-graph? pinned false)."
-  [& _opts]
-  ;; Keep the atom referenced to avoid carve dead-var; the action bar is DB-only.
-  @*action-bar-timeout
-  nil)
 
 (defn- select-block-up-down
   [direction]
@@ -1321,7 +1311,6 @@
       (when element
         (util/scroll-to-block element)
         (state/drop-last-selection-block!))))
-  (show-action-bar! {:delay 500})
   nil)
 
 (defn on-select-block
@@ -2641,9 +2630,7 @@
             (delete-and-update input selected-start selected-end))
 
           (zero? current-pos)
-          (when-not (mobile-util/native-ios?)
-            ;; native iOS handled by `mobile.bottom-tabs/add-keyboard-hack-listener!`
-            (delete-block-when-zero-pos! e))
+          (delete-block-when-zero-pos! e)
 
           (and (> current-pos 0)
                (contains? #{commands/command-trigger commands/command-ask}
@@ -2684,7 +2671,7 @@
 
           ;; just delete
           :else
-          (when (and input (not (mobile-util/native-ios?)))
+          (when input
             (util/stop e)
             (delete-and-update
              input (util/safe-dec-current-pos-from-end (.-value input) current-pos) current-pos))))
@@ -2896,31 +2883,12 @@
     (when-not (util/goog-event-is-composing? e)
       (let [current-pos (cursor/pos input)
             value (gobj/get input "value")
-            c (util/nth-safe value (dec current-pos))
             [key-code k code is-processed?]
-            (if (and c
-                     (mobile-util/native-android?)
-                     (or (= key-code 229)
-                         (= key-code 0)))
-              [(.charCodeAt value (dec current-pos))
-               c
-               (cond
-                 (= c " ")
-                 "Space"
-
-                 (parse-long c)
-                 (str "Digit" c)
-
-                 :else
-                 (str "Key" (string/upper-case c)))
-               false]
-              [key-code
-               (gobj/get e "key")
-               (if (mobile-util/native-android?)
-                 (gobj/get e "key")
-                 (gobj/getValueByKeys e "event_" "code"))
+            [key-code
+             (gobj/get e "key")
+             (gobj/getValueByKeys e "event_" "code")
                 ;; #3440
-               (util/goog-event-is-composing? e true)])]
+             (util/goog-event-is-composing? e true)]]
         (cond
           ;; When you type something after /
           (and (= :commands (state/get-editor-action)) (not= k commands/command-trigger))

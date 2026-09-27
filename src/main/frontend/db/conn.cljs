@@ -2,11 +2,8 @@
   "Contains db connections."
   (:require             [frontend.config :as config]
             [frontend.db.conn-state :as db-conn-state]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.util :as util]
-            [frontend.util.text :as text-util]
-            [logseq.common.util :as common-util]
             [logseq.graph-parser.db :as gp-db]
             [logseq.graph-parser.text :as text]))
 
@@ -30,9 +27,6 @@
 (defn get-repo-name
   [repo-url]
   (cond
-    (mobile-util/native-platform?)
-    (text-util/get-graph-name-from-path repo-url)
-
     (config/local-file-based-graph? repo-url)
     (config/get-local-dir repo-url)
 
@@ -42,14 +36,8 @@
 (defn get-short-repo-name
   "repo-name: from get-repo-name. Dir/Name => Name"
   [repo-name]
-  (let [repo-name' (cond
-                     (util/electron?)
+  (let [repo-name' (if (util/electron?)
                      (text/get-file-basename repo-name)
-
-                     (mobile-util/native-platform?)
-                     (common-util/safe-decode-uri-component (text/get-file-basename repo-name))
-
-                     :else
                      repo-name)]
     repo-name'))
 

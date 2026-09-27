@@ -16,7 +16,6 @@
             [frontend.handler :as handler]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
@@ -34,10 +33,7 @@
   []
   (shui/button-ghost-icon :home
                           {:title (t :home)
-                           :on-click #(do
-                                        (when (mobile-util/native-iphone?)
-                                          (state/set-left-sidebar-open! false))
-                                        (route-handler/redirect-to-home!))}))
+                           :on-click #(route-handler/redirect-to-home!)}))
 
 (rum/defc left-menu-button < rum/reactive
   < {:key-fn #(identity "left-menu-toggle-button")}
@@ -258,39 +254,22 @@
         custom-home-page? (and (state/custom-home-page?)
                                (= (state/sub-default-home-page) (state/get-current-page)))]
     [:div.cp__header.drag-region#head
-     {:class           (util/classnames [{:electron-mac   electron-mac?
-                                          :native-ios     (mobile-util/native-ios?)
-                                          :native-android (mobile-util/native-android?)}])
+     {:class           (util/classnames [{:electron-mac   electron-mac?}])
       :on-double-click (fn [^js e]
                          (when-let [target (.-target e)]
-                           (cond
-                             (and (util/electron?)
-                                  (.. target -classList (contains "drag-region")))
-                             (js/window.apis.toggleMaxOrMinActiveWindow)
-
-                             (mobile-util/native-platform?)
-                             (util/scroll-to-top true))))
+                           (when (and (util/electron?)
+                                      (.. target -classList (contains "drag-region")))
+                             (js/window.apis.toggleMaxOrMinActiveWindow))))
       :style           {:fontSize 50}}
      [:div.l.flex.items-center.drag-region
       [left-menu
-       (if (mobile-util/native-platform?)
-         ;; back button for mobile
-         (when-not (or (state/home?) custom-home-page?)
-           (ui/with-shortcut :go/backward "bottom"
-             [:button.it.navigation.nav-left.button.icon.opacity-70
-              {:title (t :header/go-back) :on-click #(js/window.history.back)}
-              (ui/icon "chevron-left" {:size 26})]))
-                 ;; search button for non-mobile
-         (when current-repo
-           (ui/with-shortcut :go/search "right"
-             [:button.button.icon#search-button
-              {:data-keep-selection true
-               :title (t :header/search)
-               :on-click #(do (when (or (mobile-util/native-android?)
-                                        (mobile-util/native-iphone?))
-                                (state/set-left-sidebar-open! false))
-                              (state/pub-event! [:go/search]))}
-              (ui/icon "search" {:size ui/icon-size})])))]]
+       (when current-repo
+         (ui/with-shortcut :go/search "right"
+           [:button.button.icon#search-button
+            {:data-keep-selection true
+             :title (t :header/search)
+             :on-click #(state/pub-event! [:go/search])}
+            (ui/icon "search" {:size ui/icon-size})]))]]
 
      [:div.r.flex.drag-region.justify-between.items-center.gap-2.overflow-x-hidden.w-full
       [:div.flex.flex-1
@@ -309,8 +288,7 @@
        (when (util/electron?)
          (back-and-forward))
 
-       (when-not (mobile-util/native-platform?)
-         (new-block-mode))
+       (new-block-mode)
 
        (toolbar-dots-menu {:t            t
                            :current-repo current-repo
