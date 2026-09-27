@@ -70,7 +70,16 @@
 (defn exit-edit
   []
   (when (get-editor)
-    (k/esc))
+    (k/esc)
+    ;; A single Esc can be consumed by an open editor popup (page/block search,
+    ;; commands, datepicker) instead of exiting the editor (see
+    ;; `editor-on-hide`), leaving the editor open. If the editor is still in
+    ;; edit mode after the first Esc, press Esc again to actually exit.
+    (let [deadline (+ (System/currentTimeMillis) 2000)]
+      (while (and (< (System/currentTimeMillis) deadline)
+                  (get-editor))
+        (k/esc)
+        (Thread/sleep 100))))
   (assert/assert-non-editor-mode))
 
 (defn double-esc
@@ -189,7 +198,20 @@
   (press-seq "/" {:delay 20})
   (w/wait-for ".ui__popover-content")
   (press-seq command {:delay 20})
-  (w/click "a.menu-link.chosen"))
+  (w/click "a.menu-link.chosen")
+  ;; Clicking the command opens a popover (e.g. the link form). Under load the
+  ;; popover grabs focus asynchronously, so the next `press-seq` can otherwise
+  ;; send its first keystroke(s) to the still-focused block editor. Wait until
+  ;; focus has moved into the popover (out of the block editor) before returning.
+  (when (w/visible? ".ui__popover-content")
+    (let [deadline (+ (System/currentTimeMillis) 2000)]
+      (while (and (< (System/currentTimeMillis) deadline)
+                  (w/eval-js "() => {
+                                 const a = document.activeElement;
+                                 const p = document.querySelector('.ui__popover-content');
+                                 return !(p && a && p.contains(a));
+                               }"))
+        (Thread/sleep 20)))))
 
 (defn set-tag
   "`hidden?`: some tags may be hidden from the UI, e.g. Page"
