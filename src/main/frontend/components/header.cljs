@@ -9,7 +9,6 @@
             [frontend.components.page-menu :as page-menu]
             [frontend.components.plugins :as plugins]
             [frontend.components.right-sidebar :as sidebar]
-            [frontend.components.server :as server]
             [frontend.components.svg :as svg]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
@@ -306,8 +305,6 @@
           (plugins/hook-ui-items :toolbar)
           (plugins/updates-notifications)])
 
-       (when (state/feature-http-server-enabled?)
-         (server/server-indicator (state/sub :electron/server)))
 
        (when (util/electron?)
          (back-and-forward))

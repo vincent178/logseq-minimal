@@ -9,7 +9,6 @@
 (s/def :ui/theme string?)
 (s/def :ui/system-theme? boolean?)
 (s/def ::lsp-core-enabled boolean?)
-(s/def ::http-server-enabled boolean?)
 (s/def ::ls-pdf-area-is-dashed boolean?)
 (s/def ::ls-pdf-hl-block-is-colored boolean?)
 (s/def ::ls-pdf-viewer-theme string?)

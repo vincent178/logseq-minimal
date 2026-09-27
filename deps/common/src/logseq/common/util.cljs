@@ -395,3 +395,11 @@ return: [{:id 3} {:id 2 :depend-on 3} {:id 1 :depend-on 2}]"
            (cmp (get-value a) (get-value b))
            (reduced order)))
        0 get-value+cmp))))
+
+(defn remove-hidden-properties
+  "Given an entity map, remove properties that shouldn't be returned in api calls"
+  [m]
+  (->> (remove (fn [[k _v]]
+                 (or (= "block.temp" (namespace k))
+                     (contains? #{:logseq.property.embedding/hnsw-label-updated-at :block/tx-id} k))) m)
+       (into {})))

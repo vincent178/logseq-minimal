@@ -5,7 +5,6 @@
             [babashka.cli :as cli]
             [clojure.string :as string]
             [logseq.cli.common.graph :as cli-common-graph]
-            [logseq.cli.spec :as cli-spec]
             [logseq.cli.text-util :as cli-text-util]
             [nbb.error]
             [promesa.core :as p]))
@@ -74,16 +73,7 @@
                      (js/process.exit 1)))))))
 
 (def ^:private table*
-  [{:cmds ["append"] :desc "Append text to current page"
-    :description "Append text to current page of current in-app graph."
-    :fn (lazy-load-fn 'logseq.cli.commands.append/append)
-    :args->opts [:args] :require [:args] :coerce {:args []}
-    :spec cli-spec/append}
-   {:cmds ["mcp-server"] :desc "Run a MCP server"
-    :description "Run a MCP server against the current in-app graph. The API server must be on in the app. By default the MCP server runs as a HTTP Streamable server. Use --stdio to run it as a stdio server."
-    :fn (lazy-load-fn 'logseq.cli.commands.mcp-server/start)
-    :spec cli-spec/mcp-server}
-   {:cmds ["help"] :fn help-command :desc "Print a command's help"
+  [{:cmds ["help"] :fn help-command :desc "Print a command's help"
     :args->opts [:command] :require [:command]}
    {:cmds []
     :spec default-spec

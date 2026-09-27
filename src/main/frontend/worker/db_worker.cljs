@@ -31,7 +31,6 @@
             [goog.object :as gobj]
             [lambdaisland.glogi :as log]
             [lambdaisland.glogi.console :as glogi-console]
-            [logseq.cli.common.mcp.tools :as cli-common-mcp-tools]
             [logseq.common.util :as common-util]
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
@@ -695,31 +694,6 @@
 (def-thread-api :thread-api/mobile-logs
   []
   @worker-state/*log)
-
-(def-thread-api :thread-api/api-get-page-data
-  [repo page-title]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (cli-common-mcp-tools/get-page-data @conn page-title)))
-
-(def-thread-api :thread-api/api-list-properties
-  [repo options]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (cli-common-mcp-tools/list-properties @conn options)))
-
-(def-thread-api :thread-api/api-list-tags
-  [repo options]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (cli-common-mcp-tools/list-tags @conn options)))
-
-(def-thread-api :thread-api/api-list-pages
-  [repo options]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (cli-common-mcp-tools/list-pages @conn options)))
-
-(def-thread-api :thread-api/api-build-upsert-nodes-edn
-  [repo ops]
-  (let [conn (worker-state/get-datascript-conn repo)]
-    (cli-common-mcp-tools/build-upsert-nodes-edn @conn ops)))
 
 (comment
   (def-thread-api :general/dangerousRemoveAllDbs

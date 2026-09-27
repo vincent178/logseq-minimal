@@ -593,20 +593,6 @@
                     :on-click #(js/logseq.api.relaunch)
                     :small? true :intent "logseq")))]))
 
-(rum/defc http-server-enabled-switcher
-  [t]
-  (let [[value _] (rum/use-state (boolean (storage/get ::storage-spec/http-server-enabled)))
-        [on? set-on?] (rum/use-state value)
-        on-toggle #(let [v (not on?)]
-                     (set-on? v)
-                     (storage/set ::storage-spec/http-server-enabled v))]
-    [:div.flex.items-center.gap-2
-     (ui/toggle on? on-toggle true)
-     (when (not= (boolean value) on?)
-       (ui/button (t :plugin/restart)
-                  :on-click #(js/logseq.api.relaunch)
-                  :small? true :intent "logseq"))]))
-
 (rum/defc user-proxy-settings
   [{:keys [type protocol host port] :as agent-opts}]
   (ui/button [:span.flex.items-center
@@ -623,11 +609,6 @@
   (row-with-button-action
    {:left-label (t :settings-page/plugin-system)
     :action (plugin-enabled-switcher t)}))
-
-(defn http-server-switcher-row []
-  (row-with-button-action
-   {:left-label "HTTP API server"
-    :action (http-server-enabled-switcher t)}))
 
 (defn https-user-agent-row [agent-opts]
   (row-with-button-action
@@ -788,9 +769,7 @@
                              (when (= "Enter" (util/ekey e))
                                (update-home-page e)))}]]]])
      (when (and web-platform? config/feature-plugin-system-on?)
-       (plugin-system-switcher-row))
-     (when (util/electron?)
-       (http-server-switcher-row))]))
+       (plugin-system-switcher-row))]))
 
      ;; (when-not web-platform?
      ;;   [:<>

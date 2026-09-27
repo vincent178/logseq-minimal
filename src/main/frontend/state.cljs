@@ -206,7 +206,6 @@
       :electron/updater-pending?             false
       :electron/updater                      {}
       :electron/user-cfgs                    nil
-      :electron/server                       nil
       :electron/window-maximized?            false
       :electron/window-fullscreen?           false
 
@@ -1920,10 +1919,6 @@ Similar to re-frame subscriptions"
 (defn get-block-op-type
   []
   (:editor/block-op-type @state))
-
-(defn feature-http-server-enabled?
-  []
-  (boolean (storage/get ::storage-spec/http-server-enabled)))
 
 (defn get-plugin-by-id
   [id]
