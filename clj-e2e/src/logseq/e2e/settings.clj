@@ -10,8 +10,8 @@
   ;; Retry once on a stale-element timeout to ride out the initialization.
   [& {:keys [in-retry?]}]
   (let [f (fn []
-            (w/click "button[title='More'] .ls-icon-dots")
-            (w/click ".ls-icon-settings")
+            (w/click "button[title='More']")
+            (w/click "[role='menuitem'] div:text('Settings')")
             (w/click "[data-id='advanced']")
             (let [q (.last (w/-query ".ui__toggle [aria-checked='false']"))]
               (when (.isVisible q)
