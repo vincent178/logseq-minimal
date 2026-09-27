@@ -79,7 +79,6 @@
       :notification/content                  nil
       :repo/loading-files?                   {}
       :nfs/refreshing?                       nil
-      :instrument/disabled?                  (storage/get "instrument-disabled")
       ;; TODO: how to detect the network reliably?
       ;; NOTE: prefer to use flows/network-online-event-flow
       :network/online?         true

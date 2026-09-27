@@ -101,8 +101,6 @@
  :settings-page/accent-color-alert "選擇高亮色可能會影響您選擇的自訂主題。"
  :settings-page/spell-checker "自動拼音核對"
  :settings-page/auto-updater "自動更新"
- :settings-page/disable-sentry "寄送資料和診斷書給 Logseq"
- :settings-page/disable-sentry-desc "Logseq 永遠不會收集您的圖表資料或出售您的數據。"
  :settings-page/preferred-outdenting "邏輯化縮排"
  :settings-page/show-full-blocks "顯示所有區塊引用列"
  :settings-page/custom-date-format "偏好日期格式"

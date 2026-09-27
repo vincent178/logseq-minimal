@@ -210,8 +210,6 @@
  :settings-page/accent-color-alert "アクセントカラーを選択すると、選択したテーマが上書きされる場合があります。"
  :settings-page/spell-checker "スペルチェッカー"
  :settings-page/auto-updater "自動更新"
- :settings-page/disable-sentry "使用状況データと診断内容をLogseqへ送信します。"
- :settings-page/disable-sentry-desc "Logseqはあなたのローカルなグラフを決して取得しませんし、あなたのデータを売ることも決してありません。 "
  :settings-page/preferred-outdenting "論理的なアウトデント"
  :settings-page/preferred-outdenting-tip "左側は既定のままの場合のアウトデントを示しています。右側は論理的なアウトデントを有効にした場合のアウトデントを示しています。"
  :settings-page/preferred-outdenting-tip-more "→ もっと学ぶ"

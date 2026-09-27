@@ -237,7 +237,6 @@
   {:malli/schema [:=> [:cat :any :string] [:or :nil :string [:vector [:maybe :string]]]]}
   [pattern s]
   (when-not (string? s)
-    ;; TODO: sentry
     (js/console.trace))
   (when (string? s)
     (re-find pattern s)))

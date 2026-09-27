@@ -147,7 +147,6 @@
  :settings-page/custom-theme "Aangepast thema"
  :settings-page/developer-mode "Ontwikkelaar modus"
  :settings-page/developer-mode-desc "De ontwikkelaarsmodus helpt bijdragers en extensie-ontwikkelaars om hun integratie met Logseq efficiënter te testen."
- :settings-page/disable-sentry "Gebruiksgegevens en diagnostiek naar Logseq sturen"
  :settings-page/edit-config-edn "Bewerk config.edn"
  :settings-page/edit-custom-css "Bewerk custom.css"
  :settings-page/edit-export-css "Bewerk export.css"

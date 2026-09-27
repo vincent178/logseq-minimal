@@ -191,8 +191,6 @@
  :settings-page/show-brackets "Tampilkan tanda kurung"
  :settings-page/spell-checker "Pemeriksa ejaan"
  :settings-page/auto-updater "Pembaruan otomatis"
- :settings-page/disable-sentry "Kirim data penggunaan dan diagnosa ke Logseq"
- :settings-page/disable-sentry-desc "Logseq tidak akan pernah mengumpulkan database grafik lokal Anda atau menjual data Anda."
  :settings-page/preferred-outdenting "Pengaturan penyingkiran logis"
  :settings-page/preferred-outdenting-tip "Sisi kiri menunjukkan penyingkiran dengan pengaturan default, dan sisi kanan menunjukkan penyingkiran logis yang diaktifkan "
  :settings-page/preferred-outdenting-tip-more "→ Pelajari lebih lanjut"

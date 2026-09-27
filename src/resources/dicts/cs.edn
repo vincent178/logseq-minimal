@@ -196,8 +196,6 @@
  :settings-page/show-brackets                      "Zobrazit závorky"
  :settings-page/spell-checker                      "Kontrola pravopisu"
  :settings-page/auto-updater                       "Automatická aktualizace"
- :settings-page/disable-sentry                     "Odesílání dat o používání a diagnostiky do systému Logseq"
- :settings-page/disable-sentry-desc                "Společnost Logseq nikdy nebude shromažďovat vaši místní databázi grafů ani prodávat vaše data."
  :settings-page/preferred-outdenting               "Logické odsazení"
  :settings-page/preferred-outdenting-tip           "Levá strana ukazuje odsazení s předvoleným nastavením, a pravá ukazuje odsazení s logickým odsadením "
  :settings-page/preferred-outdenting-tip-more      "→ Další informace"

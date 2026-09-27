@@ -205,8 +205,6 @@
  :settings-page/show-brackets "Köşeli ayraçları göster"
  :settings-page/spell-checker "Yazım denetleyici"
  :settings-page/auto-updater "Otomatik güncelleme"
- :settings-page/disable-sentry "Kullanım verilerini ve tanılamayı Logseq'e gönderin"
- :settings-page/disable-sentry-desc "Logseq asla yerel graf veritabanınızı toplamayacak veya verilerinizi satmayacaktır."
  :settings-page/preferred-outdenting "Mantıksal girinti"
  :settings-page/preferred-outdenting-tip "Sol taraf varsayılan ayar ile olan girintiyi, sağ taraf ise mantıksal girinti etkinken olan girintiyi gösterir. "
  :settings-page/preferred-outdenting-tip-more "→ Daha fazla bilgi edinin"

@@ -28,7 +28,6 @@
             [frontend.handler.ui :as ui-handler]
             [frontend.idb :as idb]
             [frontend.mobile.util :as mobile-util]
-            [frontend.modules.instrumentation.core :as instrument]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.persist-db :as persist-db]
             [frontend.persist-db.browser :as db-browser]
@@ -142,7 +141,6 @@
       (el/listen!))
 
     (i18n/start)
-    (instrument/init)
 
     (react/run-custom-queries-when-idle!)
 

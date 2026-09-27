@@ -3,14 +3,11 @@
   core.async channel to handle them. Any part of the system can dispatch
   one of these events using state/pub-event!"
   (:refer-clojure :exclude [run!])
-  (:require ["@sentry/react" :as Sentry]
-            [cljs-bean.core :as bean]
-            [clojure.core.async :as async]
+  (:require [clojure.core.async :as async]
             [clojure.string :as string]
             [frontend.commands :as commands]
             [frontend.config :as config]
             [frontend.date :as date]
-            [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
             [frontend.db.react :as react]
@@ -31,7 +28,6 @@
             [frontend.handler.shell :as shell-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.mobile.util :as mobile-util]
-            [frontend.modules.instrumentation.posthog :as posthog]
             [frontend.modules.outliner.pipeline :as pipeline]
             [frontend.modules.shortcut.core :as st]
             [frontend.persist-db :as persist-db]
@@ -40,7 +36,6 @@
             [frontend.util :as util]
             [goog.dom :as gdom]
             [lambdaisland.glogi :as log]
-            [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
 
 ;; TODO: should we move all events here?
@@ -158,21 +153,8 @@
 
   (fs-watcher/load-graph-files! repo))
 
-(defmethod handle :instrument [[_ {:keys [type payload] :as opts}]]
-  (when-not (empty? (dissoc opts :type :payload))
-    (js/console.error "instrument data-map should only contains [:type :payload]"))
-  (posthog/capture type payload))
-
-(defmethod handle :capture-error [[_ {:keys [error payload extra]}]]
-  (let [payload (merge
-                 {:schema-version (str db-schema/version)
-                  :db-schema-version (when-let [db (db/get-db)]
-                                       (str (:kv/value (db/entity db :logseq.kv/schema-version))))
-                  :db-based false}
-                 payload)]
-    (Sentry/captureException error
-                             (bean/->js {:tags payload
-                                         :extra extra}))))
+(defmethod handle :capture-error [[_ {:keys [error]}]]
+  (log/error :capture-error error))
 
 (defmethod handle :exec-plugin-cmd [[_ {:keys [pid cmd action]}]]
   (commands/exec-plugin-simple-command! pid cmd action))

@@ -138,8 +138,6 @@
  :settings-page/accent-color-alert "选择高亮色可能会影响您选择的自定义主题。"
  :settings-page/spell-checker "单词拼写检查"
  :settings-page/auto-updater "自动更新"
- :settings-page/disable-sentry "向 Logseq 提供使用情况和诊断信息"
- :settings-page/disable-sentry-desc "Logseq 从来不会收集或出售你的图谱数据。"
  :settings-page/custom-date-format "首选日期页面格式"
  :settings-page/preferred-file-format "首选文件格式"
  :settings-page/preferred-workflow "首选工作流"

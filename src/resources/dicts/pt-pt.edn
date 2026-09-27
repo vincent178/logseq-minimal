@@ -98,8 +98,6 @@
  :settings-page/show-brackets "Mostrar parênteses retos"
  :settings-page/spell-checker "Verificador ortográfico"
  :settings-page/auto-updater "Atualizar automaticamente"
- :settings-page/disable-sentry "Enviar dados de utilização e diagnósticos para a Logseq"
- :settings-page/disable-sentry-desc "A Logseq nunca irá recolher informações sobre a sua base de dados de grafos local ou vender os seus dados."
  :settings-page/preferred-outdenting "Desindentação lógica"
  :settings-page/show-full-blocks "Mostrar todas a linhas de uma referência de bloco"
  :settings-page/custom-date-format "Formato de data preferido"

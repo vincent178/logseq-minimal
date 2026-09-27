@@ -206,8 +206,6 @@
  :settings-page/accent-color-alert "Escolher uma cor de destaque pode sobrescrever qualquer tema selecionado."
  :settings-page/spell-checker "Verificador ortografo"
  :settings-page/auto-updater "Atualização automática"
- :settings-page/disable-sentry "Enviar dados de uso e diagnósticos para o Logseq"
- :settings-page/disable-sentry-desc "O Logseq nunca coletará o banco de dados do seu grafo local nem venderá seus dados."
  :settings-page/preferred-outdenting "Recuo lógico"
  :settings-page/preferred-outdenting-tip "O lado esquerdo mostra o recuo com a configuração padrão, e o lado direito mostra o recuo com o recuo lógico ativado "
  :settings-page/preferred-outdenting-tip-more "→ Saiba mais"

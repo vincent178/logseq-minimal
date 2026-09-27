@@ -115,8 +115,6 @@
  :settings-page/show-brackets "Показати дужки"
  :settings-page/spell-checker "Перевірка правопису"
  :settings-page/auto-updater "Авто-оновлювач"
- :settings-page/disable-sentry "Надсилати дані про використання та діагностику в Logseq"
- :settings-page/disable-sentry-desc "Logseq ніколи не збиратиме вашу локальну базу даних графів і не відправлятиме ваші дані."
  :settings-page/preferred-outdenting "Логічне видалення відступів"
  :settings-page/show-full-blocks "Показати всі рядки посилання на блок"
  :settings-page/auto-expand-block-refs "Автоматично розгортайти посилання на блоки під час збільшення"

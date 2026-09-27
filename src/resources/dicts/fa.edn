@@ -173,8 +173,6 @@
 :settings-page/custom-theme "پوسته سفارشی"
 :settings-page/developer-mode "حالت توسعه‌دهنده"
 :settings-page/developer-mode-desc "حالت توسعه‌دهنده به مشارکت‌کنندگان و توسعه‌دهندگان افزونه‌ها امکان می‌دهد تا به شکل مؤثرتری بتوانند یکپارچگی کارشان با لاگ‌سیک را به آزمون بگذارند."
-:settings-page/disable-sentry "فرستادن داده‌های استفاده و ارزیابی به لاگ‌سیک"
-:settings-page/disable-sentry-desc "لاگ‌سیک هرگز پایگاه داده گراف محلی شما را گردآوری نکرده و داده‌های شما را نمی‌فروشد."
 :settings-page/edit-config-edn "ویرایش config.edn"
 :settings-page/edit-custom-css "ویرایش custom.css"
 :settings-page/edit-export-css "ویرایش export.css"

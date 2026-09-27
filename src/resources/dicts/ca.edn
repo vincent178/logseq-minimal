@@ -451,8 +451,6 @@
  :settings-page/custom-theme                        "Tema personalitzat"
  :settings-page/developer-mode                      "Mode desenvolupador"
  :settings-page/developer-mode-desc                 "El mode desenvolupador permet als col·laboradors i desenvolupadors d'extensions provar les integracions amb Logseq de manera més eficient."
- :settings-page/disable-sentry                      "Enviar dades d'ús i diagnòstics a Logseq"
- :settings-page/disable-sentry-desc                 " Logseq mai recol·lectarà la seva base de dades de grafs local o vendrà les seves dades."
  :settings-page/edit-config-edn                     "Editar config.edn (per aquest repositori)"
  :settings-page/edit-custom-css                     "Editar custom.css"
  :settings-page/edit-export-css                     "Editar export.css"
