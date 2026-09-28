@@ -27,14 +27,12 @@
     (are [x y] (= (gp-mldoc/link? :org x) y)
       "[[http://www.google.com]]" true
       "[[https://www.google.com]]" true
-      "[[draws/2022-03-06-15-00-28.excalidraw]]" true
       "[[assets/2022-03-06-15-00-28.pdf]]" true))
 
   (testing "markdown links"
     (are [x y] (= (gp-mldoc/link? :markdown x) y)
       "[google](http://www.google.com)" true
       "[google](https://www.google.com)" true
-      "[[draws/2022-03-06-15-00-28.excalidraw]]" true
       "![a pdf](assets/2022-03-06-15-00-28.pdf)" true))
 
   ;; https://github.com/logseq/og/issues/4308

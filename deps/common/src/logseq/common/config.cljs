@@ -64,13 +64,8 @@
         (string/replace-first asset-protocol "file://"))
     s))
 
-(defonce default-draw-directory "draws")
 ;; TODO read configurable value?
 (defonce default-whiteboards-directory "whiteboards")
-
-(defn draw?
-  [path]
-  (string/starts-with? path default-draw-directory))
 
 (defn whiteboard?
   [path]
@@ -89,7 +84,7 @@
 (defn text-formats
   []
   #{:json :org :md :yml :dat :asciidoc :rst :txt :markdown :adoc :html :js :ts :edn :clj :ml :rb :ex :erl :java :php :c :css
-    :excalidraw :tldr :sh})
+    :sh})
 
 (defn img-formats
   []

@@ -6,9 +6,7 @@
   "Gets file graph property id given the db graph ident"
   [db-ident]
   ;; Map of unique cases where the db graph keyword name is different than the file graph id
-  (let [unique-file-ids {:logseq.property/order-list-type :logseq.order-list-type
-                         :logseq.property.tldraw/page :logseq.tldraw.page
-                         :logseq.property.tldraw/shape :logseq.tldraw.shape}]
+  (let [unique-file-ids {:logseq.property/order-list-type :logseq.order-list-type}]
     (or (get unique-file-ids db-ident)
         (keyword (name db-ident)))))
 
@@ -28,7 +26,3 @@
   (when db
     (let [block (or (d/entity db (:db/id block)) block)]
       (lookup repo block db-ident))))
-
-(defn shape-block?
-  [repo db block]
-  (= :whiteboard-shape (get-block-property-value repo db block :logseq.property/ls-type)))

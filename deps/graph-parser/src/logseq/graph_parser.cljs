@@ -84,9 +84,6 @@ Options available:
                (cond (contains? common-config/mldoc-support-formats format)
                      (extract/extract file-path content extract-options')
 
-                     (common-config/whiteboard? file-path)
-                     (extract/extract-whiteboard-edn file-path content extract-options')
-
                      :else nil)
                block-ids (map (fn [block] {:block/uuid (:block/uuid block)}) blocks)
                delete-blocks (delete-blocks-fn (first pages) file-path block-ids)

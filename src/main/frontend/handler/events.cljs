@@ -62,8 +62,7 @@
   (page-handler/init-commands!)
        ;; load config
   (repo-config-handler/restore-repo-config! graph)
-  (when-not (= :draw (state/get-current-route))
-    (route-handler/redirect-to-home!))
+  (route-handler/redirect-to-home!)
   (when-let [dir-name (config/get-repo-dir graph)]
     (fs/watch-dir! dir-name))
   (graph-handler/settle-metadata-to-local! {:last-seen-at (js/Date.now)}))

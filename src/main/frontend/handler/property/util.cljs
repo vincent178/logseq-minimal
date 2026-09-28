@@ -6,6 +6,7 @@
             [frontend.state :as state]
             [logseq.db.common.property-util :as db-property-util]))
 
+
 (defn lookup
   "Get the property value by a built-in property's db-ident from block. For file and db graphs"
   [block key]
@@ -24,9 +25,3 @@
   [db-ident]
   (let [repo (state/get-current-repo)]
     (db-property-util/get-pid repo db-ident)))
-
-(defn shape-block?
-  [block]
-  (let [repo (state/get-current-repo)
-        db (conn/get-db repo)]
-    (db-property-util/shape-block? repo db block)))

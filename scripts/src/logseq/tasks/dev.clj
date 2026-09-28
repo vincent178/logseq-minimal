@@ -2,7 +2,6 @@
   "Tasks for general development. For desktop or mobile development see their
   namespaces"
   (:require [babashka.cli :as cli]
-            [babashka.fs :as fs]
             [babashka.process :refer [shell]]
             [babashka.tasks :refer [clojure]]
             [clojure.core.async :as async]
@@ -66,11 +65,3 @@
                        (mapv #(vec (remove nil? %))))]
     (pp/pprint data-diff)))
 
-(defn db-import-many
-  [& args]
-  (let [parent-graph-dir "./out"
-        [file-graphs import-options] (split-with #(not (string/starts-with? % "-")) args)]
-    (doseq [file-graph file-graphs]
-      (let [db-graph (fs/path parent-graph-dir (fs/file-name file-graph))]
-        (println "Importing" (str db-graph) "...")
-        (apply shell "bb" "dev:db-import" file-graph db-graph (concat import-options ["--validate"]))))))

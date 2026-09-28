@@ -50,8 +50,7 @@
                   (and
                    (= url-type "Page_ref")
                    (and (string? value)
-                        (not (or (common-config/local-relative-asset? value)
-                                 (common-config/draw? value))))
+                        (not (common-config/local-relative-asset? value)))
                    value)
 
                   (and
@@ -298,11 +297,6 @@
 
 (def convert-page-if-journal (memoize convert-page-if-journal-impl))
 
-;; Retained for logseq.graph-parser.exporter (still used for safe file names +
-;; ::new-graph? tx-meta); its DB-graph export path is unused in this file-only
-;; build but the ns is still loaded by frontend.worker.pipeline & pdf assets.
-(def *export-to-db-graph? (atom false))
-
 (defn- page-name-string->map
   [original-page-name db date-formatter
    {:keys [with-timestamp? page-uuid from-page class? skip-existing-page-check?]}]
@@ -352,11 +346,6 @@
                  :block/type "journal"}
                 {}))]
     [page page-entity]))
-
-(defn sanitize-hashtag-name
-  "This must be kept in sync with its reverse operation in logseq.db.frontend.content"
-  [s]
-  (string/replace s "#" "HashTag-"))
 
 ;; TODO: refactor
 (defn page-name->map

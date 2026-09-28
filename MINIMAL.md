@@ -45,16 +45,22 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
   `:dev/replace-graph-with-db-file` commands.
 - ❌ Anything requiring a Logseq server
 
-## Inert data-preservation layer
-Some schema/parser code for removed features is intentionally kept as inert
-data-preservation so existing user graphs keep loading without migration:
-- `graph-parser/whiteboard.cljs` + `extract-whiteboard-edn` — parses old `.edn`
-  whiteboard files (never modifies them)
-- `shape-block?` predicate (`frontend.handler.property.util`) — identifies
-  whiteboard shape blocks so they render as inert blocks
+## Removed parsing code
+The following parsing code has been removed entirely (not kept as inert):
+- `graph-parser/whiteboard.cljs` + `extract-whiteboard-edn` — old `.edn`
+  whiteboard files are silently skipped by `filter-files` (they remain on
+  disk but are not parsed into the DB)
+- `shape-block?` / `whiteboard?` entity predicates — no longer reachable
+  since whiteboard pages are not parsed
 - `:logseq.property.fsrs/*` and `:logseq.property.tldraw/*` property defs,
-  `:logseq.class/Card`/`:logseq.class/Whiteboard` class defs — schema so old
-  `#card` blocks and whiteboard pages validate
+  `:logseq.class/Card`/`:logseq.class/Cards`/`:logseq.class/Whiteboard`
+  class defs — removed from built-in schema; old `#card` blocks parse as
+  ordinary blocks with user-defined properties
+- `graph-parser/exporter.cljs` (entire ns) — DB-graph export logic unused
+  in this file-only build; `safe-sanitize-file-name` moved to
+  `frontend.util` (its only consumer was pdf/assets.cljs)
+- `common-config/draw?` + `default-draw-directory` — excalidraw link
+  special-casing removed from mldoc/block parsing
 
 ## Why this matters for reliability
 - Removing DB graphs transitively removes RTC, e2ee, vector search, and the

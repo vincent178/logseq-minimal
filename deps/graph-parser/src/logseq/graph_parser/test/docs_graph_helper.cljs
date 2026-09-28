@@ -82,8 +82,8 @@
     (is (= (->> files
                 ;; logseq files aren't saved under :block/file
                 (remove #(string/includes? % (str graph-dir "/" common-config/app-name "/")))
-                ;; edn files being listed in docs by parse-graph aren't graph files
-                (remove #(and (not (common-config/whiteboard? %)) (string/ends-with? % ".edn")))
+                ;; .edn files (including whiteboards) are not parsed into the db
+                (remove #(string/ends-with? % ".edn"))
                 set)
            (->> (d/q '[:find (pull ?b [* {:block/file [:file/path]}])
                        :where [?b :block/name] [?b :block/file]]
@@ -105,12 +105,12 @@
                 (into {})))
         "Task marker counts")
 
-    (is (= {:markdown 7372 :org 500} (get-block-format-counts db))
+    (is (= {:markdown 7292 :org 500} (get-block-format-counts db))
         "Block format counts")
 
     (is (= {:rangeincludes 13, :description 137, :updated-at 46, :tags 5, :logseq.order-list-type 16, :query-table 8,
-            :logseq.macro-arguments 105, :parent 14, :logseq.tldraw.shape 79, :card-last-score 5, :card-repeats 5,
-            :name 16, :card-next-schedule 5, :ls-type 79, :card-last-interval 5, :type
+            :logseq.macro-arguments 105, :parent 14, :card-last-score 5, :card-repeats 5,
+            :name 16, :card-next-schedule 5, :card-last-interval 5, :type
             166, :template 5, :domainincludes 7, :title 114, :alias 62, :supports 6, :id
             146, :url 30, :card-ease-factor 5, :logseq.macro-name 105, :created-at 46,
             :card-last-reviewed 5, :platforms 79, :initial-version 16, :heading 332}
@@ -118,8 +118,8 @@
         "Counts for top block properties")
 
     (is (= {:rangeincludes 13, :description 117, :tags 5, :unique 2, :meta 2, :parent 14,
-            :ls-type 1, :type 147, :source 1, :domainincludes 7, :sameas 4, :title 113, :author 1,
-            :alias 62, :logseq.tldraw.page 1, :supports 6, :url 30, :platforms 78,
+            :type 147, :source 1, :domainincludes 7, :sameas 4, :title 113, :author 1,
+            :alias 62, :supports 6, :url 30, :platforms 78,
             :initial-version 15, :full-title 1}
            (get-all-page-properties db))
         "Counts for all page properties")
