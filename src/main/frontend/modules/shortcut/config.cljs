@@ -478,10 +478,6 @@
                   :inactive (not (state/developer-mode?))
                   :fn #(repo-handler/gc-graph! (state/get-current-repo))}
 
-   :dev/replace-graph-with-db-file {:binding []
-                                    :inactive (or (not (util/electron?)) (not (state/developer-mode?)))
-                                    :fn :frontend.handler.common.developer/replace-graph-with-db-file}
-
    :dev/show-block-data {:binding []
                          :inactive (not (state/developer-mode?))
                          :fn :frontend.handler.common.developer/show-block-data}
@@ -502,14 +498,7 @@
                        :db-graph? true
                        :inactive (not (state/developer-mode?))
                        :fn :frontend.handler.common.developer/validate-db}
-   :dev/rtc-stop {:binding []
-                  :db-graph? true
-                  :inactive (not (state/developer-mode?))
-                  :fn :frontend.handler.common.developer/rtc-stop}
-   :dev/rtc-start {:binding []
-                   :db-graph? true
-                   :inactive (not (state/developer-mode?))
-                   :fn :frontend.handler.common.developer/rtc-start}})
+})
 
 (let [keyboard-commands
       {::commands (set (keys all-built-in-keyboard-shortcuts))
@@ -716,11 +705,8 @@
           :dev/show-block-ast
           :dev/show-page-data
           :dev/show-page-ast
-          :dev/replace-graph-with-db-file
           :dev/validate-db
           :dev/gc-graph
-          :dev/rtc-stop
-          :dev/rtc-start
           :ui/customize-appearance])
         (with-meta {:before m/enable-when-not-editing-mode!}))
 
@@ -877,11 +863,8 @@
      :dev/show-block-ast
      :dev/show-page-data
      :dev/show-page-ast
-     :dev/replace-graph-with-db-file
      :dev/validate-db
      :dev/gc-graph
-     :dev/rtc-stop
-     :dev/rtc-start
      :ui/clear-all-notifications]
 
     :shortcut.category/plugins

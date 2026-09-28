@@ -4,11 +4,9 @@
             [frontend.db :as db]
             [frontend.format.mldoc :as mldoc]
             [frontend.handler.notification :as notification]
-            [frontend.persist-db :as persist-db]
             [frontend.state :as state]
             [frontend.ui :as ui]
-            [frontend.util.page :as page-util]
-            [promesa.core :as p]))
+            [frontend.util.page :as page-util]))
 
 ;; Fns used between menus and commands
 (defn show-entity-data
@@ -74,13 +72,4 @@
 
 (defn ^:export validate-db []
   (state/<invoke-db-worker :thread-api/validate-db (state/get-current-repo)))
-
-(defn import-chosen-graph
-  [repo]
-  (p/let [_ (persist-db/<unsafe-delete repo)]
-    (notification/show! (str "Graph updated! Switching to graph ...") :success)
-    (state/pub-event! [:graph/switch repo])))
-
-(defn ^:export replace-graph-with-db-file []
-  (state/pub-event! [:dialog-select/db-graph-replace]))
 

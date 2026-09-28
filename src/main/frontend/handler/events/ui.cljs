@@ -157,9 +157,6 @@
 (defmethod events/handle :dialog-select/graph-remove []
   (select/dialog-select! :graph-remove))
 
-(defmethod events/handle :dialog-select/db-graph-replace []
-  (select/dialog-select! :db-graph-replace))
-
 (defn- hide-action-bar!
   []
   (when (editor-handler/popup-exists? :selection-action-bar)

@@ -6,7 +6,6 @@
   (:require [clojure.string :as string]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
-            [frontend.handler.common.developer :as dev-common-handler]
             [frontend.handler.repo :as repo-handler]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.search :as search]
@@ -271,19 +270,7 @@
                              :graph url
                              :original-graph original-graph}))))
     :on-chosen #(repo-handler/remove-repo! (:original-graph %))}
-   :db-graph-replace
-   {:items-fn (fn []
-                (let [current-repo (state/get-current-repo)]
-                  (->> (state/get-repos)
-                       (remove (fn [{:keys [url]}]
-                                ;; Can't replace current graph as ui wouldn't reload properly
-                                 (or (= url current-repo) true)))
-                       (map (fn [{:keys [url] :as original-graph}]
-                              {:value (text-util/get-graph-name-from-path url)
-                               :id (config/get-repo-dir url)
-                               :graph url
-                               :original-graph original-graph})))))
-    :on-chosen #(dev-common-handler/import-chosen-graph (:graph %))}})
+})
 
 (defn dialog-select!
   [select-type]
