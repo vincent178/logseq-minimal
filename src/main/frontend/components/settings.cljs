@@ -318,7 +318,7 @@
 (rum/defc app-auto-update-row < rum/reactive [t]
   (let [enabled? (state/sub [:electron/user-cfgs :auto-update])
         enabled? (if (nil? enabled?) true enabled?)]
-    (toggle "usage-diagnostics"
+    (toggle "auto-updater"
             (t :settings-page/auto-updater)
             enabled?
             #((state/set-state! [:electron/user-cfgs :auto-update] (not enabled?))
