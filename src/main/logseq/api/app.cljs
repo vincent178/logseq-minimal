@@ -64,7 +64,7 @@
        :preferred-start-of-week (state/get-start-of-week)
        :current-graph           (state/get-current-repo)
        :show-brackets           (state/show-brackets?)
-       :enabled-journals        (state/enable-journals?)
+       :enabled-journals        true
        :me                      (state/get-me)}))))
 
 (def get_current_graph_configs

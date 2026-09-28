@@ -246,13 +246,11 @@
                                     {:header? true})]])))
 
 (rum/defc ^:large-vars/cleanup-todo header-aux < rum/reactive
-  [{:keys [current-repo default-home new-block-mode]}]
+  [{:keys [current-repo new-block-mode]}]
   (let [electron-mac? (and util/mac? (util/electron?))
         left-menu (left-menu-button {:on-click (fn []
                                                  (state/set-left-sidebar-open!
-                                                  (not (:ui/left-sidebar-open? @state/state))))})
-        custom-home-page? (and (state/custom-home-page?)
-                               (= (state/sub-default-home-page) (state/get-current-page)))]
+                                                  (not (:ui/left-sidebar-open? @state/state))))})]
     [:div.cp__header.drag-region#head
      {:class           (util/classnames [{:electron-mac   electron-mac?}])
       :on-double-click (fn [^js e]
@@ -275,8 +273,7 @@
       [:div.flex.flex-1
        (block-breadcrumb (state/get-current-page))]
       [:div.flex.items-center
-       (when (and (not= (state/get-current-route) :home)
-                  (not custom-home-page?))
+       (when (not= (state/get-current-route) :home)
          (home-button))
 
        (when config/lsp-enabled?
@@ -291,8 +288,7 @@
        (new-block-mode)
 
        (toolbar-dots-menu {:t            t
-                           :current-repo current-repo
-                           :default-home default-home})
+                           :current-repo current-repo})
 
        (sidebar/toggle)
 

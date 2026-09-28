@@ -8,7 +8,6 @@
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.date :as date]
-            [frontend.db :as db]
             [frontend.dicts :as dicts]
             [frontend.handler.config :as config-handler]
             [frontend.handler.global-config :as global-config-handler]
@@ -25,7 +24,6 @@
             [frontend.util :refer [classnames web-platform?] :as util]
             [frontend.version :as fv]
             [goog.object :as gobj]
-            [logseq.db :as ldb]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
             [promesa.core :as p]
@@ -504,36 +502,6 @@
           #(let [value (not enable-timetracking?)]
              (config-handler/set-config! :feature/enable-timetracking? value))))
 
-(defn update-home-page
-  [event]
-  (let [value (util/evalue event)]
-    (cond
-      (string/blank? value)
-      (let [home (get (state/get-config) :default-home {})
-            new-home (dissoc home :page)]
-        (p/do!
-         (config-handler/set-config! :default-home new-home)
-         (config-handler/set-config! :feature/enable-journals? true)
-         (notification/show! "Journals enabled" :success)))
-
-      ;; FIXME: home page should be db id instead of page name
-      (ldb/get-page (db/get-db) value)
-      (let [home (get (state/get-config) :default-home {})
-            new-home (assoc home :page value)]
-        (config-handler/set-config! :default-home new-home)
-        (notification/show! "Home default page updated successfully!" :success))
-
-      :else
-      (notification/show! (str "The page \"" value "\" doesn't exist yet. Please create that page first, and then try again.") :warning))))
-
-(defn journal-row [enable-journals?]
-  (toggle "enable_journals"
-          (t :settings-page/enable-journals)
-          enable-journals?
-          (fn []
-            (let [value (not enable-journals?)]
-              (config-handler/set-config! :feature/enable-journals? value)))))
-
 (defn auto-push-row [_t current-repo enable-git-auto-push?]
   (when (and current-repo (string/starts-with? current-repo "https://"))
     (toggle "enable_git_auto_push"
@@ -728,44 +696,14 @@
      (developer-mode-row t developer-mode?)
      (when (util/electron?) (https-user-agent-row https-agent-opts))
      (when (util/electron?) (auto-chmod-row t))
+     (when (and web-platform? config/feature-plugin-system-on?)
+       (plugin-system-switcher-row))
      ;; (clear-cache-row t)
 
      ;; (ui/admonition
      ;;  :warning
      ;;  [:p (t :settings-page/clear-cache-warning)])
      ]))
-
-(rum/defc settings-features < rum/reactive
-  []
-  (let [current-repo (state/get-current-repo)
-        enable-journals? (state/enable-journals? current-repo)]
-    [:div.panel-wrap.is-features.mb-8
-     (journal-row enable-journals?)
-     (when (not enable-journals?)
-       [:div.it.sm:grid.sm:grid-cols-3.sm:gap-4.sm:items-center
-        [:label.block.text-sm.font-medium.leading-5.opacity-70
-         {:for "default page"}
-         (t :settings-page/home-default-page)]
-        [:div.mt-1.sm:mt-0.sm:col-span-2
-         [:div.max-w-lg.rounded-md.sm:max-w-xs
-          [:input#home-default-page.form-input.is-small.transition.duration-150.ease-in-out
-           {:default-value (state/sub-default-home-page)
-            :on-blur       update-home-page
-            :on-key-press  (fn [e]
-                             (when (= "Enter" (util/ekey e))
-                               (update-home-page e)))}]]]])
-     (when (and web-platform? config/feature-plugin-system-on?)
-       (plugin-system-switcher-row))]))
-
-     ;; (when-not web-platform?
-     ;;   [:<>
-     ;;    [:hr]
-;;    [:div.it.sm:grid.sm:grid-cols-3.sm:gap-4.sm:items-center
-     ;;     [:label.flex.font-medium.leading-5.self-start.mt-1 (ui/icon  (if logged-in? "lock-open" "lock") {:class "mr-1"}) (t :settings-page/alpha-features)]]
-     ;;    [:div.flex.flex-col.gap-4
-     ;;     {:class (when-not user-handler/alpha-user? "opacity-50 pointer-events-none cursor-not-allowed")}
-     ;;     ;; features
-     ;;     ]])
 
 (def DEFAULT-ACTIVE-TAB-STATE (if config/ENABLE-SETTINGS-ACCOUNT-TAB [:account :account] [:general :general]))
 
@@ -831,7 +769,6 @@
                ;;   [:assets "assets" (t :settings-page/tab-assets) (ui/icon "box")])
 
                [:advanced "advanced" (t :settings-page/tab-advanced) (ui/icon "bulb")]
-               [:features "features" (t :settings-page/tab-features) (ui/icon "app-feature")]
                (when plugins-of-settings
                  [:plugins-setting "plugins" (t :settings-of-plugins) (ui/icon "puzzle")])]]
 
@@ -876,8 +813,5 @@
 
          :advanced
          (settings-advanced)
-
-         :features
-         (settings-features)
 
          nil)]]]))

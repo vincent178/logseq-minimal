@@ -30,17 +30,6 @@
             [reitit.frontend.easy :as rfe]
             [rum.core :as rum]))
 
-(defn get-default-home-if-valid
-  []
-  (when-let [default-home (state/get-default-home)]
-    (let [page (:page default-home)
-          page (when (and (string? page)
-                          (not (string/blank? page)))
-                 (db/get-page page))]
-      (if page
-        default-home
-        (dissoc default-home :page)))))
-
 (rum/defc ^:large-vars/cleanup-todo page-name < rum/reactive db-mixins/query
   [page recent?]
   (when-let [id (:db/id page)]
@@ -198,7 +187,7 @@
       (when child [:div.bd child])]]))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-navigations
-  [{:keys [default-home route-match route-name db-based?]}]
+  [{:keys [route-match route-name db-based?]}]
   (let [navs (cond-> [:all-pages :graph-view]
                db-based?
                (concat [:tag/tasks :tag/assets]))
@@ -225,28 +214,15 @@
       :more [:a.as-edit {:class "!opacity-60 hover:!opacity-80 relative -top-0.5 -right-0.5"}
              (shui/tabler-icon "filter-edit" {:size 14})]}
      [:div.sidebar-navigations.flex.flex-col.mt-1
-       ;; required custom home page
-      (let [page (:page default-home)
-            enable-journals? (state/enable-journals? (state/get-current-repo))]
-        (if (and page (not enable-journals?))
-          (sidebar-item
-           {:class "home-nav"
-            :title page
-            :on-click-handler route-handler/redirect-to-home!
-            :active (and (= route-name :page)
-                         (= page (get-in route-match [:path-params :name])))
-            :shortcut :go/home})
-
-          (when enable-journals?
-            (sidebar-item
-             {:class "journals-nav"
-              :active (or (= route-name :all-journals) (= route-name :home))
-              :title (t :left-side-bar/journals)
-              :on-click-handler (fn [e]
-                                  (if (gobj/get e "shiftKey")
-                                    (route-handler/sidebar-journals!)
-                                    (route-handler/go-to-journals!)))
-              :shortcut :go/journals}))))
+      (sidebar-item
+       {:class "journals-nav"
+        :active (or (= route-name :all-journals) (= route-name :home))
+        :title (t :left-side-bar/journals)
+        :on-click-handler (fn [e]
+                            (if (gobj/get e "shiftKey")
+                              (route-handler/sidebar-journals!)
+                              (route-handler/go-to-journals!)))
+        :shortcut :go/journals})
 
       (for [nav checked-navs]
         (cond
@@ -327,7 +303,6 @@
         ref-el (rum/use-ref nil)
         ref-open? (rum/use-ref left-sidebar-open?)
         db-based? false
-        default-home (get-default-home-if-valid)
         route-name (get-in route-match [:data :name])
         on-contents-scroll #(when-let [^js el (.-target %)]
                               (let [top (.-scrollTop el)
@@ -400,8 +375,7 @@
 
         ;; sidebar sticky navigations
         (sidebar-navigations
-         {:default-home default-home
-          :route-match route-match
+         {:route-match route-match
           :db-based? db-based?
           :route-name route-name})]
 

@@ -211,8 +211,5 @@
 
 (defn go-to-journals!
   []
-  (let [route (if (state/custom-home-page?)
-                :all-journals
-                :home)]
-    (redirect! {:to route}))
+  (redirect! {:to :home})
   (util/scroll-to-top))
