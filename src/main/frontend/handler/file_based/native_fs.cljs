@@ -232,7 +232,7 @@
   "Handle refresh and re-index"
   [repo {:keys [re-index? ok-handler]
          :or {re-index? false}}]
-  (when (and repo (config/local-file-based-graph? repo))
+  (when repo
     (let [old-files (db/get-files-full repo)
           repo-dir (config/get-local-dir repo)
           handle-path (str "handle/" repo-dir)

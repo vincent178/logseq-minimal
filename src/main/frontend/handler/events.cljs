@@ -140,12 +140,11 @@
 ;; FIXME: config may not be loaded when the graph is ready.
 (defmethod handle :graph/ready
   [[_ repo]]
-  (when (config/local-file-based-graph? repo)
-    (p/let [dir               (config/get-repo-dir repo)
-            dir-exists?       (fs/dir-exists? dir)]
-      (when (and (not dir-exists?)
-                 (not util/nfs?))
-        (state/pub-event! [:graph/dir-gone dir]))))
+  (p/let [dir               (config/get-repo-dir repo)
+          dir-exists?       (fs/dir-exists? dir)]
+    (when (and (not dir-exists?)
+               (not util/nfs?))
+      (state/pub-event! [:graph/dir-gone dir])))
   ;; FIXME: an ugly implementation for redirecting to page on new window is restored
   (repo-handler/graph-ready! repo)
 

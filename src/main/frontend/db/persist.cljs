@@ -2,7 +2,6 @@
   "Handles operations to persisting db to disk or indexedDB"
   (:require [cljs-bean.core :as bean]
             [electron.ipc :as ipc]
-            [frontend.config :as config]
             [frontend.db.conn :as db-conn]
             [frontend.idb :as idb]
             [frontend.persist-db :as persist-db]
@@ -14,13 +13,10 @@
   (p/let [idb-repos (when-not (or util/web-platform? (util/mobile?))
                       (idb/get-nfs-dbs))
           repos (persist-db/<list-db)
-          repos' (map
-                  (fn [{:keys [name] :as repo}]
-                    (assoc repo :name
-                           (if (config/local-file-based-graph? name)
-                             name
-                             (str config/db-version-prefix name))))
-                  repos)
+          ;; File graphs are stored under their `logseq_local_` name as-is.
+          repos' (map (fn [{:keys [name] :as repo}]
+                        (assoc repo :name name))
+                      repos)
           electron-disk-graphs (when (util/electron?) (ipc/ipc "getGraphs"))]
     (distinct (concat
                repos'

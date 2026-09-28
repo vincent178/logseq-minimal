@@ -50,10 +50,9 @@
 
 (defmethod events/handle :graph/re-index [[_]]
   ;; Ensure the graph only has ONE window instance
-  (when (config/local-file-based-graph? (state/get-current-repo))
-    (repo-handler/re-index!
-     nfs-handler/rebuild-index!
-     #(page-handler/create-today-journal!))))
+  (repo-handler/re-index!
+   nfs-handler/rebuild-index!
+   #(page-handler/create-today-journal!)))
 
 (defn set-block-query-properties!
   [block-id all-properties key add?]

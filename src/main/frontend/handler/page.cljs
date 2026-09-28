@@ -273,28 +273,27 @@
                (not (state/loading-files? repo)))
       (when-let [title (date/today)]
         (state/set-today! title)
-        (when (config/local-file-based-graph? repo)
-          (let [today-page (util/page-name-sanity-lc title)
-                format (state/get-preferred-format repo)
-                create-f (fn []
-                           (p/let [result (<create! title {:redirect? false
-                                                           :split-namespace? false
-                                                           :today-journal? true})]
-                             (state/pub-event! [:journal/insert-template today-page])
-                             (ui-handler/re-render-root!)
-                             (plugin-handler/hook-plugin-app :today-journal-created {:title today-page})
-                             result))]
-            (when-not (db/get-page today-page)
-              (p/let [file-name (date/journal-title->default title)
-                        file-rpath (str (config/get-journals-directory) "/" file-name "."
-                                        (config/get-file-extension format))
-                        repo-dir (config/get-repo-dir repo)
-                        file-exists? (fs/file-exists? repo-dir file-rpath)
-                        file-content (when file-exists?
-                                       (fs/read-file repo-dir file-rpath))]
-                  (when (or (not file-exists?)
-                            (and file-exists? (string/blank? file-content)))
-                    (create-f))))))))))
+        (let [today-page (util/page-name-sanity-lc title)
+              format (state/get-preferred-format repo)
+              create-f (fn []
+                         (p/let [result (<create! title {:redirect? false
+                                                         :split-namespace? false
+                                                         :today-journal? true})]
+                           (state/pub-event! [:journal/insert-template today-page])
+                           (ui-handler/re-render-root!)
+                           (plugin-handler/hook-plugin-app :today-journal-created {:title today-page})
+                           result))]
+          (when-not (db/get-page today-page)
+            (p/let [file-name (date/journal-title->default title)
+                    file-rpath (str (config/get-journals-directory) "/" file-name "."
+                                    (config/get-file-extension format))
+                    repo-dir (config/get-repo-dir repo)
+                    file-exists? (fs/file-exists? repo-dir file-rpath)
+                    file-content (when file-exists?
+                                   (fs/read-file repo-dir file-rpath))]
+              (when (or (not file-exists?)
+                        (and file-exists? (string/blank? file-content)))
+                (create-f)))))))))
 
 (defn open-today-in-sidebar
   []

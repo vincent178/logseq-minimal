@@ -1,14 +1,12 @@
 (ns frontend.worker.db-listener
   "Db listeners for worker-db."
-  (:require [clojure.string :as string]
-            [datascript.core :as d]
+  (:require [datascript.core :as d]
             [frontend.common.thread-api :as thread-api]
             [frontend.worker.pipeline :as worker-pipeline]
             [frontend.worker.search :as search]
             [frontend.worker.shared-service :as shared-service]
             [frontend.worker.state :as worker-state]
             [logseq.common.util :as common-util]
-            [logseq.db :as ldb]
             [logseq.outliner.batch-tx :as batch-tx]
             [promesa.core :as p]))
 
@@ -48,23 +46,6 @@
     (prn :tx-data tx-data)
     (prn :tx-meta tx-meta)))
 
-(defn- remove-old-embeddings-and-reset-new-updates!
-  [conn tx-data tx-meta]
-  (when (ldb/db-based-graph? @conn)
-    (let [;; Remove old :logseq.property.embedding/hnsw-label-updated-at when importing a graph
-          remove-old-hnsw-tx-data (when (:import-db? tx-meta)
-                                    (->> (d/datoms @conn :avet :logseq.property.embedding/hnsw-label-updated-at)
-                                         (map (fn [d]
-                                                [:db/retract (:e d) :logseq.property.embedding/hnsw-label-updated-at]))))
-          ;; Mark vector embedding
-          mark-embedding-tx-data (->> (keep (fn [datom] (when (and (= :block/title (:a datom)) (:added datom) (not (string/blank? (:v datom))))
-                                                          (:e datom))) tx-data)
-                                      ;; Mark block embedding to be computed
-                                      (map (fn [id] [:db/add id :logseq.property.embedding/hnsw-label-updated-at 0])))
-          tx-data (concat remove-old-hnsw-tx-data mark-embedding-tx-data)]
-      (when (seq tx-data)
-        (ldb/transact! conn tx-data {:skip-validate-db? true})))))
-
 (defn listen-db-changes!
   [repo conn & {:keys [handler-keys]}]
   (let [handlers (if (seq handler-keys)
@@ -84,8 +65,6 @@
       (d/listen! conn ::listen-db-changes!
                  (fn listen-db-changes!-inner
                    [{:keys [tx-data _db-before _db-after tx-meta] :as tx-report}]
-                   (remove-old-embeddings-and-reset-new-updates! conn tx-data tx-meta)
-
                    (let [tx-meta (merge (batch-tx/get-batch-opts) tx-meta)
                          in-batch-tx-mode? (:batch-tx/batch-tx-mode? tx-meta)]
                      (when in-batch-tx-mode?

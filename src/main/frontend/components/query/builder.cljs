@@ -19,7 +19,6 @@
             [logseq.common.util :as common-util]
             [logseq.common.util.page-ref :as page-ref]
             [logseq.db :as ldb]
-            [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.db :as gp-db]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
@@ -186,24 +185,17 @@
 
 (rum/defc property-value-select
   [repo *property *private-property? *find *tree opts loc]
-  (let [db-graph? (sqlite-util/db-based-graph? repo)
-        [values set-values!] (rum/use-state nil)]
+  (let [[values set-values!] (rum/use-state nil)]
     (hooks/use-effect!
      (fn [_property]
-       (p/let [result (if db-graph?
-                        (p/let [result (db-async/<get-property-values @*property)]
-                          (map (fn [{:keys [label]}]
-                                 {:label label
-                                  :value label})
-                               result))
-                        (p/let [result (db-async/<file-get-property-values repo @*property)]
-                          (map (fn [value]
-                                 {:label (str value)
-                                  :value value}) result)))]
+       (p/let [result (p/let [result (db-async/<file-get-property-values repo @*property)]
+                        (map (fn [value]
+                               {:label (str value)
+                                :value value}) result))]
          (set-values! result)))
      [@*property])
     (property-value-select-inner *property *private-property? *find *tree opts loc values
-                                 {:db-graph? db-graph?})))
+                                 {:db-graph? false})))
 
 (rum/defc tags
   [repo *tree opts loc]

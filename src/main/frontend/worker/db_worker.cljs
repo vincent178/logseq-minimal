@@ -704,11 +704,8 @@
 
 (defn- rename-page!
   [repo conn page-uuid new-name]
-  (let [config (worker-state/get-config repo)
-        f (if (sqlite-util/db-based-graph? repo)
-            (throw (ex-info "Rename page is a file graph only operation" {}))
-            file-worker-page-rename/rename!)]
-    (f repo conn config page-uuid new-name)))
+  (let [config (worker-state/get-config repo)]
+    (file-worker-page-rename/rename! repo conn config page-uuid new-name)))
 
 (defn- delete-page!
   [repo conn page-uuid]
@@ -744,8 +741,7 @@
        (let [repo (ffirst col)
              conn (worker-state/get-datascript-conn repo)]
          (if conn
-           (when-not (ldb/db-based-graph? @conn)
-             (file/write-files! conn col (worker-state/get-context)))
+           (file/write-files! conn col (worker-state/get-context))
            (js/console.error (str "DB is not found for " repo))))))))
 
 (defn- on-become-master

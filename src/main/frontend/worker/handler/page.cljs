@@ -34,14 +34,10 @@
    * :properties               - properties to add to the page
   TODO: Add other options"
   [repo conn config title & {:as options}]
-  (if (ldb/db-based-graph? @conn)
-    (outliner-page/create! conn title options)
-    (file-worker-page/create! repo conn config title options)))
+  (file-worker-page/create! repo conn config title options))
 
 (defn delete!
   "Deletes a page. Returns true if able to delete page. If unable to delete,
   calls error-handler fn and returns false"
   [repo conn page-uuid & {:as options}]
-  (if (ldb/db-based-graph? @conn)
-    (outliner-page/delete! conn page-uuid options)
-    (file-worker-page-delete/delete! repo conn page-uuid options)))
+  (file-worker-page-delete/delete! repo conn page-uuid options))
