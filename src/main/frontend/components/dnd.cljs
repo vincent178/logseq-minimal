@@ -34,6 +34,49 @@
            (dissoc props :id))
      children]))
 
+(defn- same-order?
+  "True if two JS arrays of ids hold the same values in the same order."
+  [a b]
+  (and (= (.-length a) (.-length b))
+       (every? true? (map (fn [i] (= (aget a i) (aget b i)))
+                          (range (.-length a))))))
+
+(defn- handle-drag-end
+  "Applies a completed drag: optimistically lands the item in its new slot, then
+  persists via `on-drag-end`. The component's re-sync effect is a no-op when the
+  persisted order matches, so the item settles exactly once."
+  [{:keys [ids id->item items-state set-items set-active-id on-drag-end]} event]
+  (let [active-id (.-id (.-active event))
+        over-id (.-id (.-over event))]
+    (when active-id
+      (when-not (= active-id over-id)
+        (let [old-index (.indexOf ids active-id)
+              new-index (.indexOf ids over-id)
+              ;; Reorder the canonical `ids` (not the possibly-lagging
+              ;; `items-state`) so the persisted order derives from the source of
+              ;; truth.
+              new-items (arrayMove (bean/->js ids) old-index new-index)]
+          (when (fn? on-drag-end)
+            (let [new-values (->> (map (fn [id]
+                                         (let [item (id->item id)]
+                                           (if (map? item) (:value item) item)))
+                                       new-items)
+                                  (remove nil?)
+                                  vec)]
+              (if (not= (count new-values) (count ids))
+                (do
+                  (js/console.error "Dnd length not matched: ")
+                  {:old-items items-state
+                   :new-items new-items})
+                (do
+                  (set-items new-items)
+                  (on-drag-end new-values {:active-id active-id
+                                           :over-id over-id
+                                           :direction (if (> new-index old-index)
+                                                        :down
+                                                        :up)}))))))))
+    (set-active-id nil)))
+
 (rum/defc items
   [col* {:keys [on-drag-end parent-node vertical? sort-by-inner-element?]
          :or {vertical? true}}]
@@ -45,8 +88,17 @@
         ids (mapv :id col)
         items' (bean/->js ids)
         id->item (zipmap ids col)
+        ;; `items-state` drives the SortableContext order (and thus the drop
+        ;; animation target). On drop we optimistically set it to the new order
+        ;; so the item lands in its final slot immediately. The canonical order
+        ;; is `col` (persisted); this effect re-syncs `items-state` to it ONLY
+        ;; when they actually differ, so a synchronous persist (already in the
+        ;; new order) is a no-op — the item settles once, no back-then-forward.
         [items-state set-items] (rum/use-state items')
-        _ (hooks/use-effect! (fn [] (set-items items')) [col])
+        _ (hooks/use-effect! (fn []
+                               (when-not (same-order? items-state items')
+                                 (set-items items')))
+                             [ids])
         [_active-id set-active-id] (rum/use-state nil)
         sensors (useSensors (useSensor MouseSensor (bean/->js {:activationConstraint {:distance 8}})))
         dnd-opts {:sensors sensors
@@ -55,38 +107,25 @@
                                  (when-not (state/editing?)
                                    (set-active-id (.-id (.-active event)))))
                   :onDragEnd (fn [event]
-                               (let [active-id (.-id (.-active event))
-                                     over-id (.-id (.-over event))]
-                                 (when active-id
-                                   (when-not (= active-id over-id)
-                                     (let [old-index (.indexOf ids active-id)
-                                           new-index (.indexOf ids over-id)
-                                           new-items (arrayMove items-state old-index new-index)]
-                                       (when (fn? on-drag-end)
-                                         (let [new-values (->> (map (fn [id]
-                                                                      (let [item (id->item id)]
-                                                                        (if (map? item) (:value item) item)))
-                                                                    new-items)
-                                                               (remove nil?)
-                                                               vec)]
-                                           (if (not= (count new-values) (count ids))
-                                             (do
-                                               (js/console.error "Dnd length not matched: ")
-                                               {:old-items items-state
-                                                :new-items new-items})
-                                             (do
-                                               (set-items new-items)
-                                               (on-drag-end new-values {:active-id active-id
-                                                                        :over-id over-id
-                                                                        :direction (if (> new-index old-index)
-                                                                                     :down
-                                                                                     :up)}))))))))
-                                 (set-active-id nil)))}
+                               (handle-drag-end {:ids ids
+                                                 :id->item id->item
+                                                 :items-state items-state
+                                                 :set-items set-items
+                                                 :set-active-id set-active-id
+                                                 :on-drag-end on-drag-end}
+                                                event))}
         sortable-opts {:items items-state
                        :strategy (if vertical?
                                    verticalListSortingStrategy
                                    horizontalListSortingStrategy)}
-        children (for [item col]
+        ;; Render children in `items-state` order (NOT `col` order) so the DOM
+        ;; order and the SortableContext order always come from the same source.
+        ;; On drop, `set-items new-items` and the synchronous persist both yield
+        ;; the same order in one commit, so the item settles in a single render.
+        ;; Guard against a stale `items-state` id (favorite added/removed
+        ;; elsewhere) mapping to nil before the re-sync effect runs.
+        ordered-items (keep id->item items-state)
+        children (for [item ordered-items]
                    (let [id (str (:id item))
                          prop (merge
                                (:prop item)

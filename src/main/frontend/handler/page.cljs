@@ -12,6 +12,7 @@
             [frontend.db.conn :as conn]
             [frontend.fs :as fs]
             [frontend.handler.common.page :as page-common-handler]
+            [frontend.handler.config :as config-handler]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.file-based.native-fs :as nfs-handler]
             [frontend.handler.file-based.page :as file-page-handler]
@@ -30,7 +31,6 @@
             [frontend.util.url :as url-util]
             [goog.functions :refer [debounce]]
             [goog.object :as gobj]
-            [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
             [logseq.common.util.page-ref :as page-ref]
@@ -58,15 +58,19 @@
   (page-common-handler/file-favorited? page-name))
 
 (defn get-favorites
-  "return page-block entities"
+  "Returns favorited page-block entities, ordered by the `:favorites` config
+  list, which is the single source of truth for favorites order. Entries may
+  be page-uuid strings (current format) or legacy page names."
   []
   (when (conn/get-db)
-    (let [page-names (->> (:favorites (state/sub-config))
-                          (remove string/blank?)
-                          (filter string?)
-                          (mapv util/safe-page-name-sanity-lc)
-                          (distinct))]
-      (keep (fn [page-name] (db/get-page page-name)) page-names))))
+    (let [favorites (->> (:favorites (state/sub-config))
+                         (remove string/blank?)
+                         (filter string?)
+                         (distinct))]
+      (keep (fn [favorite]
+              ;; `db/get-page` looks up by uuid (string) or falls back to page name
+              (db/get-page favorite))
+            favorites))))
 
 (defn toggle-favorite! []
   ;; NOTE: in journals or settings, current-page is nil
@@ -94,22 +98,26 @@
       (notification/show! "Another page with the new name exists already" :warning)
       nil)))
 
-(defn <reorder-favorites!
+(defn reorder-favorites!
+  "Persists the dragged favorites order to the `:favorites` config list (the
+  single source of truth for favorites order). `favorites` is the ordered
+  collection of favorite page uuids from the dnd UI."
   [favorites]
-  (let [conn (conn/get-db false)]
-    (when-let [favorites-page (db/get-page common-config/favorites-page-name)]
-      (let [favorite-page-block-db-id-coll
-            (keep (fn [page-uuid]
-                    (:db/id (db/get-page page-uuid)))
-                  favorites)
-            current-blocks (ldb/sort-by-order (ldb/get-page-blocks @conn (:db/id favorites-page)))]
-        (p/do!
-         (ui-outliner-tx/transact!
-          {:outliner-op :reorder-favorites}
-          (doseq [[page-block-db-id block] (zipmap favorite-page-block-db-id-coll current-blocks)]
-            (when (not= page-block-db-id (:db/id (:block/link block)))
-              (outliner-op/save-block! (assoc block :block/link page-block-db-id)))))
-         (state/update-favorites-updated!))))))
+  (when (conn/get-db)
+    (let [uuid->favorite (into {}
+                               (map (fn [favorite]
+                                      [(str (:block/uuid (db/get-page favorite))) favorite]))
+                               (:favorites (state/get-config)))
+          ;; Preserve the existing config entry (uuid string or legacy page
+          ;; name) for each page so unfavorite-by-name keeps working.
+          favorites' (->> favorites
+                          (keep (fn [page-uuid]
+                                  (or (get uuid->favorite (str page-uuid))
+                                      (str page-uuid))))
+                          (vec))]
+      ;; `config-handler/set-config!` is synchronous; no need for `p/do!`.
+      (config-handler/set-config! :favorites favorites')
+      (state/update-favorites-updated!))))
 
 (defn get-page-ref-text
   [page]
