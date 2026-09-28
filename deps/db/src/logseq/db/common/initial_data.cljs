@@ -5,7 +5,6 @@
             [datascript.impl.entity :as de]
             [logseq.common.util :as common-util]
             [logseq.common.util.date-time :as date-time-util]
-            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.common.entity-util :as common-entity-util]
             [logseq.db.frontend.entity-util :as entity-util]
             [logseq.db.frontend.rules :as rules]))
