@@ -6,8 +6,7 @@
             [clojure.string :as string]
             [logseq.cli.common.graph :as cli-common-graph]
             [logseq.cli.text-util :as cli-text-util]
-            [nbb.error]
-            [promesa.core :as p]))
+            [nbb.error]))
 
 (defn- format-commands [{:keys [table]}]
   (let [table (mapv (fn [{:keys [cmds desc spec]}]
@@ -56,21 +55,6 @@
     (if-let [cmd-map (and help (some #(when (= "help" (first (:cmds %))) %) table))]
       (print-command-help "help" cmd-map)
       (println "Command" (pr-str command) "does not exist"))))
-
-(defn- lazy-load-fn
-  "Lazy load fn to speed up start time. After nbb requires ~30 namespaces, start time gets close to 1s.
-   Also handles --help on all commands"
-  [fn-sym]
-  (fn [& args]
-    (if (get-in (first args) [:opts :help])
-      (help-command {:opts {:command (-> args first :dispatch first)}})
-      (-> (p/let [_ (require (symbol (namespace fn-sym)))]
-            (apply (resolve fn-sym) args))
-          (p/catch (fn [err]
-                     (if (= :sci/error (:type (ex-data err)))
-                       (nbb.error/print-error-report err)
-                       (js/console.error "Error:" err))
-                     (js/process.exit 1)))))))
 
 (def ^:private table*
   [{:cmds ["help"] :fn help-command :desc "Print a command's help"
