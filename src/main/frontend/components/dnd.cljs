@@ -45,8 +45,14 @@
         ids (mapv :id col)
         items' (bean/->js ids)
         id->item (zipmap ids col)
+        ;; Local state drives the sortable context during a drag. The canonical
+        ;; order is `col` (derived from persisted state); `items-state` is
+        ;; re-synced to it whenever `ids` change. Because reorder persistence is
+        ;; synchronous, `col` is already correct at drag-end, so this single
+        ;; re-sync settles the list — no separate optimistic update that would
+        ;; cause a double render / visible order jump.
         [items-state set-items] (rum/use-state items')
-        _ (hooks/use-effect! (fn [] (set-items items')) [col])
+        _ (hooks/use-effect! (fn [] (set-items items')) [ids])
         [_active-id set-active-id] (rum/use-state nil)
         sensors (useSensors (useSensor MouseSensor (bean/->js {:activationConstraint {:distance 8}})))
         dnd-opts {:sensors sensors
@@ -61,7 +67,11 @@
                                    (when-not (= active-id over-id)
                                      (let [old-index (.indexOf ids active-id)
                                            new-index (.indexOf ids over-id)
-                                           new-items (arrayMove items-state old-index new-index)]
+                                           ;; Reorder the canonical `ids` (not the
+                                           ;; possibly-lagging `items-state`) so the
+                                           ;; persisted order is derived from the
+                                           ;; source of truth.
+                                           new-items (arrayMove (bean/->js ids) old-index new-index)]
                                        (when (fn? on-drag-end)
                                          (let [new-values (->> (map (fn [id]
                                                                       (let [item (id->item id)]
@@ -74,13 +84,15 @@
                                                (js/console.error "Dnd length not matched: ")
                                                {:old-items items-state
                                                 :new-items new-items})
-                                             (do
-                                               (set-items new-items)
-                                               (on-drag-end new-values {:active-id active-id
-                                                                        :over-id over-id
-                                                                        :direction (if (> new-index old-index)
-                                                                                     :down
-                                                                                     :up)}))))))))
+                                             ;; Do NOT optimistically `set-items`
+                                             ;; here. Persist via `on-drag-end`
+                                             ;; and let the canonical `col` re-sync
+                                             ;; (above) settle the order once.
+                                             (on-drag-end new-values {:active-id active-id
+                                                                      :over-id over-id
+                                                                      :direction (if (> new-index old-index)
+                                                                                   :down
+                                                                                   :up)})))))))
                                  (set-active-id nil)))}
         sortable-opts {:items items-state
                        :strategy (if vertical?
