@@ -8,52 +8,6 @@
             [logseq.graph-parser.db :as gp-db]
             [logseq.graph-parser.property :as gp-property]))
 
-(def foo-edn
-  "Example exported whiteboard page as an edn exportable."
-  '{:blocks
-    ({:block/title "foo content a",
-      :block/format :markdown
-      :block/parent {:block/uuid #uuid "16c90195-6a03-4b3f-839d-095a496d9acd"}},
-     {:block/title "foo content b",
-      :block/format :markdown
-      :block/parent {:block/uuid #uuid "16c90195-6a03-4b3f-839d-095a496d9acd"}}),
-    :pages
-    ({:block/format :markdown,
-      :block/name "foo"
-      :block/title "Foo"
-      :block/uuid #uuid "16c90195-6a03-4b3f-839d-095a496d9acd"
-      :block/properties {:title "my whiteboard foo"}})})
-
-(def foo-conflict-edn
-  "Example exported whiteboard page as an edn exportable."
-  '{:blocks
-    ({:block/title "foo content a",
-      :block/format :markdown},
-     {:block/title "foo content b",
-      :block/format :markdown}),
-    :pages
-    ({:block/format :markdown,
-      :block/name "foo conflicted"
-      :block/title "Foo conflicted"
-      :block/uuid #uuid "16c90195-6a03-4b3f-839d-095a496d9acd"})})
-
-(def bar-edn
-  "Example exported whiteboard page as an edn exportable."
-  '{:blocks
-    ({:block/title "foo content a",
-      :block/format :markdown
-      :block/parent {:block/uuid #uuid "71515b7d-b5fc-496b-b6bf-c58004a34ee3"
-                     :block/name "foo"}},
-     {:block/title "foo content b",
-      :block/format :markdown
-      :block/parent {:block/uuid #uuid "71515b7d-b5fc-496b-b6bf-c58004a34ee3"
-                     :block/name "foo"}}),
-    :pages
-    ({:block/format :markdown,
-      :block/name "bar"
-      :block/title "Bar"
-      :block/uuid #uuid "71515b7d-b5fc-496b-b6bf-c58004a34ee3"})})
-
 (defn- parse-file
   [conn file-path file-content & [options]]
   (graph-parser/parse-file conn file-path file-content (merge-with merge options {:extract-options {:verbose false}})))
@@ -82,49 +36,7 @@
                                            (reset! deleted-page page))})
           (catch :default _)))
       (is (= nil @deleted-page)
-          "Page should not be deleted when there is unexpected failure")))
-
-  (testing "parsing whiteboard page"
-    (let [conn (gp-db/start-conn)]
-      (parse-file conn "/whiteboards/foo.edn" (pr-str foo-edn))
-      (let [blocks (d/q '[:find (pull ?b [* {:block/page
-                                             [:block/name
-                                              :block/title
-                                              :block/type
-                                              {:block/file
-                                               [:file/path]}]}])
-                          :in $
-                          :where [?b :block/title] [(missing? $ ?b :block/name)]]
-                        @conn)
-            parent (:block/page (ffirst blocks))]
-        (is (= {:block/name "foo"
-                :block/title "Foo"
-                :block/type "whiteboard"
-                :block/file {:file/path "/whiteboards/foo.edn"}}
-               parent)
-            "parsed block in the whiteboard page has correct parent page"))))
-
-  (testing "Loading whiteboard pages that same block/uuid should throw an error."
-    (let [conn (gp-db/start-conn)]
-      (parse-file conn "/whiteboards/foo.edn" (pr-str foo-edn))
-      ;; Reduce output with with-out-str
-      (with-out-str
-        (is (thrown-with-msg?
-             js/Error
-             #"Conflicting upserts"
-             (parse-file conn "/whiteboards/foo-conflict.edn" (pr-str foo-conflict-edn)))))))
-
-  (testing "Loading whiteboard pages should ignore the :block/name property inside :block/parent."
-    (let [conn (gp-db/start-conn)]
-      (parse-file conn "/whiteboards/foo.edn" (pr-str foo-edn))
-      (parse-file conn "/whiteboards/bar.edn" (pr-str bar-edn))
-      (let [pages (d/q '[:find ?name
-                         :in $
-                         :where
-                         [?b :block/name ?name]
-                         [?b :block/type "whiteboard"]]
-                       @conn)]
-        (is (= pages #{["foo"] ["bar"]}))))))
+          "Page should not be deleted when there is unexpected failure"))))
 
 (defn- test-property-order [num-properties]
   (let [conn (gp-db/start-conn)

@@ -18,15 +18,6 @@
             [logseq.graph-parser.property :as gp-property]
             [logseq.graph-parser.text :as text]))
 
-(defn- filepath->page-name
-  [filepath]
-  (when-let [file-name (last (string/split filepath #"/"))]
-    (let [result (first (common-util/split-last "." file-name))
-          ext (string/lower-case (common-util/get-file-ext filepath))]
-      (if (or (common-config/mldoc-support? ext) (= "edn" ext))
-        (common-util/safe-decode-uri-component (string/replace result "." "/"))
-        result))))
-
 (defn- path->file-name
   ;; Only for internal paths, as they are converted to POXIS already
   ;; https://github.com/logseq/og/blob/48b8e54e0fdd8fbd2c5d25b7f1912efef8814714/deps/graph-parser/src/logseq/graph_parser/extract.cljc#L32
