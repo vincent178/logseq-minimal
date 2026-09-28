@@ -1,6 +1,5 @@
 (ns frontend.components.container
   (:require [cljs-drag-n-drop.core :as dnd]
-            [clojure.string :as string]
             [dommy.core :as d]
             [frontend.components.content :as cp-content]
             [frontend.components.find-in-page :as find-in-page]
@@ -13,12 +12,10 @@
             [frontend.components.window-controls :as window-controls]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
-            [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
             [frontend.db.async :as db-async]
             [frontend.handler.common :as common-handler]
             [frontend.handler.editor :as editor-handler]
-            [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
             [frontend.mixins :as mixins]
             [frontend.modules.shortcut.data-helper :as shortcut-dh]
@@ -98,7 +95,6 @@
                                     :else 120)}}
           main-content])]]]))
 
-(defonce sidebar-inited? (atom false))
 ;; TODO: simplify logic
 
 (rum/defc parsing-progress < rum/static
@@ -118,25 +114,8 @@
     (ui/progress-bar-with-label width left-label (str finished "/" total))))
 
 (rum/defc main-content < rum/reactive db-mixins/query
-  {:init (fn [state]
-           (when-not @sidebar-inited?
-             (let [current-repo (state/sub :git/current-repo)
-                   default-home (app-left-sidebar/get-default-home-if-valid)
-                   sidebar (:sidebar default-home)
-                   sidebar (if (string? sidebar) [sidebar] sidebar)]
-               (when-let [pages (->> (seq sidebar)
-                                     (remove string/blank?))]
-                 (doseq [page pages]
-                   (let [page (util/safe-page-name-sanity-lc page)
-                         [db-id block-type] (if (= page "contents")
-                                              [(or (:db/id (db/get-page page)) "contents") :contents]
-                                              [(:db/id (db/get-page page)) :page])]
-                     (state/sidebar-add-block! current-repo db-id block-type)))
-                 (reset! sidebar-inited? true))))
-           state)}
   []
-  (let [default-home (app-left-sidebar/get-default-home-if-valid)
-        current-repo (state/sub :git/current-repo)
+  (let [current-repo (state/sub :git/current-repo)
         loading-files? (when current-repo (state/sub [:repo/loading-files? current-repo]))
         graph-parsing-state (state/sub [:graph/parsing-state current-repo])]
     (cond
@@ -149,20 +128,8 @@
 
       :else
       [:div
-       (cond
-         (and default-home
-              (= :home (state/get-current-route))
-              (not (state/route-has-p?))
-              (:page default-home))
-         (route-handler/redirect-to-page! (:page default-home))
-
-         (not (state/enable-journals? current-repo))
-         (route-handler/redirect! {:to :all-pages})
-
-         loading-files?
+       (if loading-files?
          (ui/loading (t :loading-files))
-
-         :else
          (journal/all-journals))])))
 
 (defn- hide-context-menu-and-clear-selection
@@ -394,7 +361,6 @@
         native-titlebar? (state/sub [:electron/user-cfgs :window/native-titlebar?])
         window-controls? (and (util/electron?) (not util/mac?) (not native-titlebar?))
         edit? (state/editing?)
-        default-home (app-left-sidebar/get-default-home-if-valid)
         logged? (user-handler/logged-in?)
         fold-button-on-right? (state/enable-fold-button-right?)
         preferred-language (state/sub [:preferred-language])]
@@ -447,7 +413,6 @@
                         :logged? logged?
                         :page? page?
                         :route-match route-match
-                        :default-home default-home
                         :new-block-mode new-block-mode})
         (when (util/electron?)
           (find-in-page/search))

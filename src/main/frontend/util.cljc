@@ -942,9 +942,6 @@
      common-util/page-name-sanity-lc))
 
 #?(:cljs
-   (def safe-page-name-sanity-lc common-util/safe-page-name-sanity-lc))
-
-#?(:cljs
    (def get-page-title common-util/get-page-title))
 
 #?(:cljs

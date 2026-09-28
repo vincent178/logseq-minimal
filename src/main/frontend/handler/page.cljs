@@ -273,8 +273,7 @@
 (defn create-today-journal!
   []
   (when-let [repo (state/get-current-repo)]
-    (when (and (state/enable-journals? repo)
-               ;; FIXME: There are a lot of long-running actions we don't want interrupted by this fn.
+    (when (and ;; FIXME: There are a lot of long-running actions we don't want interrupted by this fn.
                ;; We should implement an app-wide check rather than list them all here
                (not (:graph/loading? @state/state))
                (not (:graph/importing @state/state))

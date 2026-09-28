@@ -16,7 +16,6 @@
     [:ui/enable-tooltip? :boolean]
     [:ui/show-brackets? :boolean]
     [:feature/enable-search-remove-accents? :boolean]
-    [:feature/enable-journals? :boolean]
     [:feature/disable-scheduled-and-deadline-query? :boolean]
     [:scheduled/future-days :int]
     [:start-of-week [:enum 0 1 2 3 4 5 6]]
@@ -24,9 +23,6 @@
     [:custom-js-url :string]
     [:export/bullet-indentation
      [:enum :eight-spaces :four-spaces :two-spaces :tab]]
-    [:default-home [:map
-                    [:page {:optional true} :string]
-                    [:sidebar {:optional true} [:or :string [:vector :string]]]]]
     [:pages-directory :string]
     [:journal-directory :string]
     [:org-mode/insert-file-link? :boolean]

@@ -23,7 +23,6 @@
                             input
                             (merge {:current-page-fn (fn []
                                                        (or (state/get-current-page)
-                                                           (:page (state/get-default-home))
                                                            (date/today)))}
                                    opts))))
 

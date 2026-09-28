@@ -435,14 +435,6 @@ should be done through this fn in order to get global config and config defaults
     (when-not (string/blank? template)
       (string/trim template))))
 
-(defn get-default-home
-  []
-  (:default-home (get-config)))
-
-(defn custom-home-page?
-  []
-  (some? (:page (get-default-home))))
-
 (defn get-preferred-format
   ([]
    (get-preferred-format (get-current-repo)))
@@ -623,12 +615,6 @@ Similar to re-frame subscriptions"
     (and (util/mobile?)
          (util/sm-breakpoint?))))
 
-(defn enable-journals?
-  ([]
-   (enable-journals? (get-current-repo)))
-  ([repo]
-   (not (false? (:feature/enable-journals? (sub-config repo))))))
-
 (defn enable-sync?
   []
   (sub :feature/enable-sync?))
@@ -653,10 +639,6 @@ Similar to re-frame subscriptions"
 (defn show-brackets?
   []
   (not (false? (:ui/show-brackets? (sub-config)))))
-
-(defn sub-default-home-page
-  []
-  (get-in (sub-config) [:default-home :page] ""))
 
 (defn- get-selected-block-ids
   [blocks]
@@ -789,10 +771,6 @@ Similar to re-frame subscriptions"
   (when (= :page (get-current-route))
     (get-in (get-route-match)
             [:path-params :name])))
-
-(defn route-has-p?
-  []
-  (get-in (get-route-match) [:query-params :p]))
 
 (defn get-current-repo
   "Returns the current repo URL, or else open demo graph"

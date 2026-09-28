@@ -8,7 +8,6 @@
             [frontend.db :as db]
             [frontend.fs :as fs]
             [frontend.handler.config :as config-handler]
-            [frontend.handler.notification :as notification]
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.modules.outliner.op :as outliner-op]
@@ -112,15 +111,7 @@
     (when-let [page-uuid (or (and (uuid? page-uuid-or-name) page-uuid-or-name)
                              (:block/uuid (db/get-page page-uuid-or-name)))]
       (when @state/*db-worker
-        (let [page (db/entity [:block/uuid page-uuid])
-              default-home (state/get-default-home)
-              home-page? (= (:block/title page) (:page default-home))]
-          (p/do!
-           (when home-page?
-             (p/do!
-              (config-handler/set-config! :default-home (dissoc default-home :page))
-              (config-handler/set-config! :feature/enable-journals? true)
-              (notification/show! "Journals enabled" :success)))
+        (p/do!
            (-> (p/let [res (ui-outliner-tx/transact!
                             {:outliner-op :delete-page}
                             (outliner-op/delete-page! page-uuid))]
@@ -128,7 +119,7 @@
                    (when ok-handler (ok-handler))
                    (when error-handler (error-handler))))
                (p/catch (fn [error]
-                          (js/console.error error))))))))))
+                          (js/console.error error)))))))))
 
 ;; other fns
 ;; =========
@@ -166,7 +157,7 @@
                 (println "file rename failed: " error))))))
 
 (defn after-page-renamed!
-  [repo {:keys [page-id old-name new-name old-path new-path]}]
+  [repo {:keys [page-id old-name old-path new-path]}]
   (let [old-page-name       (common-util/page-name-sanity-lc old-name)
         redirect? (= (some-> (state/get-current-page) common-util/page-name-sanity-lc)
                      (common-util/page-name-sanity-lc old-page-name))
@@ -178,10 +169,6 @@
                                 :push        false
                                 :path-params {:name (str (:block/uuid page))}}))
 
-
-    (let [home (get (state/get-config) :default-home {})]
-      (when (= old-page-name (common-util/page-name-sanity-lc (get home :page "")))
-        (config-handler/set-config! :default-home (assoc home :page new-name))))
 
     (when (and old-path new-path)
       (rename-file! old-path new-path))
