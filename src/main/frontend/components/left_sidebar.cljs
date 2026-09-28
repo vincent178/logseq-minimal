@@ -300,7 +300,7 @@
                              favorite-entities)]
          (dnd-component/items favorite-items
                               {:on-drag-end (fn [favorites']
-                                              (page-handler/<reorder-favorites! favorites'))
+                                              (page-handler/reorder-favorites! favorites'))
                                :parent-node :ul.favorites.text-sm}))))))
 
 (rum/defc sidebar-recent-pages < rum/reactive db-mixins/query

@@ -59,30 +59,43 @@
 ;; favorite fns
 ;; ============
 (defn file-favorited?
-  [page-name]
-  (let [favorites (->> (:favorites (state/get-config))
+  [page-name-or-uuid]
+  (let [page-uuid (:block/uuid (db/get-page page-name-or-uuid))
+        favorites (->> (:favorites (state/get-config))
                        (filter string?)
                        (map string/lower-case)
                        (set))]
-    (contains? favorites (string/lower-case page-name))))
+    (or (contains? favorites (string/lower-case page-name-or-uuid))
+        (and page-uuid
+             (contains? favorites (string/lower-case (str page-uuid)))))))
 
 (defn file-favorite-page!
+  "Favorites a page, storing its uuid string in the `:favorites` config list
+  so order survives page renames."
   [page-name]
   (when-not (string/blank? page-name)
-    (let [favorites (->
+    (let [favorite (or (some-> (:block/uuid (db/get-page page-name)) str)
+                       page-name)
+          favorites (->
                      (cons
-                      page-name
+                      favorite
                       (or (:favorites (state/get-config)) []))
                      (distinct)
                      (vec))]
       (config-handler/set-config! :favorites favorites))))
 
 (defn file-unfavorite-page!
+  "Removes a page from favorites, matching either its uuid string (current
+  format) or its legacy page-name entry."
   [page-name]
   (when-not (string/blank? page-name)
-    (let [old-favorites (:favorites (state/get-config))
+    (let [page-uuid (:block/uuid (db/get-page page-name))
+          old-favorites (:favorites (state/get-config))
           new-favorites (->> old-favorites
-                             (remove #(= (string/lower-case %) (string/lower-case page-name)))
+                             (remove #(or (= (string/lower-case %) (string/lower-case page-name))
+                                          (and page-uuid
+                                               (= (string/lower-case %)
+                                                  (string/lower-case (str page-uuid))))))
                              (vec))]
       (when-not (= old-favorites new-favorites)
         (config-handler/set-config! :favorites new-favorites)))))
