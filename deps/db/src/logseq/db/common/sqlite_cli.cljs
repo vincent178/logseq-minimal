@@ -9,7 +9,6 @@
             [datascript.storage :refer [IStorage]]
             [logseq.db.common.sqlite :as common-sqlite]
             [logseq.db.file-based.schema :as file-schema]
-            [logseq.db.frontend.schema :as db-schema]
             [logseq.db.sqlite.util :as sqlite-util]))
 
 ;; Should this check directory name instead if file graphs also
@@ -76,15 +75,13 @@
   ([db-full-path]
    (open-sqlite-datascript! nil db-full-path))
   ([graphs-dir db-name]
-   (let [[base-name db-full-path]
+   (let [[_base-name db-full-path]
          (if (nil? graphs-dir)
            [(node-path/basename db-name) db-name]
            [db-name (second (common-sqlite/get-db-full-path graphs-dir db-name))])
          db (new sqlite db-full-path nil)
-        ;; For both desktop and CLI, only file graphs have db-name that indicate their db type
-         schema (if (common-sqlite/local-file-based-graph? base-name)
-                  file-schema/schema
-                  db-schema/schema)]
+         ;; File-based only: always use the file-graph schema.
+         schema file-schema/schema]
      (common-sqlite/create-kvs-table! db)
      (let [storage (new-sqlite-storage db)
            conn (common-sqlite/get-storage-conn storage schema)]

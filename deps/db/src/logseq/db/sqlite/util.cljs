@@ -1,7 +1,6 @@
 (ns logseq.db.sqlite.util
   "Utils fns for backend sqlite db"
   (:require [cljs-bean.transit]
-            [clojure.string :as string]
             [cognitect.transit :as transit]
             [datascript.core]
             [datascript.impl.entity :as de]
@@ -64,11 +63,6 @@
         reader (transit/reader :json {:handlers read-handlers*})]
     (fn read-transit-str* [s]
       (transit/read reader s))))
-
-(defn db-based-graph?
-  [graph-name]
-  (when graph-name
-    (string/starts-with? graph-name db-version-prefix)))
 
 (def block-with-timestamps common-util/block-with-timestamps)
 

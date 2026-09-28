@@ -9,11 +9,8 @@
             [cljs.core]
             [clojure.data :as data]
             [datascript.core :as d]
-            [datascript.impl.entity :as entity :refer [Entity]]
-            [logseq.common.util.date-time :as date-time-util]
-            [logseq.db.frontend.content :as db-content]
-            [logseq.db.frontend.entity-util :as entity-util]
-            [logseq.db.frontend.property :as db-property]))
+            [datascript.impl.entity :as entity :refer [Entity]])
+  )
 
 (def nil-db-ident-entities
   "No such entities with these :db/ident, but `(d/entity <db> <ident>)` has been called somewhere."
@@ -81,37 +78,11 @@
   {:pre [(pos-int? e)]}
   (Entity. db e (volatile! false) (volatile! {})))
 
-(defn db-based-graph?
-  "Whether the current graph is db-only"
-  [db]
-  (when db
-    (identical? "db" (:kv/value (entity-memoized db :logseq.kv/db-type)))))
-
-(defn- get-journal-title
-  [db e]
-  (date-time-util/int->journal-title (:block/journal-day e)
-                                     (:logseq.property.journal/title-format (entity-memoized db :logseq.class/Journal))))
-
 (defn- get-block-title
   [^Entity e k default-value]
-  (let [db (.-db e)
-        db-based? (db-based-graph? db)]
-    (if (and db-based? (entity-util/journal? e))
-      (get-journal-title db e)
-      (or
-       (get (.-kv e) k)
-       (if db-based?
-         (let [result (lookup-entity e k default-value)
-               ;; Replace title for pages only, otherwise it'll recursively
-               ;; replace block id refs if there're cycle references of blocks
-               refs (:block/refs e)
-               result' (if (and (string? result) refs)
-                         (db-content/id-ref->title-ref result refs
-                                                       {:db db
-                                                        :replace-pages-with-same-name? false})
-                         result)]
-           (or result' default-value))
-         (lookup-entity e k default-value))))))
+  (or
+   (get (.-kv e) k)
+   (lookup-entity e k default-value)))
 
 (defn- lookup-kv-with-default-value
   [db ^Entity e k default-value]
@@ -132,22 +103,11 @@
 
 (defn- get-property-keys
   [^Entity e]
-  (let [db (.-db e)]
-    (if (db-based-graph? db)
-      (->> (map :a (d/datoms db :eavt (.-eid e)))
-           distinct
-           (filter db-property/property?))
-      (keys (lookup-entity e :block/properties nil)))))
+  (keys (lookup-entity e :block/properties nil)))
 
 (defn- get-properties
   [^Entity e]
-  (let [db (.-db e)]
-    (if (db-based-graph? db)
-      (lookup-entity e :block/properties
-                     (->> (into {} e)
-                          (filter (fn [[k _]] (db-property/property? k)))
-                          (into {})))
-      (lookup-entity e :block/properties nil))))
+  (lookup-entity e :block/properties nil))
 
 ;; (defonce *id->k-frequency (atom {}))
 (defn lookup-kv-then-entity
@@ -159,9 +119,7 @@
        (let [db (.-db e)]
          (case k
            :block/raw-title
-           (if (and (db-based-graph? db) (entity-util/journal? e))
-             (get-journal-title db e)
-             (lookup-entity e :block/title default-value))
+           (lookup-entity e :block/title default-value)
 
            :block/properties
            (get-properties e)

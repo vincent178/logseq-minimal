@@ -5,7 +5,6 @@
             [frontend.worker.react :as worker-react]
             [frontend.worker.state :as worker-state]
             [logseq.db :as ldb]
-            [logseq.graph-parser.exporter :as gp-exporter]
             [logseq.outliner.core :as outliner-core]
             [logseq.outliner.datascript-report :as ds-report]
             [logseq.outliner.pipeline :as outliner-pipeline]))
@@ -109,31 +108,10 @@
       (js/console.error e)
       (throw e))))
 
-(defn- invoke-hooks-for-imported-graph [conn {:keys [tx-meta] :as tx-report}]
-  (let [refs-tx-report (outliner-pipeline/transact-new-db-graph-refs conn tx-report)
-        full-tx-data (concat (:tx-data tx-report) (:tx-data refs-tx-report))
-        final-tx-report (-> (or refs-tx-report tx-report)
-                            (assoc :tx-data full-tx-data
-                                   :tx-meta tx-meta
-                                   :db-before (:db-before tx-report)))]
-    {:tx-report final-tx-report}))
-
 (defn invoke-hooks
   [repo conn {:keys [tx-meta] :as tx-report} context]
   (let [{:keys [from-disk? new-graph? transact-new-graph-refs?]} tx-meta]
     (when-not transact-new-graph-refs?
-      (cond
-        (or from-disk? new-graph?)
+      (if (or from-disk? new-graph?)
         {:tx-report tx-report}
-
-        ;; Rebuild refs for a new DB graph using EDN or when EDN data is imported.
-        ;; Ref rebuilding happens here because transact-pipeline doesn't rebuild refs
-        ;; for these cases
-        (or (::gp-exporter/new-graph? tx-meta)
-            (and (:logseq.db.sqlite.export/imported-data? tx-meta)
-                 ;; Undo and redo must be handled by default in order to work
-                 (not (:undo? tx-meta)) (not (:redo? tx-meta))))
-        (invoke-hooks-for-imported-graph conn tx-report)
-
-        :else
         (invoke-hooks-default repo conn tx-report context)))))
