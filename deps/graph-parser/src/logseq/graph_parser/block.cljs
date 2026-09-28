@@ -347,11 +347,6 @@
                 {}))]
     [page page-entity]))
 
-(defn sanitize-hashtag-name
-  "This must be kept in sync with its reverse operation in logseq.db.frontend.content"
-  [s]
-  (string/replace s "#" "HashTag-"))
-
 ;; TODO: refactor
 (defn page-name->map
   "Create a page's map structure given a original page name (string).
