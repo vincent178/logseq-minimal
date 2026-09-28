@@ -110,10 +110,6 @@
   [repo]
   (common-config/get-date-formatter (get-config repo)))
 
-(defn get-id-token
-  []
-  (:auth/id-token @*state))
-
 (comment
   (defn mobile?
     []

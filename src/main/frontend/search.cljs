@@ -93,11 +93,6 @@
         (protocol/rebuild-pages-indice! engine)
         (protocol/rebuild-blocks-indice! engine))))))
 
-(defn reset-indice!
-  [repo]
-  (when-let [engine (get-engine repo)]
-    (protocol/truncate-blocks! engine)))
-
 (defn remove-db!
   [repo]
   (when-let [engine (get-engine repo)]
