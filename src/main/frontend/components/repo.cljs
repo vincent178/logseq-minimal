@@ -12,7 +12,6 @@
             [frontend.util.text :as text-util]
             [goog.object :as gobj]
             [logseq.shui.ui :as shui]
-            [medley.core :as medley]
             [promesa.core :as p]
             [rum.core :as rum]))
 
@@ -218,10 +217,7 @@
 (rum/defcs graphs-selector < rum/reactive
   [_state]
   (let [current-repo (state/get-current-repo)
-        user-repos (state/get-repos)
-        current-repo' (some->> user-repos (medley/find-first #(= current-repo (:url %))))
         repo-name (when current-repo (db/get-repo-name current-repo))
-        remote? (:remote? current-repo')
         short-repo-name (if current-repo
                           (db/get-short-repo-name repo-name)
                           "Select a Graph")]
@@ -234,7 +230,6 @@
                                      {:as-dropdown? true
                                       :content-props {:class "repos-list"}
                                       :align :start}))}
-      [:span.thumb (shui/tabler-icon (if remote? "cloud" "folder") {:size 16})]
       [:strong short-repo-name]
       (shui/tabler-icon "selector" {:size 18})]]))
 

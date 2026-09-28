@@ -74,15 +74,6 @@
     @apply flex items-center relative flex-1 overflow-hidden
     pl-1 py-1 pr-4 opacity-90 active:opacity-70 rounded-md;
 
-    > .thumb {
-      @apply w-6 h-6 overflow-hidden flex flex-shrink-0 items-center
-      -ml-0.5 justify-center rounded opacity-80 dark:opacity-50;
-
-      > .ui__icon {
-        @apply mr-0;
-      }
-    }
-
     > strong {
       @apply whitespace-nowrap overflow-hidden text-ellipsis pl-1
       font-medium relative pr-4 text-sm;
