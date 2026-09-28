@@ -32,10 +32,6 @@
       :properties {:logseq.property.class/extends :logseq.class/Page
                    :logseq.property.journal/title-format "MMM do, yyyy"}}
 
-     :logseq.class/Whiteboard
-     {:title "Whiteboard"
-      :properties {:logseq.property.class/extends :logseq.class/Page}}
-
      :logseq.class/Task
      {:title "Task"
       :schema {:properties [:logseq.property/status :logseq.property/priority :logseq.property/deadline :logseq.property/scheduled]}}
@@ -44,15 +40,6 @@
      {:title "Query"
       :properties {:logseq.property/icon {:type :tabler-icon :id "search"}}
       :schema {:properties [:logseq.property/query]}}
-
-     :logseq.class/Card
-     {:title "Card"
-      :schema {:properties [:logseq.property.fsrs/state :logseq.property.fsrs/due]}}
-
-     :logseq.class/Cards
-     {:title "Cards"
-      :properties {:logseq.property/icon {:type :tabler-icon :id "search"}
-                   :logseq.property.class/extends :logseq.class/Query}}
 
      :logseq.class/Asset
      {:title "Asset"
@@ -114,11 +101,10 @@
   "Built-in classes that are private and should not be used by a user directly.
   These used to be in block/type"
   (set/union (disj internal-tags :logseq.class/Root)
-             #{:logseq.class/Journal :logseq.class/Whiteboard
-               :logseq.class/Pdf-annotation}))
+             #{:logseq.class/Journal :logseq.class/Pdf-annotation}))
 
 (def block-kind-tags
-  #{:logseq.class/Cards :logseq.class/Code-block
+  #{:logseq.class/Code-block
     :logseq.class/Math-block :logseq.class/Quote-block
     :logseq.class/Query :logseq.class/Pdf-annotation
     :logseq.class/Template})

@@ -257,13 +257,6 @@
                                                   :schema {:type :node
                                                            :cardinality :many
                                                            :hide? true}}
-     :logseq.property.tldraw/page {:title "Tldraw Page"
-                                   :schema {:type :map
-                                            :hide? true}}
-     :logseq.property.tldraw/shape {:title "Tldraw Shape"
-                                    :schema {:type :map
-                                             :hide? true}}
-
      ;; Journal props
      :logseq.property.journal/title-format {:title "Title Format"
                                             :schema
@@ -531,16 +524,6 @@
                                              :schema {:type :map
                                                       :hide? true
                                                       :public? false}}
-     :logseq.property.fsrs/due {:title "Due"
-                                :schema
-                                {:type :datetime
-                                 :hide? false
-                                 :public? false}}
-     :logseq.property.fsrs/state {:title "State"
-                                  :schema
-                                  {:type :map
-                                   :hide? false ; TODO: show for debug now, hide it later
-                                   :public? false}}
      :logseq.property.user/name {:title "User Name"
                                  :schema
                                  {:type :string
@@ -641,7 +624,7 @@
   (set (vals schema-properties-map)))
 
 (def logseq-property-namespaces
-  #{"logseq.property" "logseq.property.tldraw" "logseq.property.pdf" "logseq.property.fsrs"
+  #{"logseq.property" "logseq.property.pdf"
     "logseq.property.linked-references" "logseq.property.asset" "logseq.property.table" "logseq.property.node"
     "logseq.property.code" "logseq.property.repeat"
     "logseq.property.journal" "logseq.property.class" "logseq.property.view"

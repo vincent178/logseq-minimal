@@ -24,7 +24,6 @@
             [frontend.util.ref :as ref]
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
-            [logseq.graph-parser.exporter :as gp-exporter]
             [medley.core :as medley]
             [promesa.core :as p]
             [reitit.frontend.easy :as rfe]
@@ -53,7 +52,7 @@
                     (some-> url (js/decodeURIComponent)
                             (get-in-repo-assets-full-filename)
                             (string/replace '"/" "_")))
-        filekey (gp-exporter/safe-sanitize-file-name
+        filekey (util/safe-sanitize-file-name
                  (subs filename' 0 (- (count filename') (inc (count ext-name)))))]
     (when-let [key (and (not (string/blank? filekey))
                         (if web-link?

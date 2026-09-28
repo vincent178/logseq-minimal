@@ -50,8 +50,7 @@
                   (and
                    (= url-type "Page_ref")
                    (and (string? value)
-                        (not (or (common-config/local-relative-asset? value)
-                                 (common-config/draw? value))))
+                        (not (common-config/local-relative-asset? value)))
                    value)
 
                   (and
@@ -297,11 +296,6 @@
         [original-page-name page-name day]))))
 
 (def convert-page-if-journal (memoize convert-page-if-journal-impl))
-
-;; Retained for logseq.graph-parser.exporter (still used for safe file names +
-;; ::new-graph? tx-meta); its DB-graph export path is unused in this file-only
-;; build but the ns is still loaded by frontend.worker.pipeline & pdf assets.
-(def *export-to-db-graph? (atom false))
 
 (defn- page-name-string->map
   [original-page-name db date-formatter

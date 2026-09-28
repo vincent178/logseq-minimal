@@ -1,1 +1,0 @@
-- Notes not about new Task class

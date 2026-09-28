@@ -80,7 +80,6 @@
       :network/online?         true
       :me                      nil
       :git/current-repo        current-graph
-      :draw?                   false
       :db/restoring?           nil
 
       :search/q                              ""

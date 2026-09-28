@@ -535,8 +535,6 @@
                        :class
                        (entity-util/hidden? d)
                        :hidden
-                       (entity-util/whiteboard? d)
-                       :normal-page
                        (entity-util/page? d)
                        :normal-page
                        (entity-util/asset? d)

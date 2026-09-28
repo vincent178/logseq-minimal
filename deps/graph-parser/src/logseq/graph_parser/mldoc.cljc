@@ -183,12 +183,8 @@
           (not (contains? #{"Page_ref" "Block_ref"} ref-type))
 
           (and (contains? #{"Page_ref"} ref-type)
-               (or
-                ;; 2. excalidraw link
-                (common-config/draw? ref-value)
-
-                ;; 3. local asset link
-                (boolean (common-config/local-relative-asset? ref-value))))))))
+               ;; local asset link
+               (boolean (common-config/local-relative-asset? ref-value)))))))
 
 (defn link?
   [format link]
