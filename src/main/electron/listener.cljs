@@ -2,7 +2,6 @@
   "System-component-like ns that defines listeners by event name to receive ipc
   messages from electron's main process"
   (:require [cljs-bean.core :as bean]
-            [clojure.string :as string]
             [dommy.core :as dom]
             [electron.ipc :as ipc]
             [frontend.db :as db]
@@ -102,43 +101,7 @@
                  ;; Handle open new window in renderer, until the destination graph doesn't rely on setting local storage
                  ;; No db cache persisting ensured. Should be handled by the caller
                  (fn [repo]
-                   (ui-handler/open-new-window-or-tab! repo)))
-
-  (safe-api-call "invokeLogseqAPI"
-                 (fn [^js data]
-                   (let [sync-id (.-syncId data)
-                         method  (.-method data)
-                         ns-method (some-> method (string/split "@"))
-                         ns' (first ns-method)
-                         method' (last ns-method)
-                         args    (.-args data)
-                         ret-fn! #(ipc/invoke (str :electron.server/sync! sync-id) %)
-                         app? (contains? #{"app" "editor" "db" "cli"} ns')
-                         ^js sdk1 (aget js/window.logseq "api")
-                         ^js sdk2 (aget js/window.logseq "sdk")]
-
-                     (try
-                       (println "invokeLogseqAPI:" method ", args:" args)
-                       (let [^js methodTarget (if app? sdk1 (aget sdk2 ns'))]
-                         (when-not methodTarget
-                           (throw (js/Error. (str "MethodNotExist: " method))))
-                         (-> (p/promise (apply js-invoke methodTarget method' args))
-                             (p/then #(ret-fn! %))
-                             (p/catch #(do
-                                         (js/console.error "Unexpected error:" %)
-                                         (ret-fn! {:error (.-message %)})))))
-                       (catch :default e
-                         (js/console.error "Unexpected error:" e)
-                         (ret-fn! {:error (.-message e)}))))))
-
-  (safe-api-call "syncAPIServerState"
-                 (fn [^js data]
-                   (state/set-state! :electron/server (bean/->clj data))))
-
-  (safe-api-call "handbook"
-                 (fn [^js data]
-                   (when-let [k (and data (.-key data))]
-                     (state/open-handbook-pane! k)))))
+                   (ui-handler/open-new-window-or-tab! repo))))
 
 (defn listen!
   []

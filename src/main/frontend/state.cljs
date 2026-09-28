@@ -2,7 +2,7 @@
   "Provides main application state, fns associated to set and state based rum
   cursors"
   (:require [cljs-bean.core :as bean]
-            [cljs.core.async :as async :refer [>!]]
+            [cljs.core.async :as async]
             [clojure.set :as set]
             [clojure.string :as string]
             [datascript.core :as d]
@@ -10,7 +10,6 @@
             [electron.ipc :as ipc]
             [frontend.db.conn-state :as db-conn-state]
             [frontend.flows :as flows]
-            [frontend.mobile.util :as mobile-util]
             [frontend.spec.storage :as storage-spec]
             [frontend.storage :as storage]
             [frontend.util :as util]
@@ -79,7 +78,6 @@
       :notification/content                  nil
       :repo/loading-files?                   {}
       :nfs/refreshing?                       nil
-      :instrument/disabled?                  (storage/get "instrument-disabled")
       ;; TODO: how to detect the network reliably?
       ;; NOTE: prefer to use flows/network-online-event-flow
       :network/online?         true
@@ -108,7 +106,6 @@
       :ui/recent-pages                       (or (storage/get :ui/recent-pages) {})
 
       ;; right sidebar
-      :ui/handbooks-open?                    false
       :ui/help-open?                         false
       :ui/fullscreen?                        false
       :ui/settings-open?                     false
@@ -207,7 +204,6 @@
       :electron/updater-pending?             false
       :electron/updater                      {}
       :electron/user-cfgs                    nil
-      :electron/server                       nil
       :electron/window-maximized?            false
       :electron/window-fullscreen?           false
 
@@ -217,8 +213,6 @@
       :assets/asset-file-write-finish        (atom {})
 
       ;; mobile
-      :mobile/container-urls                 nil
-      :mobile/show-action-bar?               false
 
       ;; plugin
       :plugin/enabled                        (and util/plugin-platform?
@@ -300,7 +294,6 @@
       :graph/importing                       nil
       :graph/importing-state                 {}
       :graph/loading?                        nil
-      :handbook/route-chan                   (async/chan (async/sliding-buffer 1))
 
       :system/info                           {}
       ;; Whether block is selected
@@ -725,7 +718,7 @@ Similar to re-frame subscriptions"
 
 (defn mobile?
   []
-  (or (util/mobile?) (mobile-util/native-platform?)))
+  (util/mobile?))
 
 (defn enable-tooltip?
   []
@@ -1331,13 +1324,7 @@ Similar to re-frame subscriptions"
 
 (defn set-theme-mode!
   ([mode] (set-theme-mode! mode (:ui/system-theme? @state)))
-  ([mode system-theme?]
-   (when (mobile-util/native-platform?)
-     (if (= mode "light")
-       (util/set-theme-light)
-       (util/set-theme-dark)))
-   (when (mobile-util/native-platform?)
-     (mobile-util/set-native-interface-style! mode system-theme?))
+  ([mode _system-theme?]
    (set-state! :ui/theme mode)
    (storage/set :ui/theme mode)))
 
@@ -1375,19 +1362,6 @@ Similar to re-frame subscriptions"
   ([mode theme]
    (set-state! (if mode [:ui/custom-theme (keyword mode)] :ui/custom-theme) theme)
    (storage/set :ui/custom-theme (:ui/custom-theme @state))))
-
-(defn restore-mobile-theme!
-  "Restore mobile theme setting from local storage"
-  []
-  (let [mode (or (storage/get :ui/theme) "light")
-        system-theme? (storage/get :ui/system-theme?)]
-    (when (mobile-util/native-platform?)
-      (mobile-util/set-native-interface-style! mode system-theme?))
-    (when (and (not system-theme?)
-               (mobile-util/native-platform?))
-      (if (= mode "light")
-        (util/set-theme-light)
-        (util/set-theme-dark)))))
 
 (defn set-root-component!
   [component]
@@ -1889,10 +1863,7 @@ Similar to re-frame subscriptions"
               (util/set-change-value input content))
 
             (when (and move-cursor? (not (block-component-editing?)))
-              (cursor/move-cursor-to input pos))
-
-            (when (mobile-util/native-platform?)
-              (set-state! :mobile/show-action-bar? false))))))))
+              (cursor/move-cursor-to input pos))))))))
 
 (defn get-git-auto-commit-enabled?
   []
@@ -1921,10 +1892,6 @@ Similar to re-frame subscriptions"
 (defn get-block-op-type
   []
   (:editor/block-op-type @state))
-
-(defn feature-http-server-enabled?
-  []
-  (boolean (storage/get ::storage-spec/http-server-enabled)))
 
 (defn get-plugin-by-id
   [id]
@@ -2118,21 +2085,6 @@ Similar to re-frame subscriptions"
         config (if (map? config') (merge config' config) {})]
     (swap! state assoc :ui/editor-font config)
     (storage/set :ui/editor-font config)))
-
-(defn handbook-open?
-  []
-  (:ui/handbooks-open? @state))
-
-(defn get-handbook-route-chan
-  []
-  (:handbook/route-chan @state))
-
-(defn open-handbook-pane!
-  [k]
-  (when-not (handbook-open?)
-    (set-state! :ui/handbooks-open? true))
-  (js/setTimeout #(async/go
-                    (>! (get-handbook-route-chan) k))))
 
 (defn update-favorites-updated!
   []

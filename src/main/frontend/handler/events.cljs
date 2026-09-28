@@ -3,14 +3,11 @@
   core.async channel to handle them. Any part of the system can dispatch
   one of these events using state/pub-event!"
   (:refer-clojure :exclude [run!])
-  (:require ["@sentry/react" :as Sentry]
-            [cljs-bean.core :as bean]
-            [clojure.core.async :as async]
+  (:require [clojure.core.async :as async]
             [clojure.string :as string]
             [frontend.commands :as commands]
             [frontend.config :as config]
             [frontend.date :as date]
-            [frontend.db :as db]
             [frontend.db.async :as db-async]
             [frontend.db.model :as db-model]
             [frontend.db.react :as react]
@@ -30,17 +27,13 @@
             [frontend.handler.search :as search-handler]
             [frontend.handler.shell :as shell-handler]
             [frontend.handler.ui :as ui-handler]
-            [frontend.mobile.util :as mobile-util]
-            [frontend.modules.instrumentation.posthog :as posthog]
             [frontend.modules.outliner.pipeline :as pipeline]
             [frontend.modules.shortcut.core :as st]
             [frontend.persist-db :as persist-db]
             [frontend.quick-capture :as quick-capture]
             [frontend.state :as state]
             [frontend.util :as util]
-            [goog.dom :as gdom]
             [lambdaisland.glogi :as log]
-            [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
 
 ;; TODO: should we move all events here?
@@ -158,21 +151,8 @@
 
   (fs-watcher/load-graph-files! repo))
 
-(defmethod handle :instrument [[_ {:keys [type payload] :as opts}]]
-  (when-not (empty? (dissoc opts :type :payload))
-    (js/console.error "instrument data-map should only contains [:type :payload]"))
-  (posthog/capture type payload))
-
-(defmethod handle :capture-error [[_ {:keys [error payload extra]}]]
-  (let [payload (merge
-                 {:schema-version (str db-schema/version)
-                  :db-schema-version (when-let [db (db/get-db)]
-                                       (str (:kv/value (db/entity db :logseq.kv/schema-version))))
-                  :db-based false}
-                 payload)]
-    (Sentry/captureException error
-                             (bean/->js {:tags payload
-                                         :extra extra}))))
+(defmethod handle :capture-error [[_ {:keys [error]}]]
+  (log/error :capture-error error))
 
 (defmethod handle :exec-plugin-cmd [[_ {:keys [pid cmd action]}]]
   (commands/exec-plugin-simple-command! pid cmd action))
@@ -181,31 +161,6 @@
   (when-not @st/*pending-inited?
     (reset! st/*pending-inited? true)
     (st/consume-pending-shortcuts!)))
-
-(defmethod handle :mobile/keyboard-will-show [[_ keyboard-height]]
-  (let [_main-node (util/app-scroll-container-node)]
-    (when-let [^js html (js/document.querySelector ":root")]
-      (.setProperty (.-style html) "--ls-native-kb-height" (str keyboard-height "px"))
-      (.add (.-classList html) "has-mobile-keyboard")
-      (.setProperty (.-style html) "--ls-native-toolbar-opacity" 1))
-    (when (mobile-util/native-platform?)
-      (reset! util/keyboard-height keyboard-height)
-      (util/schedule
-       #(some-> (state/get-input)
-                (util/scroll-editor-cursor false))))))
-
-(defmethod handle :mobile/keyboard-will-hide [[_]]
-  (let [main-node (util/app-scroll-container-node)]
-    (when-let [^js html (js/document.querySelector ":root")]
-      (.removeProperty (.-style html) "--ls-native-kb-height")
-      (.setProperty (.-style html) "--ls-native-toolbar-opacity" 0)
-      (.remove (.-classList html) "has-mobile-keyboard"))
-    (when (mobile-util/native-ios?)
-      (set! (.. main-node -style -marginBottom) "0px")
-      (when-let [left-sidebar-node (gdom/getElement "left-sidebar")]
-        (set! (.. left-sidebar-node -style -bottom) "0px"))
-      (when-let [right-sidebar-node (gdom/getElementByClass "sidebar-item-list")]
-        (set! (.. right-sidebar-node -style -paddingBottom) "150px")))))
 
 (defmethod handle :plugin/hook-db-tx [[_ {:keys [blocks tx-data] :as payload}]]
   (when-let [payload (and (seq blocks)
@@ -226,8 +181,7 @@
 (defmethod handle :graph/restored [[_ graph]]
   (when graph (assets-handler/ensure-assets-dir! graph))
   (state/pub-event! [:graph/sync-context])
-  (when-not (mobile-util/native-platform?)
-    (state/pub-event! [:graph/ready graph])))
+  (state/pub-event! [:graph/ready graph]))
 
 (defmethod handle :graph/save-db-to-disk [[_ _opts]]
   (persist-db/export-current-graph! {:succ-notification? true :force-save? true}))

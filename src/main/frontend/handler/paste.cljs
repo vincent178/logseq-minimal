@@ -8,7 +8,6 @@
             [frontend.format.mldoc :as mldoc]
             [frontend.handler.editor :as editor-handler]
             [frontend.handler.notification :as notification]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
@@ -81,9 +80,7 @@
 ;; See https://developer.chrome.com/blog/web-custom-formats-for-the-async-clipboard-api/
 ;; for a similar example
 (defn get-copied-blocks []
-  ;; NOTE: Avoid using navigator clipboard API on Android, it will report a permission error
-  (p/let [clipboard-items (when (and (not (mobile-util/native-android?))
-                                     js/window (gobj/get js/window "navigator") js/navigator.clipboard)
+  (p/let [clipboard-items (when (and js/window (gobj/get js/window "navigator") js/navigator.clipboard)
                             (js/navigator.clipboard.read))
           blocks-blob ^js (when clipboard-items
                             (let [types (.-types ^js (first clipboard-items))]
@@ -224,7 +221,7 @@
   (if (or (editing-display-type-block?)
           (thingatpt/markdown-src-at-point input)
           (thingatpt/org-admonition&src-at-point input))
-    (when-not (mobile-util/native-ios?)
+    (do
       (util/stop e)
       (paste-text-in-one-block-at-point))
     (paste-copied-blocks-or-text input text e html)))

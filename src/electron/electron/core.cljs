@@ -12,7 +12,6 @@
             [electron.git :as git]
             [electron.handler :as handler]
             [electron.logger :as logger]
-            [electron.server :as server]
             [electron.updater :refer [init-updater] :as updater]
             [electron.url :refer [logseq-url-handler]]
             [electron.utils :refer [*win mac? linux? dev? get-win-from-sender
@@ -248,11 +247,10 @@
                       (let [t1 (setup-updater! win)
                             t2 (setup-app-manager! win)
                             t3 (handler/set-ipc-handler! win)
-                            t4 (server/setup! win)
                             tt (exceptions/setup-exception-listeners!)]
 
                         (vreset! *teardown-fn
-                                 #(doseq [f [t0 t1 t2 t3 t4 tt]]
+                                 #(doseq [f [t0 t1 t2 t3 tt]]
                                     (and f (f)))))))
 
            ;; setup effects

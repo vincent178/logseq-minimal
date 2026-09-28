@@ -1,7 +1,6 @@
 (ns frontend.components.imports
   "Import data into a file-based graph. (DB-graph import removed.)"
   (:require [clojure.string :as string]
-            [frontend.components.onboarding.setups :as setups]
             [frontend.components.svg :as svg]
             [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
@@ -141,51 +140,55 @@
     [:<>
      (import-indicator importing?)
      (when-not importing?
-       (setups/setups-container
-        :importer
-        [:article.flex.flex-col.items-center.importer.py-16.px-8
-         (when-not (util/mobile?)
-           [:section.c.text-center
-            [:h1 (t :on-boarding/importing-title)]
-            [:h2 (t :on-boarding/importing-desc)]])
-         [:section.d.md:flex.flex-col
-          ;; DB-graph imports (SQLite / File-to-DB / Debug Transit / EDN-to-DB)
-          ;; removed: the minimal build is file-based only.
+       [:div.cp__onboarding-setups.flex.flex-1
+        [:div.inner-card.flex.flex-col.items-center
+         [:h1.text-xl [:span (t :on-boarding/importing-main-title)]]
+         [:h2 (t :on-boarding/importing-main-desc)]
+         [:article.flex.flex-col.items-center.importer.py-16.px-8
+          (when-not (util/mobile?)
+            [:section.c.text-center
+             [:h1 (t :on-boarding/importing-title)]
+             [:h2 (t :on-boarding/importing-desc)]])
+          [:section.d.md:flex.flex-col
+           ;; DB-graph imports (SQLite / File-to-DB / Debug Transit / EDN-to-DB)
+           ;; removed: the minimal build is file-based only.
 
-          (when (and (util/electron?) support-file-based?)
-            [:label.action-input.flex.items-center.mx-2.my-2
-             [:span.as-flex-center [:i (svg/logo 28)]]
-             [:span.flex.flex-col
-              [[:strong "EDN / JSON to plain text graph"]
-               [:small (t :on-boarding/importing-lsq-desc)]]]
-             [:input.absolute.hidden
-              {:id "import-lsq"
-               :type "file"
-               :on-change lsq-import-handler}]])
+           (when (and (util/electron?) support-file-based?)
+             [:label.action-input.flex.items-center.mx-2.my-2
+              [:span.as-flex-center [:i (svg/logo 28)]]
+              [:span.flex.flex-col
+               [:<>
+                [:strong "EDN / JSON to plain text graph"]
+                [:small (t :on-boarding/importing-lsq-desc)]]]
+              [:input.absolute.hidden
+               {:id "import-lsq"
+                :type "file"
+                :on-change lsq-import-handler}]])
 
-          (when (and (util/electron?) support-file-based?)
-            [:label.action-input.flex.items-center.mx-2.my-2
-             [:span.as-flex-center [:i (svg/roam-research 28)]]
-             [:div.flex.flex-col
-              [[:strong "RoamResearch"]
-               [:small (t :on-boarding/importing-roam-desc)]]]
-             [:input.absolute.hidden
-              {:id "import-roam"
-               :type "file"
-               :on-change roam-import-handler}]])
+           (when (and (util/electron?) support-file-based?)
+             [:label.action-input.flex.items-center.mx-2.my-2
+              [:span.as-flex-center [:i (svg/roam-research 28)]]
+              [:div.flex.flex-col
+               [:<>
+                [:strong "RoamResearch"]
+                [:small (t :on-boarding/importing-roam-desc)]]]
+              [:input.absolute.hidden
+               {:id "import-roam"
+                :type "file"
+                :on-change roam-import-handler}]])
 
-          (when (and (util/electron?) support-file-based?)
-            [:label.action-input.flex.items-center.mx-2.my-2
-             [:span.as-flex-center.ml-1 (ui/icon "sitemap" {:size 26})]
-             [:span.flex.flex-col
-              [[:strong "OPML"]
-               [:small (t :on-boarding/importing-opml-desc)]]]
+           (when (and (util/electron?) support-file-based?)
+             [:label.action-input.flex.items-center.mx-2.my-2
+              [:span.as-flex-center.ml-1 (ui/icon "sitemap" {:size 26})]
+              [:span.flex.flex-col
+               [:<>
+                [:strong "OPML"]
+                [:small (t :on-boarding/importing-opml-desc)]]]
+              [:input.absolute.hidden
+               {:id "import-opml"
+                :type "file"
+                :on-change opml-import-handler}]])]
 
-             [:input.absolute.hidden
-              {:id "import-opml"
-               :type "file"
-               :on-change opml-import-handler}]])]
-
-         (when (= "picker" (:from query-params))
-           [:section.e
-            [:a.button {:on-click #(route-handler/redirect-to-home!)} "Skip"]])]))]))
+          (when (= "picker" (:from query-params))
+            [:section.e
+             [:a.button {:on-click #(route-handler/redirect-to-home!)} "Skip"]])]]])]))

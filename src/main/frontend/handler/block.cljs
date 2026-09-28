@@ -8,7 +8,6 @@
             [frontend.db.model :as db-model]
             [frontend.handler.file-based.property.util :as property-util]
             [frontend.handler.property.util :as pu]
-            [frontend.mobile.haptics :as haptics]
             [frontend.modules.outliner.op :as outliner-op]
             [frontend.modules.outliner.ui :as ui-outliner-tx]
             [frontend.state :as state]
@@ -385,12 +384,7 @@
               (state/drop-selection-block! block-container)
               (do
                 (state/clear-edit!)
-                (state/conj-selection-block! block-container nil)))
-            (if (seq (state/get-selection-blocks))
-              (state/set-state! :mobile/show-action-bar? true)
-              (when (:mobile/show-action-bar? @state/state)
-                (state/set-state! :mobile/show-action-bar? false)))
-            (haptics/haptics)))
+                (state/conj-selection-block! block-container nil)))))
         (catch :default e
           (js/console.error e))
         (finally

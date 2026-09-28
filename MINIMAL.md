@@ -19,9 +19,9 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
 - ❌ **Login / accounts** — no `user/login`, no token restore, no auth UI,
   no e2ee password flows
 - ❌ **Mobile clients** — no iOS/Android (Capacitor) apps, no native shells,
-  no `src/main/mobile`, no `@capacitor/*` deps. Desktop (Electron) + web only.
-  `frontend.mobile.*` namespaces remain as compile-stable stubs (all native
-  checks return false) so ~20 desktop call sites compile without refactoring.
+  no `src/main/mobile`, no `frontend.mobile.*` namespaces, no `@capacitor/*`
+  deps. Desktop (Electron) + web only. All desktop call sites have been
+  refactored to drop native-platform checks entirely.
 - ❌ **Flashcards (SRS/FSRS)** — no spaced-repetition engine, no card review
   UI, no cloze flashcard hooks. Existing `#card` blocks remain plain blocks.
 - ❌ **Whiteboards (tldraw)** — no whiteboard UI, routes, shortcuts, worker/db
@@ -31,6 +31,18 @@ The guiding principle: *reliable and easy to support beats feature-rich.*
 - ❌ **Excalidraw** — no draw extension, no `:excalidraw`/`:tldraw` shadow-cljs
   modules, no `@excalidraw` dependency.
 - ❌ **Zotero** — no Zotero extension, settings, routes, or slash commands.
+- ❌ **Telemetry / usage diagnostics** — no PostHog, no Sentry, no
+  `frontend.modules.instrumentation`, no usage-diagnostics settings row, no
+  `@sentry/*`/`posthog-js` deps. Nothing phones home; `:capture-error` events
+  only log locally.
+- ❌ **Local HTTP API server** — no fastify server in Electron, no `/mcp`
+  routes, no MCP CLI (`mcp-server`/`append` commands), no server settings row
+  or header indicator, no fastify/`@modelcontextprotocol`/zod deps.
+- ❌ **Onboarding UX** — no quick tour (Shepherd), no handbooks panel, no
+  onboarding components, no handbook deep-link route (`logseq://handbook`),
+  no right-sidebar help links section.
+- ❌ **Dev-only RTC/DB leftovers** — no `:dev/rtc-start`, `:dev/rtc-stop`, or
+  `:dev/replace-graph-with-db-file` commands.
 - ❌ Anything requiring a Logseq server
 
 ## Inert data-preservation layer

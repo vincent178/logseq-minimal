@@ -10,12 +10,12 @@
 (deftest translations
   (testing "ui translations"
     (state/set-preferred-language! :en)
-    (is (= "About Logseq"
-           (i18n/t :help/about)))
+    (is (= "Cancel"
+           (i18n/t :cancel)))
 
     (state/set-preferred-language! :es)
-    (is (= "Acerca de Logseq"
-           (i18n/t :help/about))))
+    (is (= "Cancelar"
+           (i18n/t :cancel))))
 
   (testing "command and category translations"
     (state/set-preferred-language! :en)

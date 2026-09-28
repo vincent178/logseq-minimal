@@ -18,7 +18,6 @@
             [frontend.handler.notification :as notification]
             [frontend.handler.plugin :as plugin-handler]
             [frontend.mixins :as mixins]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.config :as shortcut-config]
             [frontend.modules.shortcut.core :as shortcut]
             [frontend.modules.shortcut.utils :as shortcut-utils]
@@ -52,7 +51,7 @@
 (defonce _emoji-init-data ((gobj/get emoji-mart "init") #js {:data emoji-data}))
 ;; (def EmojiPicker (r/adapt-class (gobj/get Picker "default")))
 
-(defonce icon-size (if (mobile-util/native-platform?) 24 20))
+(defonce icon-size 20)
 
 (defn popup-exists? []
   (boolean (seq (shui-popup/get-popups))))
@@ -74,12 +73,6 @@
    "blue"
    "purple"
    "gray"])
-
-(defn ->block-background-color
-  [color]
-  (if (some #{color} built-in-colors)
-    (str "var(--ls-highlight-color-" color ")")
-    color))
 
 (defn built-in-color?
   [color]
@@ -418,11 +411,6 @@
     (when (util/ios?) (.add cl "is-ios"))
     (when (util/mobile?) (.add cl "is-mobile"))
     (when (util/safari?) (.add cl "is-safari"))
-    (when (mobile-util/native-ios?) (.add cl "is-native-ios"))
-    (when (mobile-util/native-android?) (.add cl "is-native-android"))
-    (when (mobile-util/native-iphone?) (.add cl "is-native-iphone"))
-    (when (mobile-util/native-iphone-without-notch?) (.add cl "is-native-iphone-without-notch"))
-    (when (mobile-util/native-ipad?) (.add cl "is-native-ipad"))
     (when (util/electron?)
       (doseq [[event function]
               [["persist-zoom-level" #(storage/set :zoom-level %)]

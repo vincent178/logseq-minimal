@@ -148,11 +148,7 @@
          (let [full-path (if local-asset?
                            (path/path-join repo-dir path) path)]
            ;; fullpath will be encoded
-           (path/prepend-protocol "file:" full-path))
-
-         ;(mobile-util/native-platform?)
-         ;(mobile-util/convert-file-src full-path)
-         ))))
+           (path/prepend-protocol "file:" full-path))))))
 
 (defn get-file-checksum
   [^js file]

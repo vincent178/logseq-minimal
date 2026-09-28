@@ -4,7 +4,6 @@
             [dommy.core :as d]
             [frontend.components.content :as cp-content]
             [frontend.components.find-in-page :as find-in-page]
-            [frontend.components.handbooks :as handbooks]
             [frontend.components.header :as header]
             [frontend.components.journal :as journal]
             [frontend.components.left-sidebar :as app-left-sidebar]
@@ -22,8 +21,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.user :as user-handler]
             [frontend.mixins :as mixins]
-            [frontend.mobile.footer :as footer]
-            [frontend.mobile.util :as mobile-util]
             [frontend.modules.shortcut.data-helper :as shortcut-dh]
             [frontend.state :as state]
             [frontend.ui :as ui]
@@ -65,7 +62,7 @@
   (let [left-sidebar-open? (state/sub :ui/left-sidebar-open?)
         onboarding-and-home? (and (or (nil? (state/get-current-repo)) (config/demo-graph?))
                                   (= :home route-name))
-        margin-less-pages? (or (and (mobile-util/native-platform?) onboarding-and-home?) margin-less-pages?)]
+        margin-less-pages? margin-less-pages?]
     [:div#main-container.cp__sidebar-main-layout.flex-1.flex
      {:class (util/classnames [{:is-left-sidebar-open left-sidebar-open?}])}
 
@@ -84,7 +81,6 @@
         :data-is-full-width (or margin-less-pages?
                                 (contains? #{:all-files :all-pages} route-name))}
 
-       (footer/footer)
 
        (cond
          db-restoring?
@@ -100,11 +96,7 @@
                                     margin-less-pages? 0
                                     onboarding-and-home? 0
                                     :else 120)}}
-          main-content])
-
-       (comment
-         (when onboarding-and-home?
-           (onboarding/intro onboarding-and-home?)))]]]))
+          main-content])]]]))
 
 (defonce sidebar-inited? (atom false))
 ;; TODO: simplify logic
@@ -230,8 +222,7 @@
         [:p.inline-block "to toggle document mode"]]]])))
 
 (def help-menu-items
-  [{:title "Handbook" :icon "book-2" :on-click #(handbooks/toggle-handbooks)}
-   {:title "Keyboard shortcuts" :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
+  [{:title "Keyboard shortcuts" :icon "command" :on-click #(state/sidebar-add-block! (state/get-current-repo) "shortcut-settings" :shortcut-settings)}
    {:title "Documentation" :icon "help" :href "https://docs.logseq.com/"}
    :hr
    {:title "Report bug" :icon "bug" :on-click #(rfe/push-state :bug-report)}
@@ -245,11 +236,6 @@
 
 (rum/defc help-menu-popup
   []
-
-  (hooks/use-effect!
-   (fn []
-     (state/set-state! :ui/handbooks-open? false))
-   [])
 
   (hooks/use-effect!
    (fn []
@@ -280,8 +266,7 @@
 
 (rum/defc help-button < rum/reactive
   []
-  (let [help-open? (state/sub :ui/help-open?)
-        handbooks-open? (state/sub :ui/handbooks-open?)]
+  (let [help-open? (state/sub :ui/help-open?)]
     [:<>
      [:div.cp__sidebar-help-btn
       [:div.inner
@@ -293,10 +278,7 @@
         [:path {:d "M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483"}]]]]
 
      (when help-open?
-       (help-menu-popup))
-
-     (when handbooks-open?
-       (handbooks/handbooks-popup))]))
+       (help-menu-popup))]))
 
 (rum/defc app-context-menu-observer
   < rum/static
@@ -369,7 +351,7 @@
                 (.closest (.-target e) "input")
                 (.closest (.-target e) "textarea")
                 (.closest (.-target e) "a"))
-    (editor-handler/show-action-bar!)))
+    nil))
 
 (rum/defcs ^:large-vars/cleanup-todo root-container < rum/reactive
   (mixins/event-mixin
@@ -403,7 +385,6 @@
         left-sidebar-open? (state/sub :ui/left-sidebar-open?)
         wide-mode? (state/sub :ui/wide-mode?)
         ls-block-hl-colored? (state/sub :pdf/block-highlight-colored?)
-        onboarding-state (state/sub :file-sync/onboarding-state)
         right-sidebar-blocks (state/sub-right-sidebar-blocks)
         route-name (get-in route-match [:data :name])
         margin-less-pages? (boolean (#{:graph} route-name))
@@ -416,7 +397,6 @@
         default-home (app-left-sidebar/get-default-home-if-valid)
         logged? (user-handler/logged-in?)
         fold-button-on-right? (state/enable-fold-button-right?)
-        show-action-bar? (state/sub :mobile/show-action-bar?)
         preferred-language (state/sub [:preferred-language])]
     (theme/container
      {:t t
@@ -432,7 +412,6 @@
       :settings-open? settings-open?
       :sidebar-blocks-len (count right-sidebar-blocks)
       :system-theme? system-theme?
-      :onboarding-state onboarding-state
       :preferred-language preferred-language
       :on-click (fn [e]
                   (editor-handler/unhighlight-blocks!)
@@ -484,7 +463,7 @@
                  :light? light?
                  :db-restoring? db-restoring?
                  :main-content main-content'
-                 :show-action-bar? show-action-bar?}))]
+                 :show-action-bar? false}))]
 
        (when window-controls?
          (window-controls/container))

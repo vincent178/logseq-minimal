@@ -9,8 +9,6 @@
 (s/def :ui/theme string?)
 (s/def :ui/system-theme? boolean?)
 (s/def ::lsp-core-enabled boolean?)
-(s/def ::http-server-enabled boolean?)
-(s/def ::instrument-disabled boolean?)
 (s/def ::ls-pdf-area-is-dashed boolean?)
 (s/def ::ls-pdf-hl-block-is-colored boolean?)
 (s/def ::ls-pdf-viewer-theme string?)
@@ -47,7 +45,6 @@
             :ui/system-theme?
             :ui/recent-pages
             ::lsp-core-enabled
-            ::instrument-disabled
             ::ls-pdf-area-is-dashed
             ::ls-pdf-hl-block-is-colored
             ::ls-pdf-viewer-theme
@@ -60,5 +57,4 @@
             :ui/shortcut-tooltip?
             :copy/export-block-text-indent-style
             :copy/export-block-text-remove-options
-            :copy/export-block-text-other-options
-            :file-sync/onboarding-state]))
+            :copy/export-block-text-other-options]))

@@ -7,7 +7,7 @@
             [frontend.handler.plugin :as plugin-handler]
             [frontend.util :as util]
             [goog.object :as gobj]
-            [logseq.cli.common.mcp.tools :as cli-common-mcp-tools]
+            [logseq.common.util :as common-util]
             [logseq.db.common.entity-util :as common-entity-util]
             [logseq.db.frontend.content :as db-content]))
 
@@ -17,7 +17,7 @@
            (contains? #{"block" "db" "file"})
            (not)))
 
-(def remove-hidden-properties cli-common-mcp-tools/remove-hidden-properties)
+(def remove-hidden-properties common-util/remove-hidden-properties)
 
 (def ^:private kw-tag "___kw___") ; unlikely in normal strings; change if you prefer
 

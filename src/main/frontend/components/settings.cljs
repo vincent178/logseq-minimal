@@ -17,8 +17,6 @@
             [frontend.handler.route :as route-handler]
             [frontend.handler.ui :as ui-handler]
             [frontend.handler.user :as user-handler]
-            [frontend.mobile.util :as mobile-util]
-            [frontend.modules.instrumentation.core :as instrument]
             [frontend.modules.shortcut.data-helper :as shortcut-helper]
             [frontend.spec.storage :as storage-spec]
             [frontend.state :as state]
@@ -55,18 +53,6 @@
 
       [:div.mt-1.sm:mt-0.sm:col-span-2.flex.gap-4.items-center.flex-wrap
        [:div (cond
-               (mobile-util/native-android?)
-               (ui/button
-                (t :settings-page/check-for-updates)
-                :class "text-sm mr-1"
-                :href "https://github.com/logseq/og/releases")
-
-               (mobile-util/native-ios?)
-               (ui/button
-                (t :settings-page/check-for-updates)
-                :class "text-sm mr-1"
-                :href "https://apps.apple.com/app/logseq/id1601013908")
-
                (util/electron?)
                (ui/button
                 (if update-pending? (t :settings-page/checking) (t :settings-page/check-for-updates))
@@ -166,8 +152,7 @@
                          :on-click on-click}
                         (if (string/blank? href) button-label
                             (shui/link {:href href} button-label))))]
-    (when-not (or (util/mobile?)
-                  (mobile-util/native-platform?))
+    (when-not (util/mobile?)
       [:div.text-sm.flex desc])]])
 
 (defn edit-config-edn []
@@ -212,7 +197,7 @@
      (ui/toggle show-brackets?
                 config-handler/toggle-ui-show-brackets!
                 true)]]
-   (when (not (or (util/mobile?) (mobile-util/native-platform?)))
+   (when-not (util/mobile?)
      [:div {:style {:text-align "right"}}
       (ui/render-keyboard-shortcut (shortcut-helper/gen-shortcut-seq :ui/toggle-brackets))])])
 
@@ -226,7 +211,7 @@
      (ui/toggle wide-mode?
                 ui-handler/toggle-wide-mode!
                 true)]]
-   (when (not (or (util/mobile?) (mobile-util/native-platform?)))
+   (when-not (util/mobile?)
      [:div {:style {:text-align "right"}}
       (ui/render-keyboard-shortcut (shortcut-helper/gen-shortcut-seq :ui/toggle-wide-mode))])])
 
@@ -333,7 +318,7 @@
 (rum/defc app-auto-update-row < rum/reactive [t]
   (let [enabled? (state/sub [:electron/user-cfgs :auto-update])
         enabled? (if (nil? enabled?) true enabled?)]
-    (toggle "usage-diagnostics"
+    (toggle "auto-updater"
             (t :settings-page/auto-updater)
             enabled?
             #((state/set-state! [:electron/user-cfgs :auto-update] (not enabled?))
@@ -558,14 +543,6 @@
               (let [value (not enable-git-auto-push?)]
                 (config-handler/set-config! :git-auto-push value))))))
 
-(defn usage-diagnostics-row [t instrument-disabled?]
-  (toggle "usage-diagnostics"
-          (t :settings-page/disable-sentry)
-          (not instrument-disabled?)
-          (fn [] (instrument/disable-instrument
-                  (not instrument-disabled?)))
-          [:span.text-sm.opacity-50 (t :settings-page/disable-sentry-desc)]))
-
 ;; (defn clear-cache-row [t]
 ;;   (row-with-button-action {:left-label   (t :settings-page/clear-cache)
 ;;                            :button-label (t :settings-page/clear)
@@ -602,20 +579,6 @@
                     :on-click #(js/logseq.api.relaunch)
                     :small? true :intent "logseq")))]))
 
-(rum/defc http-server-enabled-switcher
-  [t]
-  (let [[value _] (rum/use-state (boolean (storage/get ::storage-spec/http-server-enabled)))
-        [on? set-on?] (rum/use-state value)
-        on-toggle #(let [v (not on?)]
-                     (set-on? v)
-                     (storage/set ::storage-spec/http-server-enabled v))]
-    [:div.flex.items-center.gap-2
-     (ui/toggle on? on-toggle true)
-     (when (not= (boolean value) on?)
-       (ui/button (t :plugin/restart)
-                  :on-click #(js/logseq.api.relaunch)
-                  :small? true :intent "logseq"))]))
-
 (rum/defc user-proxy-settings
   [{:keys [type protocol host port] :as agent-opts}]
   (ui/button [:span.flex.items-center
@@ -632,11 +595,6 @@
   (row-with-button-action
    {:left-label (t :settings-page/plugin-system)
     :action (plugin-enabled-switcher t)}))
-
-(defn http-server-switcher-row []
-  (row-with-button-action
-   {:left-label "HTTP API server"
-    :action (http-server-enabled-switcher t)}))
 
 (defn https-user-agent-row [agent-opts]
   (row-with-button-action
@@ -733,9 +691,9 @@
      (showing-full-blocks t show-full-blocks?)
      (preferred-pasting-file t preferred-pasting-file?)
      (auto-expand-row t auto-expand-block-refs?)
-     (when-not (or (util/mobile?) (mobile-util/native-platform?))
+     (when-not (util/mobile?)
        (shortcut-tooltip-row t enable-shortcut-tooltip?))
-     (when-not (or (util/mobile?) (mobile-util/native-platform?))
+     (when-not (util/mobile?)
        (tooltip-row t enable-tooltip?))
      (timetracking-row t enable-timetracking?)
      (auto-push-row t current-repo enable-git-auto-push?)]))
@@ -763,13 +721,11 @@
 
 (rum/defc settings-advanced < rum/reactive
   []
-  (let [instrument-disabled? (state/sub :instrument/disabled?)
-        developer-mode? (state/sub [:ui/developer-mode?])
+  (let [developer-mode? (state/sub [:ui/developer-mode?])
         https-agent-opts (state/sub [:electron/user-cfgs :settings/agent])]
     [:div.panel-wrap.is-advanced
      (when (and (or util/mac? util/win32?) (util/electron?)) (app-auto-update-row t))
-     (usage-diagnostics-row t instrument-disabled?)
-     (when-not (mobile-util/native-platform?) (developer-mode-row t developer-mode?))
+     (developer-mode-row t developer-mode?)
      (when (util/electron?) (https-user-agent-row https-agent-opts))
      (when (util/electron?) (auto-chmod-row t))
      ;; (clear-cache-row t)
@@ -799,9 +755,7 @@
                              (when (= "Enter" (util/ekey e))
                                (update-home-page e)))}]]]])
      (when (and web-platform? config/feature-plugin-system-on?)
-       (plugin-system-switcher-row))
-     (when (util/electron?)
-       (http-server-switcher-row))]))
+       (plugin-system-switcher-row))]))
 
      ;; (when-not web-platform?
      ;;   [:<>

@@ -4,7 +4,6 @@
             [frontend.date :as date]
             [frontend.db.file-based.model :as file-model]
             [frontend.handler.common.page :as page-common-handler]
-            [frontend.mobile.util :as mobile-util]
             [frontend.state :as state]
             [frontend.util :as util]
             [logseq.common.util :as common-util]
@@ -37,7 +36,7 @@
                      page)
         (let [journal? (date/valid-journal-title? page)
               ref-file-path (str
-                             (if (or (util/electron?) (mobile-util/native-platform?))
+                             (if (util/electron?)
                                (-> (config/get-repo-dir (state/get-current-repo))
                                    js/decodeURI
                                    (string/replace #"/+$" "")

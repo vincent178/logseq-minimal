@@ -98,11 +98,6 @@
       (= "new-window" url-host)
       (local-url-handler win parsed-url true)
 
-      (= "handbook" url-host)
-      (send-to-renderer :handbook
-                        {:key  (some-> (.-pathname parsed-url) (string/replace-first #"^[\/]+" ""))
-                         :args (some-> (.-searchParams parsed-url) (js/Object.fromEntries))})
-
       :else
       (send-to-renderer :notification
                         {:type    "error"

@@ -121,9 +121,6 @@
                               (ipc/ipc :inflateGraphsInfo (ldb/write-transit-str nfs-dbs))
                               ldb/read-transit-str)
 
-                                        ;(mobile-util/native-platform?)
-                                        ;(util-fs/inflate-graphs-info nfs-dbs)
-
                              :else
                              nfs-dbs))]
     (seq (bean/->clj nfs-dbs))))

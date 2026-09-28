@@ -23,7 +23,6 @@
             [electron.handler-interface :refer [handle]]
             [electron.logger :as logger]
             [electron.plugin :as plugin]
-            [electron.server :as server]
             [electron.shell :as shell]
             [electron.state :as state]
             [electron.utils :as utils]
@@ -578,15 +577,6 @@
 
 (defmethod handle :clear-find-in-page [^js win [_]]
   (find/clear! win))
-
-(defmethod handle :server/load-state []
-  (server/load-state-to-renderer!))
-
-(defmethod handle :server/do [^js _win [_ action]]
-  (server/do-server! action))
-
-(defmethod handle :server/set-config [^js _win [_ config]]
-  (server/set-config! config))
 
 (defmethod handle :system/info [^js _win _]
   {:home-dir (.homedir os)})

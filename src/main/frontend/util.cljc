@@ -10,13 +10,11 @@
             ["check-password-strength" :refer [passwordStrength]]
             ["path-complete-extname" :as pathCompleteExtname]
             ["semver" :as semver]
-            [frontend.loader :refer [load]]
             [cljs-bean.core :as bean]
             [cljs-time.coerce :as tc]
             [cljs-time.core :as t]
             [clojure.pprint]
             [dommy.core :as d]
-            [frontend.mobile.util :as mobile-util]
             [logseq.common.util :as common-util]
             [goog.dom :as gdom]
             [goog.object :as gobj]
@@ -152,8 +150,7 @@
 
 #?(:cljs
    (do
-     (def nfs? (and (not (electron?))
-                    (not (mobile-util/native-platform?))))
+     (def nfs? (not (electron?)))
      (def web-platform? nfs?)
      (def plugin-platform? (or web-platform? (electron?)))))
 
@@ -201,28 +198,9 @@
      []
      (gobj/get js/window "innerWidth")))
 
-#?(:cljs
-   (defn set-theme-light
-     []
-     ;; mobile removed: no native status bar
-     nil))
-
-#?(:cljs
-   (defn set-theme-dark
-     []
-     ;; mobile removed: no native status bar
-     nil))
-
 (defn find-first
   [pred coll]
   (first (filter pred coll)))
-
-(defn find-index
-  "Find first index of an element in list"
-  [pred-or-val coll]
-  (let [pred (if (fn? pred-or-val) pred-or-val #(= pred-or-val %))]
-    (reduce-kv #(if (pred %3) (reduced %2) %1) -1
-               (cond-> coll (list? coll) (vec)))))
 
 ;; ".lg:absolute.lg:inset-y-0.lg:right-0.lg:w-1/2"
 (defn hiccup->class
@@ -1007,15 +985,6 @@
       (some-> (common-util/path->file-ext file) string/lower-case))))
 
 #?(:cljs
-   (defn get-dir-and-basename
-     [path]
-     (let [parts (string/split path "/")
-           basename (last parts)
-           dir (->> (butlast parts)
-                    string-join-path)]
-       [dir basename])))
-
-#?(:cljs
    (defn get-relative-path
      [current-file-path another-file-path]
      (let [directories-f #(butlast (string/split % "/"))
@@ -1196,7 +1165,6 @@
        (or (= which 3)
            (= button 2)))))
 
-(def keyboard-height (atom nil))
 
 #?(:cljs
    (defn scroll-editor-cursor
@@ -1207,10 +1175,8 @@
                  (or (not start?) (zero? (get-selection-start el))))
         (when-let [scroll-node (app-scroll-container-node el)]
           (let [scroll-top' (.-scrollTop scroll-node)
-                vw-height (if (mobile-util/native-platform?)
-                            (- (.-height js/window.screen) (or @keyboard-height 312))
-                            (or (.-height js/window.visualViewport)
-                                (.-clientHeight js/document.documentElement)))
+                vw-height (or (.-height js/window.visualViewport)
+                              (.-clientHeight js/document.documentElement))
                 ^js box-rect (.getBoundingClientRect el)
                 box-top (.-top box-rect)
                 top-offset 84
@@ -1308,35 +1274,6 @@
                (#(str % " " (:name unit) (when (> % 1) "s")
                       (when ago? " ago")
                       (when after? " later")))))))))
-
-#?(:cljs
-   (def JS_ROOT
-     (when-not node-test?
-       "./js")))
-
-#?(:cljs
-   (defn js-load$
-     [url]
-     (p/create
-      (fn [resolve]
-        (load url resolve)))))
-
-#?(:cljs
-   (defn css-load$
-     ([url] (css-load$ url nil))
-     ([url id]
-      (p/create
-       (fn [resolve reject]
-         (let [id (str "css-load-" (or id url))]
-           (if-not (gdom/getElement id)
-             (let [^js link (js/document.createElement "link")]
-               (set! (.-id link) id)
-               (set! (.-rel link) "stylesheet")
-               (set! (.-href link) url)
-               (set! (.-onload link) resolve)
-               (set! (.-onerror link) reject)
-               (.append (.-head js/document) link))
-             (resolve))))))))
 
 #?(:cljs
    (defn image-blob->png

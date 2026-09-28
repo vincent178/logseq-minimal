@@ -4,7 +4,6 @@
             [frontend.components.block :as block]
             [frontend.components.cmdk.core :as cmdk]
             [frontend.components.icon :as icon]
-            [frontend.components.onboarding :as onboarding]
             [frontend.components.page :as page]
             [frontend.components.profiler :as profiler]
             [frontend.components.shortcut-help :as shortcut-help]
@@ -111,9 +110,6 @@
         (when-let [page (db/get-page "Contents")]
           [[:.flex.items-center (ui/icon "list-details" {:class "text-md mr-2"}) (t :right-side-bar/contents)]
            (page-cp repo (str (:block/uuid page)))])
-
-        :help
-        [[:.flex.items-center (ui/icon "help" {:class "text-md mr-2"}) (t :right-side-bar/help)] (onboarding/help)]
 
         :page-graph
         [[:.flex.items-center (ui/icon "hierarchy" {:class "text-md mr-2"}) (t :right-side-bar/page-graph)]
@@ -426,11 +422,6 @@
                                                                         page
                                                                         :page-graph)))}
           (t :right-side-bar/page-graph)]]
-
-        [:div.text-sm
-         [:button.button.cp__right-sidebar-settings-btn {:on-click (fn [_e]
-                                                                     (state/sidebar-add-block! repo "help" :help))}
-          (t :right-side-bar/help)]]
 
         (when (state/sub [:ui/developer-mode?])
           [:div.text-sm
