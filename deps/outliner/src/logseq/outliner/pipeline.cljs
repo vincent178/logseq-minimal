@@ -91,7 +91,7 @@
        ;; and look weirdly recursive - https://github.com/logseq/db-test/issues/36
        (not (:logseq.property/created-from-property block))))
 
-(defn db-rebuild-block-refs
+(defn- db-rebuild-block-refs
   "Rebuild block refs for DB graphs, should returns ids"
   [db block & {:keys [page-or-object?-memoized]}]
   (let [block-db-id (:db/id block)

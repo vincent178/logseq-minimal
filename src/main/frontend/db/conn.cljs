@@ -1,6 +1,7 @@
 (ns frontend.db.conn
   "Contains db connections."
-  (:require             [frontend.config :as config]
+  (:require             [clojure.string :as string]
+            [frontend.config :as config]
             [frontend.db.conn-state :as db-conn-state]
             [frontend.state :as state]
             [frontend.util :as util]
@@ -26,11 +27,8 @@
 
 (defn get-repo-name
   [repo-url]
-  (cond
-    (config/local-file-based-graph? repo-url)
+  (if (string/starts-with? repo-url config/local-db-prefix)
     (config/get-local-dir repo-url)
-
-    :else
     (db-conn-state/get-repo-path repo-url)))
 
 (defn get-short-repo-name

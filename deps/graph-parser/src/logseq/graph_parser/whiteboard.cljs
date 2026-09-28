@@ -1,7 +1,6 @@
 (ns logseq.graph-parser.whiteboard
   "Whiteboard related parser utilities"
-  (:require [logseq.db.common.property-util :as db-property-util]
-            [logseq.db.sqlite.util :as sqlite-util]))
+  (:require [logseq.db.common.property-util :as db-property-util]))
 
 (defn block->shape [block]
   (get-in block [:block/properties :logseq.tldraw.shape]))
@@ -83,8 +82,7 @@
                :block/title ""
                :block/page page-id
                :block/parent page-id}
-        block' (if (sqlite-util/db-based-graph? repo)
-                 (merge block properties)
-                 (assoc block :block/properties properties))
+        ;; File graphs store properties under :block/properties
+        block' (assoc block :block/properties properties)
         additional-props (with-whiteboard-block-props block' page-id)]
     (merge block' additional-props)))

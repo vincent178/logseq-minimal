@@ -6,7 +6,6 @@
             [datascript.core :as d]
             [logseq.common.log :as log]
             [logseq.db :as ldb]
-            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.common.initial-data :as common-initial-data]
             [logseq.db.frontend.class :as db-class]
             [logseq.db.frontend.entity-util :as entity-util]))
@@ -240,29 +239,23 @@
 ;; -----------------------------------------------------------------------------
 
 (defn get-filters
+  "File-graph filters read from the page's `:filters` property."
   [db page]
-  (let [db-based? (entity-plus/db-based-graph? db)]
-    (if db-based?
-      (let [included-pages (:logseq.property.linked-references/includes page)
-            excluded-pages (:logseq.property.linked-references/excludes page)]
-        (when (or (seq included-pages) (seq excluded-pages))
-          {:included included-pages
-           :excluded excluded-pages}))
-      (let [k :filters
-            properties (:block/properties page)
-            properties-str (or (get properties k) "{}")]
-        (try (let [result (reader/read-string properties-str)]
-               (when (seq result)
-                 (let [excluded-pages (->> (filter #(false? (second %)) result)
-                                           (keep first)
-                                           (keep #(ldb/get-page db %)))
-                       included-pages (->> (filter #(true? (second %)) result)
-                                           (keep first)
-                                           (keep #(ldb/get-page db %)))]
-                   {:included included-pages
-                    :excluded excluded-pages})))
-             (catch :default e
-               (log/error :syntax/filters e)))))))
+  (let [k :filters
+        properties (:block/properties page)
+        properties-str (or (get properties k) "{}")]
+    (try (let [result (reader/read-string properties-str)]
+           (when (seq result)
+             (let [excluded-pages (->> (filter #(false? (second %)) result)
+                                       (keep first)
+                                       (keep #(ldb/get-page db %)))
+                   included-pages (->> (filter #(true? (second %)) result)
+                                       (keep first)
+                                       (keep #(ldb/get-page db %)))]
+               {:included included-pages
+                :excluded excluded-pages})))
+         (catch :default e
+           (log/error :syntax/filters e)))))
 
 (defn get-linked-references [db id]
   (let [entity       (d/entity db id)

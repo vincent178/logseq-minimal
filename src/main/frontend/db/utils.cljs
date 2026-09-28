@@ -2,9 +2,8 @@
   "Some utils are required by other namespace in frontend.db package."
   (:require [datascript.core :as d]
             [frontend.db.conn :as conn]
-            [frontend.state :as state]
-            [logseq.db.common.entity-plus :as entity-plus]
-            [logseq.db.frontend.content :as db-content]))
+            [frontend.state :as state])
+)
 
 ;; transit serialization
 
@@ -44,13 +43,9 @@
          (d/entity db eid))))))
 
 (defn update-block-content
-  "Replace `[[internal-id]]` with `[[page name]]`"
-  [item eid]
-  (if-let [db (conn/get-db)]
-    (if (entity-plus/db-based-graph? db)
-      (db-content/update-block-content db item eid)
-      item)
-    item))
+  "File graphs store plain-text content, so nothing to replace."
+  [item _eid]
+  item)
 
 (defn pull
   ([eid]

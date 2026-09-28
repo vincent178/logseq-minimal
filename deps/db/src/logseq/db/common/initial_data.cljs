@@ -3,14 +3,9 @@
   (:require [clojure.string :as string]
             [datascript.core :as d]
             [datascript.impl.entity :as de]
-            [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
             [logseq.common.util.date-time :as date-time-util]
-            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.common.entity-util :as common-entity-util]
-            [logseq.db.common.order :as db-order]
-            [logseq.db.frontend.class :as db-class]
-            [logseq.db.frontend.db :as db-db]
             [logseq.db.frontend.entity-util :as entity-util]
             [logseq.db.frontend.rules :as rules]))
 
@@ -163,25 +158,11 @@
         (assoc :db/id (:db/id entity)))))
 
 (defn hidden-ref?
-  "Whether ref-block (for block with the `id`) should be hidden."
-  [db ref-block id]
-  (let [db-based? (entity-plus/db-based-graph? db)]
-    (if db-based?
-      (let [entity (d/entity db id)]
-        (or
-         (= (:db/id ref-block) id)
-         (= id (:db/id (:block/page ref-block)))
-         (= id (:db/id (:logseq.property/view-for ref-block)))
-         (entity-util/hidden? (:block/page ref-block))
-         (entity-util/hidden? ref-block)
-         (and (entity-util/class? entity)
-              (let [children (db-class/get-structured-children db id)
-                    class-ids (set (conj children id))]
-                (some class-ids (map :db/id (:block/tags ref-block)))))
-         (some? (get ref-block (:db/ident entity)))))
-      (or
-       (= (:db/id ref-block) id)
-       (= id (:db/id (:block/page ref-block)))))))
+  "Whether ref-block (for block with the `id`) should be hidden. (file-graph logic)"
+  [_db ref-block id]
+  (or
+   (= (:db/id ref-block) id)
+   (= id (:db/id (:block/page ref-block)))))
 
 (defn get-block-refs
   [db id]
@@ -266,38 +247,6 @@
                      (when (and (common-entity-util/journal? e) (:db/id e))
                        e))))))))
 
-(defn- get-structured-datoms
-  [db]
-  (let [class-property-id (:db/id (d/entity db :logseq.class/Property))]
-    (->> (concat
-          (d/datoms db :avet :block/tags :logseq.class/Tag)
-          (d/datoms db :avet :block/tags :logseq.class/Property)
-          (d/datoms db :avet :block/closed-value-property))
-         (mapcat (fn [d]
-                   (let [block-datoms (d/datoms db :eavt (:e d))
-                         properties-of-property-datoms
-                         (when (= (:v d) class-property-id)
-                           (when-let [desc (:logseq.property/default-value (d/entity db (:e d)))]
-                             (d/datoms db :eavt (:db/id desc))))]
-                     (if (seq properties-of-property-datoms)
-                       (concat block-datoms properties-of-property-datoms)
-                       block-datoms)))))))
-
-(defn- get-favorites
-  "Favorites page and its blocks"
-  [db]
-  (let [page-id (get-first-page-by-name db common-config/favorites-page-name)
-        block (d/entity db page-id)
-        children (:block/_page block)]
-    (when block
-      (concat (d/datoms db :eavt (:db/id block))
-              (->> (keep :block/link children)
-                   (mapcat (fn [l]
-                             (d/datoms db :eavt (:db/id l)))))
-              (mapcat (fn [child]
-                        (d/datoms db :eavt (:db/id child)))
-                      children)))))
-
 (defn get-recent-updated-pages
   [db]
   (when db
@@ -325,13 +274,9 @@
      (d/datoms db :avet :logseq.property.user/email))))
 
 (defn get-initial-data
-  "Returns current database schema and initial data.
-   NOTE: This fn is called by DB and file graphs"
+  "Returns current database schema and initial data. (file graphs only)"
   [db]
-  (let [db-graph? (entity-plus/db-based-graph? db)
-        _ (when db-graph?
-            (reset! db-order/*max-key (db-order/get-max-order db)))
-        schema (:schema db)
+  (let [schema (:schema db)
         idents (mapcat (fn [id]
                          (when-let [e (d/entity db id)]
                            (d/datoms db :eavt (:db/id e))))
@@ -343,26 +288,15 @@
                         :logseq.kv/graph-backup-folder
                         :logseq.kv/graph-text-embedding-model-name
                         :logseq.property/empty-placeholder])
-        favorites (when db-graph? (get-favorites db))
         recent-updated-pages (let [pages (get-recent-updated-pages db)]
                                (mapcat (fn [p] (d/datoms db :eavt (:db/id p))) pages))
         all-files (get-all-files db)
-        structured-datoms (when db-graph?
-                            (get-structured-datoms db))
         user-datoms (get-all-user-datoms db)
-        pages-datoms (if db-graph?
-                       (let [contents-id (get-first-page-by-title db "Contents")
-                             capture-page-id (:db/id (db-db/get-built-in-page db common-config/quick-add-page-name))
-                             views-id (get-first-page-by-title db common-config/views-page-name)]
-                         (mapcat #(d/datoms db :eavt %)
-                                 (remove nil? [contents-id capture-page-id views-id])))
-                       ;; load all pages for file graphs
-                       (->> (d/datoms db :avet :block/name)
-                            (mapcat (fn [d] (d/datoms db :eavt (:e d))))))
+        ;; load all pages for file graphs
+        pages-datoms (->> (d/datoms db :avet :block/name)
+                          (mapcat (fn [d] (d/datoms db :eavt (:e d)))))
         data (->> (concat idents
-                          structured-datoms
                           user-datoms
-                          favorites
                           recent-updated-pages
                           all-files
                           pages-datoms)

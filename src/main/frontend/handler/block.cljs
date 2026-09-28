@@ -15,7 +15,6 @@
             [frontend.util.file-based.drawer :as drawer]
             [goog.object :as gobj]
             [logseq.db :as ldb]
-            [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.block :as gp-block]
             [logseq.outliner.core :as outliner-core]
             [logseq.outliner.op]
@@ -123,11 +122,9 @@
     (mark-last-input-time! repo)))
 
 (defn sanity-block-content
-  [repo format content]
-  (if (sqlite-util/db-based-graph? repo)
-    content
-    (-> (property-util/remove-built-in-properties format content)
-        (drawer/remove-logbook))))
+  [_repo format content]
+  (-> (property-util/remove-built-in-properties format content)
+      (drawer/remove-logbook)))
 
 (defn block-unique-title
   "Multiple pages/objects may have the same `:block/title`.

@@ -280,26 +280,13 @@
              result))))
       (:filters filters)))))
 
-(defn- get-exclude-page-ids
-  [db]
-  (->>
-   (concat
-    (d/datoms db :avet :logseq.property/hide? true)
-    (d/datoms db :avet :logseq.property/built-in? true)
-    (d/datoms db :avet :block/tags (:db/id (d/entity db :logseq.class/Property))))
-   (map :e)
-   set))
-
-(defn- get-entities-for-all-pages [db sorting property-ident {:keys [db-based?]}]
-  (let [refs-count? (and (coll? sorting) (some (fn [m] (= (:id m) :block.temp/refs-count)) sorting))
-        exclude-ids (when db-based? (get-exclude-page-ids db))]
+(defn- get-entities-for-all-pages [db sorting property-ident _opts]
+  (let [refs-count? (and (coll? sorting) (some (fn [m] (= (:id m) :block.temp/refs-count)) sorting))]
     (keep (fn [d]
             (let [e (entity-plus/unsafe->Entity db (:e d))]
-              (when-not (if db-based?
-                          (exclude-ids (:db/id e))
-                          (or (ldb/hidden-or-internal-tag? e)
-                              (entity-util/property? e)
-                              (entity-util/built-in? e)))
+              (when-not (or (ldb/hidden-or-internal-tag? e)
+                            (entity-util/property? e)
+                            (entity-util/built-in? e))
                 (cond-> e
                   refs-count?
                   (assoc :block.temp/refs-count (common-initial-data/get-block-refs-count db (:e d)))))))
@@ -311,11 +298,10 @@
         view-for-id (or (:db/id view-for) view-for-id*)
         non-hidden-e (fn [id] (let [e (d/entity db id)]
                                 (when-not (entity-util/hidden? e)
-                                  e)))
-        db-based? (entity-plus/db-based-graph? db)]
+                                  e)))]
     (case feat-type
       :all-pages
-      (get-entities-for-all-pages db sorting property-ident {:db-based? db-based?})
+      (get-entities-for-all-pages db sorting property-ident nil)
 
       :class-objects
       (db-class/get-class-objects db view-for-id)
@@ -443,10 +429,8 @@
     :else
     (let [view (d/entity db view-id)
           group-by-property (:logseq.property.view/group-by-property view)
-          db-based? (entity-plus/db-based-graph? db)
           list-view? (or (= :logseq.property.view/type.list (:db/ident (:logseq.property.view/type view)))
-                         (and (not db-based?)
-                              (contains? #{:linked-references :unlinked-references} view-feature-type)))
+                         (contains? #{:linked-references :unlinked-references} view-feature-type))
           group-by-property-ident (or (:db/ident group-by-property) group-by-property-ident)
           group-by-closed-values? (some? (:property/closed-values group-by-property))
           ref-property? (= (:db/valueType group-by-property) :db.type/ref)

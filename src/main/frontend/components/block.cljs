@@ -487,12 +487,10 @@ nil)]
   (let [metadata (if (string/blank? metadata)
                    nil
                    (common-util/safe-read-map-string metadata))
-        title (second (first label))
-        repo (state/get-current-repo)]
+        title (second (first label))]
     (ui/catch-error
      [:span.warning full_text]
-     (if (and (common-config/local-relative-asset? href)
-              (config/local-file-based-graph? repo))
+     (if (common-config/local-relative-asset? href)
        (asset-link config title href metadata full_text)
        (let [href (cond
                     (util/starts-with? href "http")
@@ -1307,8 +1305,7 @@ nil)]
 
 (rum/defc audio-link
   [config url href _label metadata full_text]
-  (if (and (common-config/local-relative-asset? href)
-           (config/local-file-based-graph? (state/get-current-repo)))
+  (if (common-config/local-relative-asset? href)
     (asset-link config nil href metadata full_text)
     (let [href (cond
                  (util/starts-with? href "http")
@@ -1632,15 +1629,13 @@ nil)]
   [name config arguments]
   (if-let [block-uuid (:block/uuid config)]
     (let [format (get-in config [:block :block/format] :markdown)
-          ;; :macros is deprecated for db graphs
-          macros-from-property (when (config/local-file-based-graph? (state/get-current-repo))
-                                 (-> (db/entity [:block/uuid block-uuid])
-                                     (:block/page)
-                                     (:db/id)
-                                     (db/entity)
-                                     :block/properties
-                                     :macros
-                                     (get name)))
+          macros-from-property (-> (db/entity [:block/uuid block-uuid])
+                                   (:block/page)
+                                   (:db/id)
+                                   (db/entity)
+                                   :block/properties
+                                   :macros
+                                   (get name))
           macro-content (or macros-from-property
                             (get (state/get-macros) name)
                             (get (state/get-macros) (keyword name)))
@@ -2185,15 +2180,14 @@ nil)]
                         (pdf-assets/area-display block))])]
        (remove-nils
         (concat
-         (when (config/local-file-based-graph? (state/get-current-repo))
-           [(when (and (not pre-block?)
-                       (not html-export?))
-              (file-block/block-checkbox block (str "mr-1 cursor")))
-            (when (and (not pre-block?)
-                       (not html-export?))
-              (file-block/marker-switch block))
-            (file-block/marker-cp block)
-            (file-block/priority-cp block)])
+         [(when (and (not pre-block?)
+                     (not html-export?))
+            (file-block/block-checkbox block (str "mr-1 cursor")))
+          (when (and (not pre-block?)
+                     (not html-export?))
+            (file-block/marker-switch block))
+          (file-block/marker-cp block)
+          (file-block/priority-cp block)]
 
          ;; highlight ref block (inline)
          [(hl-ref)]
@@ -2963,7 +2957,7 @@ nil)]
             (let [files (.-files data-transfer)
                   format (get target-block :block/format :markdown)]
               ;; When editing, this event will be handled by editor-handler/upload-asset(editor-on-paste)
-              (when (and (config/local-file-based-graph? repo) (not (state/editing?)))
+              (when (not (state/editing?))
                 ;; Basically the same logic as editor-handler/upload-asset,
                 ;; does not require edting
                 (-> (file-editor-handler/file-based-save-assets! repo (js->clj files))

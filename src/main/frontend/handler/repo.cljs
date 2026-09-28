@@ -7,7 +7,6 @@
             [frontend.config :as config]
             [frontend.db :as db]
             [frontend.db.persist :as db-persist]
-            [frontend.db.react :as react]
             [frontend.date :as date]
             [frontend.db.restore :as db-restore]
             [frontend.fs :as fs]
@@ -36,25 +35,24 @@
   [{:keys [url] :as repo} & {:keys [switch-graph?]
                              :or {switch-graph? true}}]
   (let [current-repo (state/get-current-repo)]
-    (when (config/local-file-based-graph? url)
-      (p/do!
-       (idb/clear-local-db! url)     ; clear file handles
-       (db/remove-conn! url)
-       (db-persist/delete-graph! url)
-       (search/remove-db! url)
-       (state/delete-repo! repo)
-       (when switch-graph?
-         (if (= current-repo url)
-           (do
-             (state/set-current-repo! nil)
-             (when-let [graph (:url (first (state/get-repos)))]
-               (notification/show! (str "Removed graph "
-                                        (pr-str (text-util/get-graph-name-from-path url))
-                                        ". Redirecting to graph "
-                                        (pr-str (text-util/get-graph-name-from-path graph)))
-                                   :success)
-               (state/pub-event! [:graph/switch graph {:persist? false}])))
-           (notification/show! (str "Removed graph " (pr-str (text-util/get-graph-name-from-path url))) :success)))))))
+    (p/do!
+     (idb/clear-local-db! url)     ; clear file handles
+     (db/remove-conn! url)
+     (db-persist/delete-graph! url)
+     (search/remove-db! url)
+     (state/delete-repo! repo)
+     (when switch-graph?
+       (if (= current-repo url)
+         (do
+           (state/set-current-repo! nil)
+           (when-let [graph (:url (first (state/get-repos)))]
+             (notification/show! (str "Removed graph "
+                                      (pr-str (text-util/get-graph-name-from-path url))
+                                      ". Redirecting to graph "
+                                      (pr-str (text-util/get-graph-name-from-path graph)))
+                                 :success)
+             (state/pub-event! [:graph/switch graph {:persist? false}])))
+         (notification/show! (str "Removed graph " (pr-str (text-util/get-graph-name-from-path url))) :success))))))
 
 (defn start-repo-db-if-not-exists!
   [repo & {:as opts}]
@@ -79,17 +77,6 @@
      (ui-handler/add-style-if-exists!))
    (state/set-db-restoring! false)))
 
-(defn rebuild-index!
-  [url]
-  (when-not (state/unlinked-dir? (config/get-repo-dir url))
-    (when url
-      (search/reset-indice! url)
-      (db/remove-conn! url)
-      (react/clear-query-state!)
-      (-> (p/do! (db-persist/delete-graph! url))
-          (p/catch (fn [error]
-                     (prn "Delete repo failed, error: " error)))))))
-
 (defn re-index!
   [nfs-rebuild-index! ok-handler]
   (when-let [repo (state/get-current-repo)]
@@ -97,13 +84,10 @@
     (let [dir (config/get-repo-dir repo)]
       (when-not (state/unlinked-dir? dir)
         (route-handler/redirect-to-home!)
-        (let [local? (config/local-file-based-graph? repo)]
-          (if local?
-            (nfs-rebuild-index! repo ok-handler)
-            (rebuild-index! repo))
-          (js/setTimeout
-           (route-handler/redirect-to-home!)
-           500))))))
+        (nfs-rebuild-index! repo ok-handler)
+        (js/setTimeout
+         (route-handler/redirect-to-home!)
+         500)))))
 
 (defn get-repos
   []

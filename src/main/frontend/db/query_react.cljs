@@ -12,7 +12,6 @@
             [frontend.util :as util]
             [lambdaisland.glogi :as log]
             [logseq.common.util.page-ref :as page-ref]
-            [logseq.db :as ldb]
             [logseq.db.frontend.inputs :as db-inputs]))
 
 (defn resolve-input
@@ -23,10 +22,7 @@
    (db-inputs/resolve-input db
                             input
                             (merge {:current-page-fn (fn []
-                                                       (or (when-let [name-or-uuid (state/get-current-page)]
-                                                             (if (ldb/db-based-graph? db)
-                                                               (:block/title (model/get-block-by-uuid name-or-uuid))
-                                                               name-or-uuid))
+                                                       (or (state/get-current-page)
                                                            (:page (state/get-default-home))
                                                            (date/today)))}
                                    opts))))

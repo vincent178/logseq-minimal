@@ -8,27 +8,22 @@
             [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
-            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.frontend.asset :as db-asset]
             [medley.core :as medley]
             [promesa.core :as p]))
 
 (defn get-area-block-asset-url
   "Returns asset url for an area block used by pdf assets."
-  [db block page]
-  (let [db-based? (entity-plus/db-based-graph? db)]
-    (when-some [uuid' (:block/uuid block)]
-      (if db-based?
-        (when-let [image (:logseq.property.pdf/hl-image block)]
-          (str "./assets/" (:block/uuid image) ".png"))
-        (let [props (and block page (:block/properties block))
-              prop-lookup-fn #(get %1 (keyword (name %2)))]
-          (when-some [stamp (:hl-stamp props)]
-            (let [group-key      (string/replace-first (:block/title page) #"^hls__" "")
-                  hl-page        (prop-lookup-fn props :logseq.property.pdf/hl-page)
-                  encoded-chars? (boolean (re-find #"(?i)%[0-9a-f]{2}" group-key))
-                  group-key      (if encoded-chars? (js/encodeURI group-key) group-key)]
-              (str "./assets/" group-key "/" (str hl-page "_" uuid' "_" stamp ".png")))))))))
+  [_db block page]
+  (when-some [uuid' (:block/uuid block)]
+    (let [props (and block page (:block/properties block))
+          prop-lookup-fn #(get %1 (keyword (name %2)))]
+      (when-some [stamp (:hl-stamp props)]
+        (let [group-key      (string/replace-first (:block/title page) #"^hls__" "")
+              hl-page        (prop-lookup-fn props :logseq.property.pdf/hl-page)
+              encoded-chars? (boolean (re-find #"(?i)%[0-9a-f]{2}" group-key))
+              group-key      (if encoded-chars? (js/encodeURI group-key) group-key)]
+          (str "./assets/" group-key "/" (str hl-page "_" uuid' "_" stamp ".png")))))))
 
 (defn alias-enabled?
   []

@@ -19,18 +19,14 @@
 (rum/defc normalized-graph-label
   [{:keys [url remote? graph-e2ee? GraphName] :as graph} on-click]
   (when graph
+    ;; All graphs are local file graphs in the minimal build.
     [:span.flex.items-center
-     (if (config/local-file-based-graph? url)
-       (let [local-dir (config/get-local-dir url)
-             graph-name (text-util/get-graph-name-from-path url)]
-         [:a.flex.items-center {:title local-dir
-                                :on-click #(on-click graph)}
-          [:span graph-name (when GraphName [:strong.pl-1 "(" GraphName ")"])]
-          (when remote? [:strong.px-1.flex.items-center (ui/icon (if graph-e2ee? "lock" "cloud"))])])
-       [:a.flex.items-center {:title url
+     (let [local-dir (config/get-local-dir url)
+           graph-name (text-util/get-graph-name-from-path url)]
+       [:a.flex.items-center {:title local-dir
                               :on-click #(on-click graph)}
-        (db/get-repo-path (or url GraphName))
-        (when remote? [:strong.pl-1.flex.items-center (ui/icon "cloud")])])]))
+        [:span graph-name (when GraphName [:strong.pl-1 "(" GraphName ")"])]
+        (when remote? [:strong.px-1.flex.items-center (ui/icon (if graph-e2ee? "lock" "cloud"))])])]))
 
 (defn sort-repos-with-metadata-local
   [repos]
@@ -126,14 +122,9 @@
   (let [switch-repos (if-not (nil? current-repo)
                        (remove (fn [repo] (= current-repo (:url repo))) repos) repos) ; exclude current repo
         repo-links (mapv
-                    (fn [{:keys [url GraphName] :as _graph}]
-                      (let [local? (config/local-file-based-graph? url)
-                            repo-url (if local?
-                                       (db/get-repo-name url)
-                                       GraphName)
-                            short-repo-name (if local?
-                                              (text-util/get-graph-name-from-path repo-url)
-                                              GraphName)]
+                    (fn [{:keys [url] :as _graph}]
+                      (let [repo-url (db/get-repo-name url)
+                            short-repo-name (text-util/get-graph-name-from-path repo-url)]
                         (when short-repo-name
                           {:title [:span.flex.items-center.title-wrap short-repo-name]
                            :hover-detail repo-url ;; show full path on hover

@@ -5,7 +5,6 @@
   (:require [clojure.set :as set]
             [clojure.string :as string]
             [clojure.walk :as walk]
-            [datascript.conn :as dc]
             [datascript.core :as d]
             [datascript.impl.entity :as de]
             [logseq.common.config :as common-config]
@@ -20,8 +19,6 @@
             [logseq.db.frontend.db :as db-db]
             [logseq.db.frontend.entity-util :as entity-util]
             [logseq.db.frontend.property :as db-property]
-            [logseq.db.frontend.schema :as db-schema]
-            [logseq.db.frontend.validate :as db-validate]
             [logseq.db.sqlite.util :as sqlite-util])
   (:refer-clojure :exclude [object?]))
 
@@ -34,15 +31,11 @@
 (def build-favorite-tx db-db/build-favorite-tx)
 
 (defonce *transact-fn (atom nil))
-(defonce *transact-invalid-callback (atom nil))
 (defonce *transact-pipeline-fn (atom nil))
 
 (defn register-transact-fn!
   [f]
   (when f (reset! *transact-fn f)))
-(defn register-transact-invalid-callback-fn!
-  [f]
-  (when f (reset! *transact-invalid-callback f)))
 (defn register-transact-pipeline-fn!
   [f]
   (when f (reset! *transact-pipeline-fn f)))
@@ -93,55 +86,13 @@
                   (:a d)))
      datoms)))
 
-(defn- throw-if-page-has-block-parent!
-  [db tx-data]
-  (when (some (fn [d] (and (:added d)
-                           (= :block/parent (:a d))
-                           (entity-util/page? (d/entity db (:e d)))
-                           (not (entity-util/page? (d/entity db (:v d)))))) tx-data)
-    (throw (ex-info "Page can't have block as parent"
-                    {:tx-data tx-data}))))
-
 (defn- transact-sync
+  ;; File-graphs-only: DB-graph validation/pipeline branch removed (the minimal
+  ;; build has no DB graphs; block-ref rebuilding for file graphs runs through
+  ;; the db-listener's invoke-hooks, not the transact pipeline).
   [conn tx-data tx-meta]
   (try
-    (let [db @conn
-          db-based? (entity-plus/db-based-graph? db)]
-      (if (and db-based?
-               (not
-                (or (:batch-temp-conn? @conn)
-                    (:rtc-download-graph? tx-meta)
-                    (:reset-conn! tx-meta)
-                    (:initial-db? tx-meta)
-                    (:skip-validate-db? tx-meta false)
-                    (:logseq.graph-parser.exporter/new-graph? tx-meta))))
-        (let [tx-report* (d/with db tx-data tx-meta)
-              pipeline-f @*transact-pipeline-fn
-              tx-report (if-let [f pipeline-f] (f tx-report*) tx-report*)
-              _ (throw-if-page-has-block-parent! (:db-after tx-report) (:tx-data tx-report))
-              [validate-result errors] (db-validate/validate-tx-report tx-report nil)]
-          (cond
-            validate-result
-            (when (and tx-report (seq (:tx-data tx-report)))
-              ;; perf enhancement: avoid repeated call on `d/with`
-              (reset! conn (:db-after tx-report))
-              (dc/store-after-transact! conn tx-report)
-              (dc/run-callbacks conn tx-report))
-
-            :else
-            (do
-              ;; notify ui
-              (when-let [f @*transact-invalid-callback]
-                (f tx-report errors))
-              (throw (ex-info "DB write failed with invalid data" {:tx-meta tx-meta
-                                                                   :tx-data tx-data
-                                                                   :errors errors
-                                                                   :pipeline-tx-data (map
-                                                                                      (fn [[e a v t]]
-                                                                                        [e a v t])
-                                                                                      (:tx-data tx-report))}))))
-          tx-report)
-        (d/transact! conn tx-data tx-meta)))
+    (d/transact! conn tx-data tx-meta)
     (catch :default e
       (prn :debug :transact-failed :tx-meta tx-meta :tx-data tx-data)
       (throw e))))
@@ -312,44 +263,13 @@
 
 (def get-first-page-by-name common-initial-data/get-first-page-by-name)
 
-(def db-based-graph? entity-plus/db-based-graph?)
-
 (defn page-exists?
-  "Returns truthy value if page exists.
-   For db graphs, returns all page db ids that given title and one of the given `tags`.
-   For file graphs, returns page db/id vector if it exists"
-  [db page-name tags]
+  "Returns page db/id vector if a file-graph page with `page-name` exists.
+   (DB-graph tag-based lookup removed — file-based only.)"
+  [db page-name _tags]
   (when page-name
-    (if (db-based-graph? db)
-      (let [tags' (if (coll? tags) (set tags) #{tags})]
-        ;; Classes and properties are case sensitive and can be looked up
-        ;; as such in case-sensitive contexts e.g. no Page
-        (if (and (seq tags') (every? #{:logseq.class/Tag :logseq.class/Property} tags'))
-          (seq
-           (d/q
-            '[:find [?p ...]
-              :in $ ?name [?tag-ident ...]
-              :where
-              [?p :block/title ?name]
-              [?p :block/tags ?tag]
-              [?tag :db/ident ?tag-ident]]
-            db
-            page-name
-            tags'))
-          ;; TODO: Decouple db graphs from file specific :block/name
-          (seq
-           (d/q
-            '[:find [?p ...]
-              :in $ ?name [?tag-ident ...]
-              :where
-              [?p :block/name ?name]
-              [?p :block/tags ?tag]
-              [?tag :db/ident ?tag-ident]]
-            db
-            (common-util/page-name-sanity-lc page-name)
-            tags'))))
-      (when-let [id (:db/id (d/entity db [:block/name (common-util/page-name-sanity-lc page-name)]))]
-        [id]))))
+    (when-let [id (:db/id (d/entity db [:block/name (common-util/page-name-sanity-lc page-name)]))]
+      [id])))
 
 (defn get-page
   "Get a page given its unsanitized name or uuid"
@@ -621,30 +541,17 @@
 
 (defn get-pages-relation
   [db with-journal?]
-  (if (entity-plus/db-based-graph? db)
-    (let [q (if with-journal?
-              '[:find ?p ?ref-page
-                :where
-                [?block :block/page ?p]
-                [?block :block/refs ?ref-page]]
-              '[:find ?p ?ref-page
-                :where
-                [?block :block/page ?p]
-                [?p :block/tags]
-                (not [?p :block/tags :logseq.class/Journal])
-                [?block :block/refs ?ref-page]])]
-      (d/q q db))
-    (let [q (if with-journal?
-              '[:find ?p ?ref-page
-                :where
-                [?block :block/page ?p]
-                [?block :block/refs ?ref-page]]
-              '[:find ?p ?ref-page
-                :where
-                [?block :block/page ?p]
-                (not [?p :block/type "journal"])
-                [?block :block/refs ?ref-page]])]
-      (d/q q db))))
+  (let [q (if with-journal?
+            '[:find ?p ?ref-page
+              :where
+              [?block :block/page ?p]
+              [?block :block/refs ?ref-page]]
+            '[:find ?p ?ref-page
+              :where
+              [?block :block/page ?p]
+              (not [?p :block/type "journal"])
+              [?block :block/refs ?ref-page]])]
+    (d/q q db)))
 
 (defn get-all-tagged-pages
   [db]
@@ -654,11 +561,9 @@
        db))
 
 (defn get-schema
-  "Returns schema for given repo"
-  [repo]
-  (if (sqlite-util/db-based-graph? repo)
-    db-schema/schema
-    file-schema/schema))
+  "Returns the file-graph schema (file-based only)."
+  [_repo]
+  file-schema/schema)
 
 (defn page-in-library?
   "Check whether a `page` exists on the Library page"

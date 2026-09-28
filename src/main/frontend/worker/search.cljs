@@ -12,7 +12,6 @@
             [logseq.common.util.namespace :as ns-util]
             [logseq.db :as ldb]
             [logseq.db.frontend.content :as db-content]
-            [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.text :as text]
             [missionary.core :as m]))
 
@@ -235,10 +234,7 @@ DROP TRIGGER IF EXISTS blocks_au;
   [db]
   (let [page-ids (->> (d/datoms db :avet :block/name)
                       (map :e))
-        object-ids (when (ldb/db-based-graph? db)
-                     (->> (d/datoms db :avet :block/tags)
-                          (map :e)))
-        blocks (->> (distinct (concat page-ids object-ids))
+        blocks (->> (distinct page-ids)
                     (map #(d/entity db %)))]
     (remove hidden-entity? blocks)))
 
@@ -445,7 +441,7 @@ DROP TRIGGER IF EXISTS blocks_au;
        (keep block->index)))
 
 (defn- get-blocks-from-datoms-impl
-  [repo {:keys [db-after db-before]} datoms]
+  [_repo {:keys [db-after db-before]} datoms]
   (when (seq datoms)
     (let [blocks-to-add-set (->> (filter :added datoms)
                                  (map :e)
@@ -453,17 +449,11 @@ DROP TRIGGER IF EXISTS blocks_au;
           blocks-to-remove-set (->> (remove :added datoms)
                                     (filter #(= :block/uuid (:a %)))
                                     (map :e)
-                                    (set))
-          blocks-to-add-set' (if (and (sqlite-util/db-based-graph? repo) (seq blocks-to-add-set))
-                               (->> blocks-to-add-set
-                                    (mapcat (fn [id] (map :db/id (:block/_refs (d/entity db-after id)))))
-                                    (concat blocks-to-add-set)
-                                    set)
-                               blocks-to-add-set)]
+                                    (set))]
       {:blocks-to-remove     (->>
                               (keep #(d/entity db-before %) blocks-to-remove-set))
        :blocks-to-add        (->>
-                              (keep #(d/entity db-after %) blocks-to-add-set')
+                              (keep #(d/entity db-after %) blocks-to-add-set)
                               (remove hidden-entity?))})))
 
 (defn- get-affected-blocks

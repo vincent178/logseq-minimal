@@ -5,7 +5,6 @@
             [logseq.common.util :as common-util]
             [logseq.common.util.block-ref :as block-ref]
             [logseq.common.util.page-ref :as page-ref]
-            [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.common.entity-util :as common-entity-util]
             [logseq.db.frontend.entity-util :as entity-util]))
 
@@ -63,12 +62,11 @@
             retract-history-tx (mapcat (fn [e]
                                          (map (fn [history] [:db/retractEntity (:db/id history)])
                                               (:logseq.property.history/_block e))) retracted-blocks)
-            macros-tx (when-not (entity-plus/db-based-graph? db)
-                        (mapcat (fn [b]
-                                  ;; Only delete if last reference
-                                  (keep #(when (<= (count (:block/_macros (d/entity db (:db/id %))))
-                                                   1)
-                                           (when (:db/id %) (vector :db.fn/retractEntity (:db/id %))))
-                                        (:block/macros b)))
-                                retracted-blocks))]
+            macros-tx (mapcat (fn [b]
+                                ;; Only delete if last reference
+                                (keep #(when (<= (count (:block/_macros (d/entity db (:db/id %))))
+                                                 1)
+                                         (when (:db/id %) (vector :db.fn/retractEntity (:db/id %))))
+                                      (:block/macros b)))
+                              retracted-blocks)]
         (concat txs retracted-tx retract-history-tx macros-tx)))))

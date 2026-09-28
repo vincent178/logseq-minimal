@@ -13,7 +13,7 @@
              :additional-tx \"Additional tx data that can be bundled together
                               with the body in this macro.\"
              :persist-op? \"Boolean, store ops into db (sqlite), by default,
-                            its value depends on (config/db-based-graph? repo)\"}
+                            always file-graph default in the minimal build\"}
   `Example`:
   (transact! {:conn db-conn}
     (insert-blocks! ...)

@@ -2,7 +2,6 @@
   "Import data into a file-based graph. (DB-graph import removed.)"
   (:require [clojure.string :as string]
             [frontend.components.svg :as svg]
-            [frontend.config :as config]
             [frontend.context.i18n :refer [t]]
             [frontend.handler.file-based.import :as file-import-handler]
             [frontend.handler.import :as import-handler]
@@ -135,8 +134,7 @@
 
 (rum/defc ^:large-vars/cleanup-todo importer < rum/reactive
   [{:keys [query-params]}]
-  (let [support-file-based? (config/local-file-based-graph? (state/get-current-repo))
-        importing? (state/sub :graph/importing)]
+  (let [importing? (state/sub :graph/importing)]
     [:<>
      (import-indicator importing?)
      (when-not importing?
@@ -153,7 +151,7 @@
            ;; DB-graph imports (SQLite / File-to-DB / Debug Transit / EDN-to-DB)
            ;; removed: the minimal build is file-based only.
 
-           (when (and (util/electron?) support-file-based?)
+           (when (util/electron?)
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center [:i (svg/logo 28)]]
               [:span.flex.flex-col
@@ -165,7 +163,7 @@
                 :type "file"
                 :on-change lsq-import-handler}]])
 
-           (when (and (util/electron?) support-file-based?)
+           (when (util/electron?)
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center [:i (svg/roam-research 28)]]
               [:div.flex.flex-col
@@ -177,7 +175,7 @@
                 :type "file"
                 :on-change roam-import-handler}]])
 
-           (when (and (util/electron?) support-file-based?)
+           (when (util/electron?)
              [:label.action-input.flex.items-center.mx-2.my-2
               [:span.as-flex-center.ml-1 (ui/icon "sitemap" {:size 26})]
               [:span.flex.flex-col

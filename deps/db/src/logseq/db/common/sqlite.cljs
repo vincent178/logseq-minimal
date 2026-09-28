@@ -18,11 +18,6 @@
   (or (d/restore-conn storage)
       (d/create-conn schema {:storage storage})))
 
-(defn local-file-based-graph?
-  [s]
-  (and (string? s)
-       (string/starts-with? s common-config/file-version-prefix)))
-
 (defn sanitize-db-name
   [db-name]
   (if (string/starts-with? db-name common-config/file-version-prefix)

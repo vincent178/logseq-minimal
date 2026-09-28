@@ -7,7 +7,6 @@
             [datascript.core :as d]
             [datascript.impl.entity :as de]
             [logseq.common.config :as common-config]
-            [logseq.common.date :as common-date]
             [logseq.common.util :as common-util]
             [logseq.common.util.block-ref :as block-ref]
             [logseq.common.util.date-time :as date-time-util]
@@ -15,7 +14,6 @@
             [logseq.common.uuid :as common-uuid]
             [logseq.db :as ldb]
             [logseq.db.common.order :as db-order]
-            [logseq.db.frontend.class :as db-class]
             [logseq.graph-parser.mldoc :as gp-mldoc]
             [logseq.graph-parser.property :as gp-property]
             [logseq.graph-parser.text :as text]
@@ -286,15 +284,13 @@
 
 (defn- convert-page-if-journal-impl
   "Convert journal file name to user' custom date format"
-  [original-page-name date-formatter & {:keys [export-to-db-graph?]}]
+  [original-page-name date-formatter]
   (when original-page-name
     (let [page-name (common-util/page-name-sanity-lc original-page-name)
           day (when date-formatter
                 (date-time-util/journal-title->int
                  page-name
-                 ;; When exporting, only use the configured date-formatter. Allowing for other date formatters allows
-                 ;; for page names to change which breaks looking up journal refs for unconfigured journal pages
-                 (if export-to-db-graph? [date-formatter] (date-time-util/safe-journal-title-formatters date-formatter))))]
+                 (date-time-util/safe-journal-title-formatters date-formatter)))]
       (if day
         (let [original-page-name' (date-time-util/int->journal-title day date-formatter)]
           [original-page-name' (common-util/page-name-sanity-lc original-page-name') day])
@@ -302,17 +298,17 @@
 
 (def convert-page-if-journal (memoize convert-page-if-journal-impl))
 
-;; Hack to detect export as some fns are too deeply nested to be refactored to get explicit option
+;; Retained for logseq.graph-parser.exporter (still used for safe file names +
+;; ::new-graph? tx-meta); its DB-graph export path is unused in this file-only
+;; build but the ns is still loaded by frontend.worker.pipeline & pdf assets.
 (def *export-to-db-graph? (atom false))
 
 (defn- page-name-string->map
   [original-page-name db date-formatter
    {:keys [with-timestamp? page-uuid from-page class? skip-existing-page-check?]}]
-  (let [db-based? (ldb/db-based-graph? db)
-        original-page-name (common-util/remove-boundary-slashes original-page-name)
-        [original-page-name' page-name journal-day] (convert-page-if-journal original-page-name date-formatter {:export-to-db-graph? @*export-to-db-graph?})
-        namespace? (and (or (not db-based?) @*export-to-db-graph?)
-                        (not (boolean (text/get-nested-page-name original-page-name')))
+  (let [original-page-name (common-util/remove-boundary-slashes original-page-name)
+        [original-page-name' page-name journal-day] (convert-page-if-journal original-page-name date-formatter)
+        namespace? (and (not (boolean (text/get-nested-page-name original-page-name')))
                         (text/namespace-page? original-page-name'))
         page-entity (when (and db (not skip-existing-page-check?))
                       (if class?
@@ -326,8 +322,7 @@
                :block/title original-page-name'}
               (when (and original-page-name
                          (not= (string/lower-case original-page-name)
-                               (string/lower-case original-page-name'))
-                         (not @*export-to-db-graph?))
+                               (string/lower-case original-page-name')))
                 {:block.temp/original-page-name original-page-name})
               (if (and class? page-entity (:db/ident page-entity))
                 {:block/uuid (:block/uuid page-entity)
@@ -353,11 +348,8 @@
                   {:block/created-at current-ms
                    :block/updated-at current-ms}))
               (if journal-day
-                (cond-> {:block/journal-day journal-day}
-                  db-based?
-                  (assoc :block/tags [:logseq.class/Journal])
-                  (not db-based?)
-                  (assoc :block/type "journal"))
+                {:block/journal-day journal-day
+                 :block/type "journal"}
                 {}))]
     [page page-entity]))
 
@@ -375,13 +367,10 @@
     as there's no chance to introduce timestamps via editing in page
    `skip-existing-page-check?`: if true, allows pages to have the same name"
   [original-page-name db with-timestamp? date-formatter
-   & {:keys [page-uuid class?] :as options}]
+   & {:keys [page-uuid] :as options}]
   (when-not (and db (common-util/uuid-string? original-page-name)
                  (not (ldb/page? (d/entity db [:block/uuid (uuid original-page-name)]))))
-    (let [db-based? (ldb/db-based-graph? db)
-          original-page-name (cond-> (string/trim original-page-name)
-                               db-based?
-                               sanitize-hashtag-name)
+    (let [original-page-name (string/trim original-page-name)
           [page _page-entity] (cond
                                 (and original-page-name (string? original-page-name))
                                 (page-name-string->map original-page-name db date-formatter
@@ -397,22 +386,10 @@
                                                  nil)]
                                   [page nil]))]
       (when page
-        (if db-based?
-          (let [tags (if class? [:logseq.class/Tag]
-                         (or (:block/tags page)
-                             [:logseq.class/Page]))]
-            (assoc page :block/tags tags))
-          (assoc page :block/type (or (:block/type page) "page")))))))
-
-(defn- db-namespace-page?
-  "Namespace page that're not journal pages"
-  [db-based? page]
-  (and db-based?
-       (text/namespace-page? page)
-       (not (common-date/valid-journal-title-with-slash? page))))
+        (assoc page :block/type (or (:block/type page) "page"))))))
 
 (defn- ref->map
-  [db *col {:keys [date-formatter *name->id tag? db-based? structured-tags]}]
+  [db *col {:keys [date-formatter *name->id tag? structured-tags]}]
   (let [col (distinct (remove string/blank? @*col))
         children-pages (->> (mapcat (fn [p]
                                       (let [p (if (map? p)
@@ -427,38 +404,31 @@
                             (remove string/blank?)
                             (distinct))
         col (->> (distinct (concat col children-pages))
-                 (remove nil?))
-        export-to-db-graph? @*export-to-db-graph?]
+                 (remove nil?))]
     (map
      (fn [item]
        (let [macro? (and (map? item)
                          (= "macro" (:type item)))
-             tag? (if export-to-db-graph?
-                    tag?
-                    (or (contains? structured-tags item) tag?))]
+             tag? (or (contains? structured-tags item) tag?)]
          (when-not macro?
            (let [m (page-name->map item db true date-formatter {:class? tag?})
-                 result (cond->> m
-                          (and db-based? tag? (not (:db/ident m)))
-                          (db-class/build-new-class db))
-                 page-name (if db-based? (:block/title result) (:block/name result))
+                 result m
+                 page-name (:block/name result)
                  id (get @*name->id page-name)]
              (when (nil? id)
                (swap! *name->id assoc page-name (:block/uuid result)))
              ;; Changing a :block/uuid should be done cautiously here as it can break
-             ;; the identity of built-in concepts in db graphs
+             ;; the identity of built-in concepts
              (if (and id
-                      (or (when-let [ident (:db/ident result)]
-                            (nil? (d/entity db ident)))
-                          export-to-db-graph?))
+                      (when-let [ident (:db/ident result)]
+                        (nil? (d/entity db ident))))
                (assoc result :block/uuid id)
                result))))) col)))
 
 (defn- with-page-refs-and-tags
   [{:keys [title body tags refs marker priority] :as block} db date-formatter {:keys [structured-tags]
                                                                                :or {structured-tags #{}}}]
-  (let [db-based? (and (ldb/db-based-graph? db) (not @*export-to-db-graph?))
-        refs (->> (concat tags refs (when-not db-based? [marker priority]))
+  (let [refs (->> (concat tags refs [marker priority])
                   (remove string/blank?)
                   (distinct))
         *refs (atom refs)
@@ -470,22 +440,17 @@
                       (= (first form) "Custom")
                       (= (second form) "query"))
          (when-let [page (get-page-reference form (get block :format :markdown))]
-           (when-let [page' (when-not (db-namespace-page? db-based? page)
-                              page)]
-             (swap! *refs conj page')))
+           (swap! *refs conj page))
          (when-let [tag (get-tag form)]
            (let [tag (text/page-ref-un-brackets! tag)]
-             (when-let [tag' (when-not (db-namespace-page? db-based? tag)
-                               tag)]
-               (when (common-util/tag-valid? tag')
-                 (swap! *refs conj tag')
-                 (swap! *structured-tags conj tag')))))
+             (when (common-util/tag-valid? tag)
+               (swap! *refs conj tag)
+               (swap! *structured-tags conj tag))))
          form))
      (concat title body))
     (swap! *refs #(remove string/blank? %))
     (let [*name->id (atom {})
-          ref->map-options {:db-based? db-based?
-                            :date-formatter date-formatter
+          ref->map-options {:date-formatter date-formatter
                             :*name->id *name->id
                             :structured-tags (set @*structured-tags)}
           refs (->> (ref->map db *refs ref->map-options)
@@ -631,17 +596,9 @@
     properties))
 
 (defn- construct-block
-  [block properties* timestamps body encoded-content format pos-meta {:keys [block-pattern db date-formatter remove-properties? db-graph-mode? export-to-db-graph?]}]
+  [block properties* timestamps body encoded-content format pos-meta {:keys [block-pattern db date-formatter remove-properties?]}]
   (let [id (get-custom-id-or-new-id properties*)
-        block-tags (and export-to-db-graph? (get-in properties* [:properties :tags]))
-        ;; For export, remove tags from properties as they are being converted to classes
-        properties (if (seq block-tags)
-                     (-> properties*
-                         (update :properties #(dissoc % :tags))
-                         (update :properties-text-values #(dissoc % :tags))
-                         (update :properties-order (fn [v] (remove #(= :tags %) v)))
-                         (update :page-refs (fn [v] (remove #(= "tags" %) v))))
-                     properties*)
+        properties properties*
         ref-pages-in-properties (->> (:page-refs properties)
                                      (remove string/blank?))
         block (second block)
@@ -678,15 +635,12 @@
         block (if (seq timestamps)
                 (merge block (timestamps->scheduled-and-deadline timestamps))
                 block)
-        db-based? (or db-graph-mode? export-to-db-graph?)
         block (-> block
                   (assoc :body body)
-                  (with-page-block-refs db date-formatter
-                    (cond-> {} (seq block-tags) (assoc :structured-tags block-tags))))
-        block (if db-based? block
-                  (-> block
-                      (update :tags (fn [tags] (map #(assoc % :block/format format) tags)))
-                      (update :refs (fn [refs] (map #(if (map? %) (assoc % :block/format format) %) refs)))))
+                  (with-page-block-refs db date-formatter {}))
+        block (-> block
+                  (update :tags (fn [tags] (map #(assoc % :block/format format) tags)))
+                  (update :refs (fn [refs] (map #(if (map? %) (assoc % :block/format format) %) refs))))
         block (update block :refs concat (:block-refs properties))
         {:keys [created-at updated-at]} (:properties properties)
         block (cond-> block
@@ -731,12 +685,10 @@
   * `content`: markdown or org-mode text.
   * `format`: content's format, it could be either :markdown or :org-mode.
   * `options`: Options are :user-config, :block-pattern, :date-formatter, :db and
-     * :db-graph-mode? : Set when a db graph in the frontend
-     * :export-to-db-graph? : Set when exporting to a db graph"
-  [ast content format {:keys [user-config db-graph-mode? export-to-db-graph?] :as options}]
+     File graphs only — the DB-graph export path has been removed."
+  [ast content format {:keys [user-config] :as options}]
   {:pre [(seq ast) (string? content) (contains? #{:markdown :org} format)]}
   (let [encoded-content (utf8/encode content)
-        all-blocks (vec (reverse ast))
         [blocks body pre-block-properties]
         (loop [headings []
                ast-blocks (reverse ast)
@@ -757,35 +709,12 @@
                   (recur headings (rest ast-blocks) (inc block-idx) timestamps properties body))
 
                 (heading-block? ast-block)
-                ;; for db-graphs cut multi-line when there is property, deadline/scheduled or logbook text in :block/title
-                (let [cut-multiline? (and export-to-db-graph?
-                                          (when-let [prev-block (first (get all-blocks (dec block-idx)))]
-                                            (or (and (gp-property/properties-ast? prev-block)
-                                                     (not= "Custom" (ffirst (get all-blocks (- block-idx 2)))))
-                                                (= ["Drawer" "logbook"] (take 2 prev-block))
-                                                (and (= "Paragraph" (first prev-block))
-                                                     (seq (set/intersection (set (flatten prev-block)) #{"Deadline" "Scheduled"}))))))
-                      pos-meta' (if cut-multiline?
-                                  pos-meta
-                                  ;; fix start_pos
-                                  (assoc pos-meta :end_pos
-                                         (if (seq headings)
-                                           (get-in (last headings) [:meta :start_pos])
-                                           nil)))
-                      ;; Remove properties text from custom queries in db graphs
-                      options' (assoc options
-                                      :remove-properties?
-                                      (and export-to-db-graph?
-                                           (and (gp-property/properties-ast? (first (get all-blocks (dec block-idx))))
-                                                (= "Custom" (ffirst (get all-blocks (- block-idx 2)))))))
-                      block' (construct-block ast-block properties timestamps body encoded-content format pos-meta' options')
-                      block'' (cond
-                                db-graph-mode?
-                                block'
-                                export-to-db-graph?
-                                (assoc block' :block.temp/ast-blocks (cons ast-block body))
-                                :else
-                                (assoc block' :macros (extract-macros-from-ast (cons ast-block body))))]
+                (let [pos-meta' (assoc pos-meta :end_pos
+                                       (if (seq headings)
+                                         (get-in (last headings) [:meta :start_pos])
+                                         nil))
+                      block' (construct-block ast-block properties timestamps body encoded-content format pos-meta' options)
+                      block'' (assoc block' :macros (extract-macros-from-ast (cons ast-block body)))]
 
                   (recur (conj headings block'') (rest ast-blocks) (inc block-idx) {} {} []))
 

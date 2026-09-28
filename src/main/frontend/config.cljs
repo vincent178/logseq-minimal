@@ -323,25 +323,15 @@
 ;; - `logseq_local_/absolute/path/to/graph` => local graph, native fs backend
 ;; - `logseq_local_x:/absolute/path/to/graph` => local graph, native fs backend, on Windows
 ;; - `logseq_local_GraphName` => local graph, browser fs backend
-;; - `logseq_db_GraphName` => db based graph, sqlite as backend
 ;; - Use `""` while writing global files
+;;
+;; NOTE: DB graphs removed (minimal build is file-graphs only); the
+;; `logseq_db_` prefix and `local-file-based-graph?`/`db-based-graph?`
+;; predicates are gone — every graph is a local file-based graph.
 
 (defonce idb-db-prefix "logseq-db/")
 (defonce local-db-prefix "logseq_local_")
 (defonce local-handle "handle")
-(defonce db-version-prefix common-config/db-version-prefix)
-
-(defn local-file-based-graph?
-  [s]
-  (and (string? s)
-       (string/starts-with? s local-db-prefix)))
-
-(defn db-based-graph?
-  "DB graphs removed (minimal build is file-graphs only). Always false."
-  ([]
-   false)
-  ([_s]
-   false))
 
 (defn get-local-asset-absolute-path
   [s]
@@ -349,12 +339,7 @@
 
 (defn get-local-dir
   [repo]
-  (if (db-based-graph? repo)
-    (path/path-join (get-in @state/state [:system/info :home-dir])
-                    "logseq"
-                    "graphs"
-                    (string/replace repo db-version-prefix ""))
-    (string/replace repo local-db-prefix "")))
+  (string/replace repo local-db-prefix ""))
 
 ;; FIXME(andelf): this is not the reverse op of get-repo-dir, should be fixed
 (defn get-local-repo
@@ -364,37 +349,30 @@
 (defn get-repo-dir
   [repo-url]
   (when repo-url
-    (let [db-based? (db-based-graph? repo-url)]
-      (cond
-        (and (util/electron?) db-based-graph?)
-        (get-local-dir repo-url)
-
-        db-based?
-        (str "memory:///"
-             (string/replace-first repo-url db-version-prefix ""))
-
-        (and (util/electron?) (local-file-based-graph? repo-url))
-        (get-local-dir repo-url)
+    (cond
+    ;; electron local file graph
+      (and (util/electron?) (string/starts-with? repo-url local-db-prefix))
+      (get-local-dir repo-url)
 
     ;; Special handling for demo graph
-        (= repo-url demo-repo)
-        "memory:///local"
+      (= repo-url demo-repo)
+      "memory:///local"
 
     ;; nfs, browser-fs-access
     ;; Format: logseq_local_{dir-name}
-        (local-file-based-graph? repo-url)
-        (string/replace-first repo-url local-db-prefix "")
+      (string/starts-with? repo-url local-db-prefix)
+      (string/replace-first repo-url local-db-prefix "")
 
      ;; unit test
-        (= repo-url "test-db")
-        "/test-db"
+      (= repo-url "test-db")
+      "/test-db"
 
-        :else
-        (do
-          (js/console.error "Unknown Repo URL type:" repo-url)
-          (str "/"
-               (->> (take-last 2 (string/split repo-url #"/"))
-                    (string/join "_"))))))))
+      :else
+      (do
+        (js/console.error "Unknown Repo URL type:" repo-url)
+        (str "/"
+             (->> (take-last 2 (string/split repo-url #"/"))
+                  (string/join "_")))))))
 
 (defn get-string-repo-dir
   [repo-dir]
@@ -412,10 +390,8 @@
   ([]
    (get-custom-css-path (state/get-current-repo)))
   ([repo]
-   (if (db-based-graph? repo)
-     (path/path-join app-name custom-css-file)
-     (when-let [repo-dir (get-repo-dir repo)]
-       (path/path-join repo-dir app-name custom-css-file)))))
+   (when-let [repo-dir (get-repo-dir repo)]
+     (path/path-join repo-dir app-name custom-css-file))))
 
 (defn get-export-css-path
   ([]
@@ -455,10 +431,8 @@
   ([]
    (get-custom-js-path (state/get-current-repo)))
   ([repo]
-   (if (db-based-graph? repo)
-     (path/path-join app-name custom-js-file)
-     (when-let [repo-dir (get-repo-dir repo)]
-       (path/path-join repo-dir app-name custom-js-file)))))
+   (when-let [repo-dir (get-repo-dir repo)]
+     (path/path-join repo-dir app-name custom-js-file))))
 
 (defn get-block-hidden-properties
   []

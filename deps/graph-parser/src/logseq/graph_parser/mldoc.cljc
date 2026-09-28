@@ -13,7 +13,6 @@
             [goog.object :as gobj]
             [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
-            [logseq.db.sqlite.util :as sqlite-util]
             [logseq.graph-parser.utf8 :as utf8]))
 
 (defonce parseJson (gobj/get Mldoc "parseJson"))
@@ -137,17 +136,12 @@
         original-ast))))
 
 (defn get-default-config
-  "Gets a mldoc default config for the given format. Works for DB and file graphs"
-  [repo format]
-  (let [db-based? (sqlite-util/db-based-graph? repo)]
-    (->>
-     (cond-> (default-config-map format)
-       db-based?
-       (assoc :enable_drawers false
-              :parse_marker false
-              :parse_priority false))
-     bean/->js
-     js/JSON.stringify)))
+  "Gets a mldoc default config for the given format. (file graphs only)"
+  [_repo format]
+  (->>
+   (default-config-map format)
+   bean/->js
+   js/JSON.stringify))
 
 (defn ->edn
   ;; TODO: Re-enable schema
