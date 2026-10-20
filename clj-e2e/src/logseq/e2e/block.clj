@@ -34,11 +34,70 @@
   (w/fill util/editor-q text)
   (assert/assert-is-visible (loc/filter util/editor-q :has-text text)))
 
+(defn- current-editor-id
+  "DOM id (\"edit-block-<uuid>\") of the visible editor textarea, or nil when
+  not in edit mode."
+  []
+  (when (w/visible? util/editor-q)
+    (.getAttribute (w/-query util/editor-q) "id")))
+
+(declare new-block)
+
+(defn- recover-new-block
+  "Recovery for a failed `new-block` attempt.
+
+  Block insertion and the editor remount are separate async steps in the app:
+  the outliner pipeline transacts the new block and refreshes the UI first,
+  and only then schedules moving the editor to it (see
+  `frontend.modules.outliner.pipeline`). So a timeout of the \"editor moved to
+  a new block\" assertion does NOT prove the Enter keypress had no effect —
+  the new block may already exist while the editor still shows the previous
+  block. Re-pressing Enter in that state inserts a duplicate block and leaves
+  an orphan empty block behind — the root cause of the flaky
+  delete-end-test / delete-concat-test-3-blocks failures (CI runs 36402053455
+  and 36440039553, where the page ended up with an extra empty block)."
+  [title last-id blocks-count-before]
+  ;; Give a lagging editor remount a short grace window to finish.
+  (let [moved? (loop [i 20]
+                 (let [current-id (current-editor-id)]
+                   (cond
+                     (and (some? current-id) (not= current-id last-id))
+                     true
+
+                     (zero? i)
+                     false
+
+                     :else
+                     (do (Thread/sleep 100)
+                         (recur (dec i))))))]
+    (if moved?
+      ;; Enter worked, only the remount/assert lagged: fill the new block.
+      (save-block title)
+      (if (> (util/page-blocks-count) blocks-count-before)
+        ;; The insert landed but the editor never moved: a fresh empty block
+        ;; sits right after the previously edited block. Adopt that block
+        ;; instead of pressing Enter again (which would insert a duplicate).
+        (let [uuid (subs last-id (count "edit-block-"))
+              edited-block (w/-query (str "#ls-block-" uuid))
+              orphan (.first (.locator edited-block
+                                       "xpath=./following-sibling::*[contains(@class,'ls-block')][1]"))]
+          (w/click (.first (.locator orphan ".block-content")))
+          (assert/assert-editor-mode)
+          (if (string/blank? (util/get-edit-content))
+            (save-block title)
+            (throw (ex-info "new-block recovery adopted a non-empty block"
+                            {:last-id last-id
+                             :current-id (current-editor-id)
+                             :content (util/get-edit-content)}))))
+        ;; Enter really had no effect; safe to retry from scratch.
+        (new-block title true)))))
+
 (defn new-block
   [title & [in-retry?]]
   (let [editor (util/get-editor)]
     (when-not editor (open-last-block))
-    (let [last-id (.getAttribute (w/-query ".editor-wrapper textarea") "id")]
+    (let [last-id (current-editor-id)
+          blocks-count-before (util/page-blocks-count)]
       (is (some? last-id))
       (k/press "Control+e")
       (k/enter)
@@ -53,11 +112,11 @@
           (if in-retry?
             (throw (ex-info
                     "new-block exception"
-                    {:current-id (.getAttribute (w/-query ".editor-wrapper textarea") "id")
+                    {:current-id (current-editor-id)
                      :last-id last-id}
                     e))
             (do (prn :retry-new-block title)
-                (new-block title true))))))))
+                (recover-new-block title last-id blocks-count-before))))))))
 
 ;; TODO: support tree
 (defn new-blocks
