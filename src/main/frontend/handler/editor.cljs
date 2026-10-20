@@ -529,14 +529,32 @@
                           :else
                           insert-new-block-aux!)
               [result-promise sibling? next-block] (insert-fn config block'' value)
-              edit-block-f (fn []
-                             (let [next-block' (db/entity [:block/uuid (:block/uuid next-block)])
-                                   pos 0
-                                   unsaved-chars @(:editor/async-unsaved-chars @state/state)
-                                   container-id (get-new-container-id :insert {:sibling? sibling?})]
-                               (edit-block! next-block' (+ pos (count unsaved-chars))
-                                            {:container-id container-id
-                                             :custom-content (str unsaved-chars (:block/title next-block'))})))]
+              edit-block-f (let [;; The block being edited when Enter was pressed
+                                 from-block-uuid (:block/uuid block)
+                                 created-at (util/time-ms)]
+                             (fn edit-block-f* []
+                               ;; Cancellation guards run on EVERY invocation, including a
+                               ;; queued retry that later takes the success branch: abandon
+                               ;; the remount once the edit target changed (another remount
+                               ;; or user action superseded us, e.g. the user pressed Escape
+                               ;; or moved to another block) or after 5s (the insert tx
+                               ;; presumably failed). On the normal first run the editor is
+                               ;; still on from-block, so the guard passes.
+                               (when (and (< (- (util/time-ms) created-at) 5000)
+                                          (= from-block-uuid (:block/uuid (state/get-edit-block))))
+                                 (if-let [next-block' (db/entity [:block/uuid (:block/uuid next-block)])]
+                                   (let [pos 0
+                                         unsaved-chars @(:editor/async-unsaved-chars @state/state)
+                                         container-id (get-new-container-id :insert {:sibling? sibling?})]
+                                     (edit-block! next-block' (+ pos (count unsaved-chars))
+                                                  {:container-id container-id
+                                                   :custom-content (str unsaved-chars (:block/title next-block'))}))
+                                   ;; The :editor/edit-block-fn slot is consumed by whichever
+                                   ;; tx's pipeline runs next, which can be a different,
+                                   ;; earlier tx (e.g. an in-flight auto-save): this insert's
+                                   ;; tx hasn't landed in the UI db yet. Retry on the next
+                                   ;; frames instead of silently dropping the remount.
+                                   (util/schedule edit-block-f*)))))]
           (p/do!
            (state/set-state! :editor/edit-block-fn edit-block-f)
            result-promise
