@@ -12,6 +12,31 @@
 
 ;; TODO: save trace
 ;; TODO: parallel support
+
+(defn- attach-console-log-listener!
+  "Attach BEFORE navigating so SPA boot messages are captured too (a boot
+  failure is exactly when we need them most)."
+  [p]
+  (.onConsoleMessage p (fn [msg]
+                         (when custom-report/*pw-page->console-logs*
+                           (swap! custom-report/*pw-page->console-logs* update p conj (.text msg))))))
+
+(defn- boot-graph!
+  "navigate -> developer-mode -> refresh -> wait for the graph to render.
+  Runs in :once fixtures, i.e. OUTSIDE clojure.test's per-var error
+  reporting: without the try/catch a boot failure escapes `run-tests` as a
+  bare \"Execution error\" and no screenshot/console-log dump happens."
+  [port]
+  (try
+    (w/navigate (pw-page/get-test-url port))
+    (settings/developer-mode)
+    (w/refresh)
+    (assert/assert-graph-loaded?)
+    (catch Throwable e
+      (println "Graph failed to load during fixture setup; dumping diagnostics to e2e-dump/")
+      (custom-report/collect-info-when-error-or-failed)
+      (throw e))))
+
 (defn open-page
   [f & {:keys [headless port]}]
   (w/with-page-open
@@ -23,14 +48,8 @@
     (binding [custom-report/*pw-contexts* #{(.context (w/get-page))}
               custom-report/*pw-page->console-logs* (atom {})]
       (w/grant-permissions :clipboard-write :clipboard-read)
-      (w/navigate (pw-page/get-test-url port))
-      (settings/developer-mode)
-      (w/refresh)
-      (assert/assert-graph-loaded?)
-      (let [p (w/get-page)]
-        (.onConsoleMessage p (fn [msg]
-                               (when custom-report/*pw-page->console-logs*
-                                 (swap! custom-report/*pw-page->console-logs* update p conj (.text msg))))))
+      (attach-console-log-listener! (w/get-page))
+      (boot-graph! port)
       (f))))
 
 (defn open-2-pages
@@ -52,16 +71,8 @@
       (run!
        #(w/with-page %
           (w/grant-permissions :clipboard-write :clipboard-read)
-          (w/navigate (pw-page/get-test-url port))
-          (settings/developer-mode)
-          (w/refresh)
-          (assert/assert-graph-loaded?)
-          (let [p (w/get-page)]
-            (.onConsoleMessage
-             p
-             (fn [msg]
-               (when custom-report/*pw-page->console-logs*
-                 (swap! custom-report/*pw-page->console-logs* update p conj (.text msg)))))))
+          (attach-console-log-listener! (w/get-page))
+          (boot-graph! port))
        [p1 p2])
       (f))
 

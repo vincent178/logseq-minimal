@@ -24,7 +24,7 @@
        (.setPath (java.nio.file.Paths/get "e2e-dump/"
                                           (into-array [(format "./screenshot-%s-%s.png" test-name (System/currentTimeMillis))]))))))
 
-(defn- collect-info-when-error-or-failed
+(defn collect-info-when-error-or-failed
   []
   ;; screenshot for all pw pages when :error
   (when-let [all-contexts (seq *pw-contexts*)]
