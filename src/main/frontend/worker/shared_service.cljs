@@ -235,13 +235,18 @@
          (p/finally (fn []
                       (vswap! *requests-in-flight dissoc id)))))))))
 
+(def ^:private slave-register-timeout-ms
+  "How long a slave waits for the master's registration ack before re-running
+  the master check. See the timeout comment in `<on-become-slave`."
+  2000)
+
 (defn- <on-become-slave
   [slave-client-id service-name common-channel broadcast-data-types status-ready-promise]
   (let [client-channel (ensure-client-channel slave-client-id service-name)
         *register-finish-promise? (atom nil)
-        <register #(do (.postMessage common-channel #js {:type "slave-register"
+        <register #(do (reset! *register-finish-promise? (p/deferred))
+                       (.postMessage common-channel #js {:type "slave-register"
                                                          :slave-client-id slave-client-id})
-                       (reset! *register-finish-promise? (p/deferred))
                        @*register-finish-promise?)]
     (listen-client-channel client-channel on-response-handler)
     (listen-common-channel
@@ -264,9 +269,23 @@
 
              (log/error :unknown-event event*))))))
     (->
-     (p/do!
-      (<register)
-      (p/resolve! status-ready-promise))
+     (p/let [register-result (p/timeout (<register)
+                                        slave-register-timeout-ms
+                                        ::register-timeout)]
+       (if (= register-result ::register-timeout)
+         ;; The presumed master never acked our registration. When a page is
+         ;; refreshed, its worker is destroyed while the browser releases the
+         ;; worker's service Web Lock asynchronously; a new worker that boots
+         ;; inside that window loses the master election to the dead master
+         ;; and would otherwise wait forever for an ack that never comes (the
+         ;; "master has gone" watch is only installed after an ack), hanging
+         ;; the whole app boot. Re-run the master check instead: the stale
+         ;; lock is released shortly after, so we either become master or
+         ;; register with the real (live) master on the next attempt.
+         (do
+           (log/warn :slave-register-timeout {:service-name service-name})
+           (reset! *master-re-check-trigger :re-check))
+         (p/resolve! status-ready-promise)))
      (p/catch (fn [e]
                 (log/error :on-become-slave e)
                 (p/rejected e))))))
