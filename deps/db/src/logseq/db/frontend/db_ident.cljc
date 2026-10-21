@@ -76,7 +76,7 @@
           "New ident is not allowed to use an internal namespace")
   (if #?(:org.babashka/nbb true
          :cljs             (and (exists? js/process)
-                                (or js/process.env.REPEATABLE_IDENTS js/process.env.DB_GRAPH))
+                                js/process.env.REPEATABLE_IDENTS)
          :default          false)
      ;; Used for contexts where we want repeatable idents e.g. tests and CLIs
     (keyword user-namespace (normalize-ident-name-part name-string))

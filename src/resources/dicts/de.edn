@@ -160,12 +160,10 @@
  :keymap/total "Tastaturkürzel gesamt"
  :keymap/unset "Nicht gesetzt"
 
- :left-side-bar/assets "Anlagen"
  :left-side-bar/journals "Journale"
  :left-side-bar/nav-favorites "Favoriten"
  :left-side-bar/nav-recent-pages "Neuste"
  :left-side-bar/switch "Wechseln zu:"
- :left-side-bar/tasks "Aufgaben"
 
  :linked-references/filter-directions "Klicken um einzuschließen, Umschalt+Klicken um auszuschließen. Erneut klicken zum Entfernen."
  :linked-references/filter-excludes "Ausgeschlossen: "
@@ -528,5 +526,4 @@
  :shortcut.category/navigating           "Navigation"
  :shortcut.category/others               "Sonstiges"
  :shortcut.category/toggle               "Umschalten"
-
- :views.table/live-query-title (fn [total] (str "Echtzeit-Query (" total ")"))}
+}

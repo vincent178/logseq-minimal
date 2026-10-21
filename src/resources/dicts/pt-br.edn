@@ -68,8 +68,6 @@
  :right-side-bar/pane-more "Mais"
  :left-side-bar/switch "Troque para:"
  :left-side-bar/journals "Diários"
- :left-side-bar/assets "Imagens"
- :left-side-bar/tasks "Tarefas"
  :left-side-bar/nav-favorites "Favoritos"
  :left-side-bar/nav-recent-pages "Recentes"
  :page/something-went-wrong "Algo deu errado"
@@ -380,7 +378,6 @@
  :header/go-forward                  "Avançar"
 
  :views.table/default-title (fn [total] (str total (if (<= total 1) " Nodo" " Nodos")))
- :views.table/live-query-title (fn [total] (str "Consulta em tempo real (" total ")"))
 
  :command.auto-complete/complete "Auto-completar: Escolher item selecionado"
  :command.auto-complete/next "Auto-completar: Selecionar próximo item"

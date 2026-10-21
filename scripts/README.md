@@ -18,9 +18,8 @@ your first time generating a DB graph, first try the
 tasks](../docs/dev-practices.md#db-graph-tasks) as it only requires writing EDN.
 
 Creating graphs from the commandline using scripts and a concise EDN map is
-possible thanks to nbb-logseq and the namespaces
-[logseq.outliner.db-pipeline](deps/outliner/src/logseq/outliner/db_pipeline.cljs)
-and [logseq.db.sqlite.build](deps/db/src/logseq/db/sqlite/build.cljs).  For
+possible thanks to nbb-logseq and the
+[logseq.db.sqlite.build](deps/db/src/logseq/db/sqlite/build.cljs) namespace.  For
 example, the `create_graph_with_properties.cljs` script uses this ns to create a
 graph with a variety of properties:
 
@@ -68,8 +67,3 @@ Renaming 1 properties due to page name conflicts
 Generating 2268 pages with 900 classes and 1368 properties ...
 Created graph schema!
 ```
-
-#### Update graph scripts
-
-For database graphs, it is recommended to use
-`logseq.outliner.db-pipeline/add-listener!` when updating graphs. TODO

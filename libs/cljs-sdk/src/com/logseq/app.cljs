@@ -124,12 +124,6 @@
         args []]
     (core/call-method api-proxy method args)))
 
-(defn check-current-is-db-graph
-  []
-  (let [method (aget api-proxy "checkCurrentIsDbGraph")
-        args []]
-    (core/call-method api-proxy method args)))
-
 (defn get-current-graph-configs
   [& keys]
   (let [method (aget api-proxy "getCurrentGraphConfigs")
