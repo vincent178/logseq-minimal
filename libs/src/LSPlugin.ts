@@ -464,7 +464,6 @@ export interface IAppProxy {
 
   // graph
   getCurrentGraph: () => Promise<AppGraphInfo | null>
-  checkCurrentIsDbGraph: () => Promise<Boolean>
   getCurrentGraphConfigs: (...keys: string[]) => Promise<any>
   setCurrentGraphConfigs: (configs: {}) => Promise<void>
   getCurrentGraphFavorites: () => Promise<Array<string | PageEntity> | null>

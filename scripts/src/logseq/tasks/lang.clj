@@ -122,7 +122,6 @@
   {"(t (shortcut-helper/decorate-namespace" [] ;; shortcuts related so can ignore
    "(t (keyword" [:color/yellow :color/red :color/pink :color/green :color/blue
                   :color/purple :color/gray]
-   "(tt (keyword" [:left-side-bar/assets :left-side-bar/tasks]
 
    ;; from 3 files
    "(t (if" [:asset/show-in-folder :asset/open-in-browser
@@ -132,7 +131,7 @@
    "(t prompt-key" [:select/default-prompt :select/default-select-multiple :select.graph/prompt]
    ;; All args to ui/make-confirm-modal are not keywords
    "(t title" []
-   "(t (or title-key" [:views.table/live-query-title :views.table/default-title :all-pages/table-title]
+   "(t (or title-key" [:views.table/default-title :all-pages/table-title]
    "(t subtitle" [:asset/physical-delete]})
 
 (defn- delete-not-used-key-from-dict-file

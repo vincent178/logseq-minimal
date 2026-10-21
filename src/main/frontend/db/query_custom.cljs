@@ -25,9 +25,9 @@
 
 (defn- add-rules-to-query
   "Searches query's :where for rules and adds them to query if used"
-  [{:keys [query] :as query-m} {:keys [db-graph?]}]
+  [{:keys [query] :as query-m}]
   (let [{:keys [where in]} (datalog-util/query-vec->map query)
-        query-dsl-rules (if db-graph? rules/db-query-dsl-rules file-rules/query-dsl-rules)
+        query-dsl-rules file-rules/query-dsl-rules
         rules-found (datalog-util/find-rules-in-where where (-> query-dsl-rules keys set))]
     (if (seq rules-found)
       (if (and (= '% (last in)) (vector? (last (:inputs query-m))))
@@ -39,9 +39,7 @@
                          ;; last position is rules
                          (dec (count inputs))
                          (->> (rules/extract-rules query-dsl-rules
-                                                   rules-found
-                                                   (when db-graph?
-                                                     {:deps rules/rules-dependencies}))
+                                                   rules-found)
                               (into (last inputs))
                               ;; user could give rules that we already have
                               distinct
@@ -60,9 +58,7 @@
                     (fn [rules]
                       (into (or rules [])
                             (rules/extract-rules query-dsl-rules
-                                                 rules-found
-                                                 (when db-graph?
-                                                   {:deps rules/rules-dependencies})))))))
+                                                 rules-found))))))
       query-m)))
 
 (defn custom-query
@@ -80,5 +76,5 @@
              (not= :find (first (:query query')))) ; dsl query
        [nil (query-dsl/custom-query repo query' query-opts)]
        (query-react/react-query repo
-                                (add-rules-to-query query' {:db-graph? false})
+                                (add-rules-to-query query')
                                 query-opts)))))

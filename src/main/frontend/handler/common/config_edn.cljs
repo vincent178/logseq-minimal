@@ -5,7 +5,6 @@
             [frontend.handler.notification :as notification]
             [goog.string :as gstring]
             [lambdaisland.glogi :as log]
-            [logseq.common.config :as common-config]
             [malli.core :as m]
             [malli.error :as me]
             [reitit.frontend.easy :as rfe]))
@@ -89,17 +88,13 @@ nested keys or positional errors e.g. tuples"
 
 (defn detect-deprecations
   "Detects config keys that will or have been deprecated"
-  [path content {:keys [db-graph?]}]
+  [path content]
   (let [body (try (edn/read-string content)
                   (catch :default _ ::failed-to-detect))
-        warnings (cond->
-                  {:editor/command-trigger
-                   "is no longer supported. Please use '/' and report bugs on it."
-                   :arweave/gateway
-                   "is no longer supported."}
-                   db-graph?
-                   (merge
-                    common-config/file-only-config))]
+        warnings {:editor/command-trigger
+                  "is no longer supported. Please use '/' and report bugs on it."
+                  :arweave/gateway
+                  "is no longer supported."}]
     (cond
       (= body ::failed-to-detect)
       (log/info :msg "Skip deprecation check since config is not valid edn")

@@ -89,7 +89,7 @@
   [path content]
   (when (or (= path "logseq/config.edn")
             (= (path/dirname path) (global-config-handler/safe-global-config-dir)))
-    (config-edn-common-handler/detect-deprecations path content {:db-graph? false})))
+    (config-edn-common-handler/detect-deprecations path content)))
 
 (defn- validate-file
   "Returns true if valid and if false validator displays error message. Files

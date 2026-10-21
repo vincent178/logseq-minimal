@@ -26,8 +26,7 @@ and handles unexpected failure."
                                              :block-pattern (config/get-block-pattern format)
                                              :db (db/get-db repo)
                                              :date-formatter (state/get-date-formatter)
-                                             :page-name page-name
-                                             :db-graph-mode? false})]
+                                             :page-name page-name})]
         blocks)
       (catch :default e
         (log/error :exception e)

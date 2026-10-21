@@ -30,18 +30,15 @@
             [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.mixins :as mixins]
             [frontend.state :as state]
             [frontend.ui :as ui]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
             [goog.object :as gobj]
-            [logseq.common.config :as common-config]
             [logseq.common.util :as common-util]
             [logseq.common.util.page-ref :as page-ref]
             [logseq.db :as ldb]
-            [logseq.db.frontend.db :as db-db]
             [logseq.graph-parser.mldoc :as gp-mldoc]
             [logseq.shui.hooks :as hooks]
             [logseq.shui.ui :as shui]
@@ -177,13 +174,7 @@
           [children more?] (if (and (> (count full-children) mobile-length-limit) (util/mobile?) journals?)
                              [(take mobile-length-limit full-children) true]
                              [full-children false])
-          quick-add-page-id (:db/id (db-db/get-built-in-page (db/get-db) common-config/quick-add-page-name))
           children (cond
-                     (and (= id quick-add-page-id)
-                          (user-handler/user-uuid)
-                          (ldb/get-graph-rtc-uuid (db/get-db)))
-                     (editor-handler/get-user-quick-add-blocks)
-
                      (ldb/class? block)
                      (remove (fn [b] (contains? (set (map :db/id (:block/tags b))) (:db/id block))) children)
 

@@ -1,5 +1,5 @@
 (ns frontend.worker.db-metadata
-  "Fns to read/write metadata.edn file for db-based."
+  "Fns to read/write a graph's metadata file."
   (:require ["/frontend/idbkv" :as idb-keyval]))
 
 (defonce ^:private store (delay (idb-keyval/newStore "localforage" "keyvaluepairs" 2)))

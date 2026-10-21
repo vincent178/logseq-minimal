@@ -58,7 +58,6 @@
   [repo & {:as opts}]
   (state/set-current-repo! repo)
   (db/start-db-conn! repo (assoc opts
-                                 :db-graph? false
                                  :listen-handler (fn [conn]
                                                    (undo-redo/listen-db-changes! repo conn)))))
 

@@ -326,8 +326,8 @@
 ;; - Use `""` while writing global files
 ;;
 ;; NOTE: DB graphs removed (minimal build is file-graphs only); the
-;; `logseq_db_` prefix and `local-file-based-graph?`/`db-based-graph?`
-;; predicates are gone — every graph is a local file-based graph.
+;; `logseq_db_` prefix and the graph-type predicate fns are gone — every graph
+;; is a local file-based graph.
 
 (defonce idb-db-prefix "logseq-db/")
 (defonce local-db-prefix "logseq_local_")

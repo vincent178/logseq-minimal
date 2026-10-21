@@ -1,7 +1,6 @@
 (ns ^:node-only logseq.db.common.sqlite-cli
   "Primary ns to interact with DB files for DB and file graphs with node.js based CLIs"
   (:require ["better-sqlite3" :as sqlite3]
-            ["fs" :as fs]
             ["os" :as os]
             ["path" :as node-path]
             [cljs-bean.core :as bean]
@@ -10,13 +9,6 @@
             [logseq.db.common.sqlite :as common-sqlite]
             [logseq.db.file-based.schema :as file-schema]
             [logseq.db.sqlite.util :as sqlite-util]))
-
-;; Should this check directory name instead if file graphs also
-;; have this file?
-(defn db-graph-directory?
-  "Returns boolean indicating if the given directory is a DB graph"
-  [graph-dir]
-  (fs/existsSync (node-path/join graph-dir "db.sqlite")))
 
 ;; Reference same sqlite default class in cljs + nbb without needing .cljc
 (def sqlite (if (find-ns 'nbb.core) (aget sqlite3 "default") sqlite3))
@@ -109,5 +101,5 @@
                              ;; $ORIGINAL_PWD used by bb tasks to correct current dir
                                (node-path/join (or js/process.env.ORIGINAL_PWD ".") %))]
         ((juxt node-path/dirname node-path/basename) (resolve-path' graph-dir-or-path)))
-      ;; TODO: Reuse with get-db-graphs-dir when there is a db ns that is usable by electron i.e. no better-sqlite3
+      ;; TODO: Reuse with logseq.cli.common.graph's graphs-dir helper when there is a db ns that is usable by electron i.e. no better-sqlite3
       [(node-path/join (os/homedir) "logseq" "graphs") graph-dir-or-path])))

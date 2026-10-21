@@ -321,25 +321,6 @@ These tasks are specific to database graphs. For these tasks there is a one time
   [{:block/tx-id 536870923, :block/link #:db{:id 100065}, :block/uuid #uuid "65565c26-f972-4400-bce4-a15df488784d", :block/updated-at 1700158508564, :block/order "a0", :block/refs [#:db{:id 100064}], :block/created-at 1700158502056, :block/format :markdown, :block/tags [#:db{:id 100064}], :block/title "Dogma #[[65565c2a-b1c5-4dc8-a0f0-81b786bc5c6d]]", :db/id 100090, :block/parent #:db{:id 100051}, :block/page #:db{:id 100051}}]
   ```
 
-* `dev:db-transact` - Run a `d/transact!` against the queried results of a DB graph
-
-  ```sh
-  # The second arg is a datascript like with db-query. The third arg is a fn that is applied to each query result to generate transact data
-  $ bb dev:db-transact
-  Usage: $0 GRAPH-DIR QUERY TRANSACT-FN
-
-  # First use the -n flag to see a dry-run of what would happen
-  $ bb dev:db-transact test-db '[:find ?b :where [?b :block/type "object"]]' '(fn [id] (vector :db/retract id :block/type "object"))' -n
-  Would update 16 blocks with the following tx:
-  [[:db/retract 100137 :block/type "object"] [:db/retract 100035 :block/type "object"] [:db/retract 100128 :block/type "object"] [:db/retract 100049 :block/type "object"] [:db/retract 100028 :block/type "object"] [:db/retract 100146 :block/type "object"] [:db/retract 100144 :block/type "object"] [:db/retract 100047 :block/type "object"] [:db/retract 100145 :block/type "object"] [:db/retract 100046 :block/type "object"] [:db/retract 100045 :block/type "object"] [:db/retract 100063 :block/type "object"] [:db/retract 100036 :block/type "object"] [:db/retract 100044 :block/type "object"] [:db/retract 100129 :block/type "object"] [:db/retract 100030 :block/type "object"]]
-  With the following blocks updated:
-  ...
-
-  # When the transact looks good, run it without the flag
-  $ bb dev:db-transact test-db '[:find ?b :where [?b :block/type "object"]]' '(fn [id] (vector :db/retract id :block/type "object"))'
-  Updated 16 block(s) for graph test-db!
-  ```
-
 * `dev:db-create` - Create a DB graph given a `sqlite.build` EDN file
 
   First in Electron, create the name of the graph you want create e.g. `inferred`.

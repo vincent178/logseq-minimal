@@ -160,12 +160,10 @@
  :keymap/total "Tastaturkürzel gesamt"
  :keymap/unset "Nicht gesetzt"
 
- :left-side-bar/assets "Anlagen"
  :left-side-bar/journals "Journale"
  :left-side-bar/nav-favorites "Favoriten"
  :left-side-bar/nav-recent-pages "Neuste"
  :left-side-bar/switch "Wechseln zu:"
- :left-side-bar/tasks "Aufgaben"
 
  :linked-references/filter-directions "Klicken um einzuschließen, Umschalt+Klicken um auszuschließen. Erneut klicken zum Entfernen."
  :linked-references/filter-excludes "Ausgeschlossen: "
@@ -410,12 +408,6 @@
  :command.dev/show-block-data            "(Dev) Blockdaten anzeigen"
  :command.dev/show-page-ast              "(Dev) Seiten-AST anzeigen"
  :command.dev/show-page-data             "(Dev) Seitendaten anzeigen"
- :command.dev/validate-db                "(Dev) Aktuellen Graph validieren"
- :command.editor/add-property            "Property hinzufügen"
- :command.editor/add-property-deadline   "Deadline zum ausgewählten Block hinzufügen"
- :command.editor/add-property-icon       "Icon hinzufügen"
- :command.editor/add-property-priority   "Priorität zum ausgewählten Block hinzufügen"
- :command.editor/add-property-status     "Status zum ausgewählten Block hinzufügen"
  :command.editor/backspace               "Backspace / Rückwärts löschen"
  :command.editor/backward-kill-word      "Ein Wort rückwärts löschen"
  :command.editor/backward-word           "Cursor ein Wort zurückbewegen"
@@ -460,7 +452,6 @@
  :command.editor/open-selected-blocks-in-sidebar "Ausgewählte Blöcke in Seitenleiste öffnen"
  :command.editor/outdent                 "Block ausrücken"
  :command.editor/paste-text-in-one-block-at-point "Text in einen Block an Stelle einfügen"
- :command.editor/quick-add               "Schnell hinzufügen"
  :command.editor/redo                    "Wiederholen"
  :command.editor/replace-block-reference-at-point "Blockreferenz durch ihren Inhalt an Stelle ersetzen"
  :command.editor/right                   "Cursor nach rechts bewegen / Ausgewählten Block am Ende öffnen"
@@ -470,10 +461,8 @@
  :command.editor/select-down             "Inhalt unten auswählen"
  :command.editor/select-parent           "Übergeordneten Block auswählen"
  :command.editor/select-up               "Inhalt oben auswählen"
- :command.editor/set-tags "Tags für ausgewählte Blöcke setzen"
  :command.editor/strike-through          "Durchgestrichen"
  :command.editor/toggle-block-children "Ein-/Ausklappen umschalten"
- :command.editor/toggle-display-hidden-properties "Alle Properties anzeigen/verstecken"
  :command.editor/toggle-number-list      "Nummeriert/Unnummeriert umschalten"
  :command.editor/toggle-open-blocks      "Öffnen von Blöcken umschalten (alle Blöcke ein- oder ausklappen)"
  :command.editor/undo                    "Rückgängig"
@@ -537,5 +526,4 @@
  :shortcut.category/navigating           "Navigation"
  :shortcut.category/others               "Sonstiges"
  :shortcut.category/toggle               "Umschalten"
-
- :views.table/live-query-title (fn [total] (str "Echtzeit-Query (" total ")"))}
+}

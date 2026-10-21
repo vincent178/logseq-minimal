@@ -1,7 +1,6 @@
 (ns logseq.e2e.outliner-basic-test
   (:require
    [clojure.test :refer [deftest testing is use-fixtures]]
-   [logseq.e2e.assert :as assert]
    [logseq.e2e.block :as b]
    [logseq.e2e.fixtures :as fixtures]
    [logseq.e2e.keyboard :as k]
@@ -185,17 +184,3 @@
     (is (= "" (util/get-edit-content)))
     (is (= 3 (util/page-blocks-count)))))
 
-(deftest ^:db-graph delete-concat-test-with-tag
-  (testing "Delete concat with tag"
-    (b/new-blocks ["" "b2"])
-    (b/indent)
-    (util/set-tag "tag1")
-    (k/arrow-up)
-    (k/delete)
-    (util/wait-editor-visible)
-    ;; the delete-concat op is async; poll instead of immediate reads
-    (is (= "b2" (util/wait-for-value util/get-edit-content #(= "b2" %))))
-    (util/exit-edit)
-    (assert/assert-is-visible
-     ".ls-block a.tag:has-text('tag1')")
-    (is (= ["b2"] (util/wait-for-value util/get-page-blocks-contents #(= ["b2"] %))))))

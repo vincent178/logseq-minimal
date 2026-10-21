@@ -46,7 +46,7 @@
     commands))
 
 (defn node-render
-  [block q {:keys [_db-tag? _db-based?]}]
+  [block q _opts]
   (let [block' (if-let [id (:block/uuid block)]
                  (if-let [e (db/entity [:block/uuid id])]
                    (assoc e

@@ -28,5 +28,5 @@
   (let [key (db-conn/get-repo-path graph)]
     (p/let [_ (persist-db/<unsafe-delete graph)]
       (if (util/electron?)
-        (ipc/ipc "deleteGraph" graph key false)
+        (ipc/ipc "deleteGraph" graph key)
         (idb/remove-item! key)))))

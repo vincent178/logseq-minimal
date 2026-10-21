@@ -28,7 +28,6 @@
             [frontend.handler.property.file :as property-file]
             [frontend.handler.property.util :as pu]
             [frontend.handler.route :as route-handler]
-            [frontend.handler.user :as user-handler]
             [frontend.modules.outliner.op :as outliner-op]
             [frontend.modules.outliner.tree :as tree]
             [frontend.modules.outliner.ui :as ui-outliner-tx]
@@ -48,7 +47,6 @@
             [goog.object :as gobj]
             [goog.string :as gstring]
             [lambdaisland.glogi :as log]
-            [logseq.common.config :as common-config]
             [logseq.common.path :as path]
             [logseq.common.util :as common-util]
             [logseq.common.util.block-ref :as block-ref]
@@ -56,7 +54,6 @@
             [logseq.db :as ldb]
             [logseq.db.common.entity-plus :as entity-plus]
             [logseq.db.file-based.schema :as file-schema]
-            [logseq.db.frontend.db :as db-db]
             [logseq.graph-parser.block :as gp-block]
             [logseq.graph-parser.mldoc :as gp-mldoc]
             [logseq.graph-parser.property :as gp-property]
@@ -65,7 +62,6 @@
             [logseq.outliner.core :as outliner-core]
             [logseq.shui.dialog.core :as shui-dialog]
             [logseq.shui.popup.core :as shui-popup]
-            [logseq.shui.ui :as shui]
             [promesa.core :as p]
             [rum.core :as rum]))
 
@@ -1275,7 +1271,6 @@
                     (state/drop-selection-blocks-starts-with! end-block-node)
                     (state/conj-selection-block! blocks direction)))
               (state/exit-editing-and-set-selected-blocks! blocks direction))))))))
-
 
 (defn popup-exists?
   [id]
@@ -3691,77 +3686,3 @@
            (when query-block
              (save-block-inner! query-block current-query {})))))))))
 
-(defn quick-add-ensure-new-block-exists!
-  []
-  (let [graph (state/get-current-repo)]
-    (p/do!
-     (db-async/<get-block graph (date/today))
-     (p/let [add-page (db-async/<get-block graph (:db/id (ldb/get-built-in-page (db/get-db) common-config/quick-add-page-name)))
-             user-id (when-let [id-str (user-handler/user-uuid)] (uuid id-str))
-             user-db-id (when user-id (:db/id (db/entity [:block/uuid user-id])))
-             children (:block/_parent add-page)
-             children' (if user-db-id
-                         (filter (fn [block]
-                                   (let [create-by-id (:db/id (:logseq.property/created-by-ref block))]
-                                     (= user-db-id create-by-id))) children)
-                         children)]
-       (when (empty? children')
-         (api-insert-new-block! "" {:page (:block/uuid add-page)
-                                    :container-id :unknown-container
-                                    :replace-empty-target? false}))))))
-
-(defn show-quick-add
-  []
-  (p/do!
-   (quick-add-ensure-new-block-exists!)
-   (state/pub-event! [:dialog/quick-add])))
-
-(defn quick-add-blocks!
-  []
-  (let [today (db/get-page (date/today))
-        add-page (ldb/get-built-in-page (db/get-db) common-config/quick-add-page-name)]
-    (p/do!
-     (save-current-block!)
-     (when (and today add-page)
-       (let [children (:block/_parent (db/entity (:db/id add-page)))]
-         (p/do!
-          (when (seq children)
-            (if-let [today-last-child (last (ldb/sort-by-order (:block/_parent today)))]
-              (move-blocks! children today-last-child {:sibling? true})
-              (move-blocks! children today {:sibling? false})))
-          (state/close-modal!)
-          (shui/popup-hide!)
-          (when (seq children)
-            (notification/show! "Blocks added to today!" :success))))))))
-
-(defn quick-add
-  []
-  (if (shui-dialog/get-modal :ls-dialog-quick-add)
-    (quick-add-blocks!)
-    (show-quick-add)))
-
-(defn get-user-quick-add-blocks
-  "Get quick add blocks for the current user if logged in"
-  []
-  (let [db (db/get-db)
-        user-id-str (user-handler/user-uuid)]
-    (if-let [page (db-db/get-built-in-page db common-config/quick-add-page-name)]
-      (let [children (:block/_parent page)]
-        (if (and user-id-str (ldb/get-graph-rtc-uuid db))
-          (let [user-id (uuid user-id-str)
-                user-db-id (:db/id (db/entity [:block/uuid user-id]))]
-            (if user-db-id
-              (filter (fn [block]
-                        (let [create-by-id (:db/id (:logseq.property/created-by-ref block))]
-                          (or (= user-db-id create-by-id)
-                              (nil? create-by-id)))) children)
-              children))
-          children))
-      (throw (ex-info "Quick add page doesn't exists" {})))))
-
-(defn quick-add-open-last-block!
-  []
-  (let [blocks (get-user-quick-add-blocks)]
-    (when (seq blocks)
-      (let [block (last (ldb/sort-by-order blocks))]
-        (edit-block! block :max {:container-id :unknown-container})))))

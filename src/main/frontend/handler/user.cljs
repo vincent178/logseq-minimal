@@ -29,8 +29,6 @@
 
 (defn username [] nil)
 
-(defn user-uuid [] nil)
-
 (defn <user-uuid
   "Async variant; with no account there is never a uuid."
   []

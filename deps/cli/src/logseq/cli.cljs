@@ -4,7 +4,6 @@
             ["path" :as node-path]
             [babashka.cli :as cli]
             [clojure.string :as string]
-            [logseq.cli.common.graph :as cli-common-graph]
             [logseq.cli.text-util :as cli-text-util]
             [nbb.error]))
 
@@ -71,13 +70,7 @@
 (def ^:private table
   (mapv (fn [m] (update m :spec #(merge % shared-spec))) table*))
 
-(defn- warn-if-db-version-not-installed
-  []
-  (when-not (fs/existsSync (cli-common-graph/get-db-graphs-dir))
-    (println "[WARN] The database version's desktop app is not installed. Please install per https://github.com/logseq/og/#-database-version.")))
-
 (defn ^:api -main [& args]
-  (warn-if-db-version-not-installed)
   (try
     (cli/dispatch table
                   args

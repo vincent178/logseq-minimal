@@ -14,14 +14,14 @@
         (string/replace "+3A+" ":")
         (string/replace "++" "/"))))
 
-(defn get-db-graphs-dir
-  "Directory where DB graphs are stored"
+(defn ^:api get-sqlite-graphs-dir
+  "Directory where graphs' SQLite databases are stored"
   []
   (node-path/join (os/homedir) "logseq" "graphs"))
 
-(defn get-db-based-graphs
+(defn ^:api get-sqlite-graphs
   []
-  (let [dir (get-db-graphs-dir)]
+  (let [dir (get-sqlite-graphs-dir)]
     (fs-extra/ensureDirSync dir)
     (->> (common-graph/read-directories dir)
          (remove (fn [s] (= s common-config/unlinked-graphs-dir)))

@@ -3,7 +3,6 @@
   (:require [frontend.components.cmdk.core :as cmdk]
             [frontend.components.page :as component-page]
             [frontend.components.plugins :as plugin]
-            [frontend.components.quick-add :as quick-add]
             [frontend.components.select :as select]
             [frontend.components.selection :as selection]
             [frontend.components.settings :as settings]
@@ -190,7 +189,6 @@
   ;; no accounts in the minimal build — login is a no-op
   nil)
 
-
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
   ;; no accounts or remote graphs in the minimal build
   (state/set-state! [:ui/loading? :login] false))
@@ -202,13 +200,4 @@
    {:id :ls-dialog-block
     :align :top
     :content-props {:class "ls-dialog-block"}
-    :onEscapeKeyDown (fn [e] (.preventDefault e))}))
-
-(defmethod events/handle :dialog/quick-add [_]
-  (shui/dialog-open!
-   [:div.w-full.h-full
-    (quick-add/quick-add)]
-   {:id :ls-dialog-quick-add
-    :align :top
-    :content-props {:class "ls-dialog-quick-add"}
     :onEscapeKeyDown (fn [e] (.preventDefault e))}))

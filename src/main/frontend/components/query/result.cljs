@@ -63,8 +63,8 @@
         [nil nil]))))
 
 (defn get-group-by-page [{:keys [result-transform query] :as query-m}
-                         {:keys [table? db-graph?]}]
-  (if (or table? db-graph?)
+                         {:keys [table?]}]
+  (if table?
     false ;; Immediately return false as table view can't handle grouping
     (get query-m :group-by-page?
          (and (not result-transform)
@@ -79,7 +79,7 @@
                                    (let [result (query-react/custom-query-result-transform query-result remove-blocks query-m)]
                                      (if (and query-result (coll? result) (:block/uuid (first result)))
                                        (cond-> result
-                                         (and (not (:db-graph? config)) (get query-m :remove-block-children? true))
+                                         (get query-m :remove-block-children? true)
                                          tree/filter-top-level-blocks)
                                        result)))
         group-by-page? (get-group-by-page query-m config)

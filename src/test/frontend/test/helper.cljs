@@ -31,12 +31,6 @@
   []
   (conn/destroy-all!))
 
-(defn load-test-files-for-db-graph
-  "Removed with DB graphs. Only referenced by dead `(when js/process.env.DB_GRAPH ...)`
-  test branches which never execute in this file-graphs-only build."
-  [& _]
-  (throw (ex-info "DB-graph test helpers have been removed" {})))
-
 (defn load-test-files
   "Given a collection of file maps, loads them into the current test-db.
 This can be called in synchronous contexts as no async fns should be invoked"
