@@ -163,7 +163,7 @@ us improve Logseq. We look forward to your contributions 🚀
 
 If you want to set up a development environment for the Logseq web or desktop app, please refer to the [Develop Logseq](docs/develop-logseq.md) guide for macOS/Linux users and the [Develop Logseq on Windows](docs/develop-logseq-on-windows.md) guide for Windows users.
 
-In addition to these guides, you can also find other helpful resources in the [docs/](docs/) folder, such as the [Guide for Contributing to Translations](docs/contributing-to-translations.md), the [Docker Web App Guide](docs/docker-web-app-guide.md) and the [mobile development guide](docs/develop-logseq-on-mobile.md)
+In addition to these guides, you can also find other helpful resources in the [docs/](docs/) folder, such as the [Guide for Contributing to Translations](docs/contributing-to-translations.md), the [Docker Web App Guide](docs/docker-web-app-guide.md)
 
 ## ✨ Inspiration
 
