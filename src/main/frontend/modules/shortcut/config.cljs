@@ -12,7 +12,6 @@
             [frontend.handler.history :as history]
             [frontend.handler.journal :as journal-handler]
             [frontend.handler.jump :as jump-handler]
-            [frontend.handler.notification :as notification]
             [frontend.handler.page :as page-handler]
             [frontend.handler.paste :as paste-handler]
             [frontend.handler.plugin :as plugin-handler]
@@ -243,45 +242,6 @@
    :editor/toggle-number-list               {:binding "t n"
                                              :fn      #(state/pub-event! [:editor/toggle-own-number-list (state/get-selection-block-ids)])}
 
-   :editor/add-property                     {:binding (if mac? "mod+p" "ctrl+alt+p")
-                                             :db-graph? true
-                                             :fn      (fn [e]
-                                                        (when e (util/stop e))
-                                                        (state/pub-event! [:editor/new-property {}]))}
-   :editor/set-tags                         {:binding "p t"
-                                             :db-graph? true
-                                             :selection? true
-                                             :fn      (fn []
-                                                        (state/pub-event! [:editor/new-property {:property-key "Tags"}]))}
-
-   :editor/add-property-deadline            {:binding "p d"
-                                             :db-graph? true
-                                             :selection? true
-                                             :fn      (fn []
-                                                        (state/pub-event! [:editor/new-property {:property-key "Deadline"}]))}
-
-   :editor/add-property-status              {:binding "p s"
-                                             :db-graph? true
-                                             :selection? true
-                                             :fn      (fn []
-                                                        (state/pub-event! [:editor/new-property {:property-key "Status"}]))}
-
-   :editor/add-property-priority            {:binding "p p"
-                                             :db-graph? true
-                                             :selection? true
-                                             :fn      (fn []
-                                                        (state/pub-event! [:editor/new-property {:property-key "Priority"}]))}
-
-   :editor/add-property-icon                {:binding "p i"
-                                             :db-graph? true
-                                             :selection? true
-                                             :fn      (fn []
-                                                        (state/pub-event! [:editor/new-property {:property-key "Icon"}]))}
-
-   :editor/toggle-display-hidden-properties {:binding "p a"
-                                             :db-graph? true
-                                             :fn      ui-handler/toggle-show-empty-hidden-properties!}
-
    :ui/toggle-brackets                      {:binding "t b"
                                              :fn      config-handler/toggle-ui-show-brackets!}
 
@@ -415,9 +375,6 @@
    :command/toggle-favorite                 {:binding "mod+shift+f"
                                              :fn      page-handler/toggle-favorite!}
 
-   :editor/quick-add                        {:binding (if mac? "mod+e" "mod+alt+e")
-                                             :db-graph? true
-                                             :fn      editor-handler/quick-add}
    :editor/jump                             {:binding "mod+j"
                                              :fn      jump-handler/jump-to}
    :editor/open-file-in-default-app         {:binding  "mod+d mod+a"
@@ -494,10 +451,6 @@
                        :inactive (not (state/developer-mode?))
                        :fn :frontend.handler.common.developer/show-page-ast}
 
-   :dev/validate-db   {:binding []
-                       :db-graph? true
-                       :inactive (not (state/developer-mode?))
-                       :fn :frontend.handler.common.developer/validate-db}
 })
 
 (let [keyboard-commands
@@ -520,12 +473,6 @@
                                  (aget (munge (name keyword-fn))))]
       (resolved-fn)
       (throw (ex-info (str "Unable to resolve " keyword-fn " to a fn") {})))))
-
-(defn- wrap-fn-with-db-graph-only-warning
-  "DB-graph-only commands: never execute on file graphs (always warn)."
-  [_f]
-  (fn []
-    (notification/show! "This command is only for DB graphs." :warning true nil 3000)))
 
 (defn- wrap-fn-with-file-graph-only-warning
   "File-graph-only commands: always execute on file graphs."
@@ -551,12 +498,9 @@
                    (assoc v :fn (resolve-fn (:fn v)))
                    v)]))
        (map (fn [[k v]]
-              [k (cond (:file-graph? v)
-                       (update v :fn wrap-fn-with-file-graph-only-warning)
-                       (:db-graph? v)
-                       (update v :fn wrap-fn-with-db-graph-only-warning)
-                       :else
-                       v)]))
+              [k (if (:file-graph? v)
+                   (update v :fn wrap-fn-with-file-graph-only-warning)
+                   v)]))
        (into {})))
 
 ;; This is the only var that should be publicly expose :fn functionality
@@ -644,7 +588,6 @@
           :editor/toggle-number-list
           :editor/undo
           :editor/redo
-          :editor/quick-add
           :ui/toggle-brackets
           :go/search-in-page
           :go/search
@@ -659,7 +602,6 @@
           :sidebar/clear
           :command/run
           :command-palette/toggle
-          :editor/add-property
           :window/close])
         (with-meta {:before m/prevent-default-behavior}))
 
@@ -686,12 +628,6 @@
           :editor/open-file-in-directory
           :editor/copy-current-file
           :editor/copy-page-url
-          :editor/set-tags
-          :editor/add-property-deadline
-          :editor/add-property-status
-          :editor/add-property-priority
-          :editor/add-property-icon
-          :editor/toggle-display-hidden-properties
           :ui/toggle-wide-mode
           :ui/select-theme-color
           :ui/goto-plugins
@@ -705,7 +641,6 @@
           :dev/show-block-ast
           :dev/show-page-data
           :dev/show-page-ast
-          :dev/validate-db
           :dev/gc-graph
           :ui/customize-appearance])
         (with-meta {:before m/enable-when-not-editing-mode!}))
@@ -737,8 +672,7 @@
      :editor/redo
      :editor/copy
      :editor/copy-text
-     :editor/cut
-     :editor/quick-add]
+     :editor/cut]
 
     :shortcut.category/formatting
     [:editor/bold
@@ -810,14 +744,7 @@
      :editor/select-parent
      :editor/select-block-up
      :editor/select-block-down
-     :editor/delete-selection
-     :editor/add-property
-     :editor/set-tags
-     :editor/add-property-deadline
-     :editor/add-property-status
-     :editor/add-property-priority
-     :editor/add-property-icon
-     :editor/toggle-display-hidden-properties]
+     :editor/delete-selection]
 
     :shortcut.category/toggle
     [:ui/toggle-help
@@ -863,7 +790,6 @@
      :dev/show-block-ast
      :dev/show-page-data
      :dev/show-page-ast
-     :dev/validate-db
      :dev/gc-graph
      :ui/clear-all-notifications]
 

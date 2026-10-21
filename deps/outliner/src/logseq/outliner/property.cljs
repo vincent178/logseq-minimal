@@ -767,7 +767,6 @@
                        (not= id (:block/uuid b))))
                 (entity-plus/lookup-kv-then-entity property :property/closed-values))
 
-          ;; (db-based.property-test removed)
           (throw (ex-info "Closed value choice already exists"
                           {:error :value-exists
                            :type :notification
@@ -775,7 +774,6 @@
                                      :type :warning}}))
 
           validate-message
-          ;; (db-based.property-test removed)
           (throw (ex-info "Invalid property value"
                           {:error :value-invalid
                            :type :notification

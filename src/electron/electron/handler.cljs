@@ -225,9 +225,9 @@
 (defn get-graphs
   "Returns all graph names"
   []
-  (let [db-graphs (cli-common-graph/get-db-based-graphs)
+  (let [sqlite-graphs (cli-common-graph/get-sqlite-graphs)
         file-graphs (get-file-based-graphs)]
-    (distinct (concat db-graphs file-graphs))))
+    (distinct (concat sqlite-graphs file-graphs))))
 
 ;; TODO support alias mechanism
 (defn get-graph-name
@@ -271,7 +271,7 @@
 (defmethod handle :readGraphTxIdInfo [_win [_ root]]
   (read-txid-info! root))
 
-(defmethod handle :deleteGraph [_window [_ graph graph-name _db-based?]]
+(defmethod handle :deleteGraph [_window [_ graph graph-name]]
   (when graph-name
     (db/unlink-graph! graph)
     (let [old-transit-path (node-path/join (get-file-graphs-dir) (str (common-sqlite/sanitize-db-name graph) ".transit"))]

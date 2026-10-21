@@ -11,9 +11,7 @@
             [logseq.e2e.locator :as loc]
             [logseq.e2e.outliner-basic-test]
             [logseq.e2e.plugins-basic-test]
-            [logseq.e2e.property-basic-test]
             [logseq.e2e.reference-basic-test]
-            [logseq.e2e.tag-basic-test]
             [logseq.e2e.util :as util]
             [wally.main :as w]
             [wally.repl :as repl]))
@@ -36,11 +34,6 @@
   (->> (future (run-tests 'logseq.e2e.commands-basic-test))
        (swap! *futures assoc :commands-test)))
 
-(defn run-property-basic-test
-  []
-  (->> (future (run-tests 'logseq.e2e.property-basic-test))
-       (swap! *futures assoc :property-test)))
-
 (defn run-outliner-test
   []
   (->> (future (run-tests 'logseq.e2e.outliner-basic-test))
@@ -61,20 +54,13 @@
   (->> (future (run-tests 'logseq.e2e.editor-basic-test))
        (swap! *futures assoc :editor-basic-test)))
 
-(defn run-tag-basic-test
-  []
-  (->> (future (run-tests 'logseq.e2e.tag-basic-test))
-       (swap! *futures assoc :tag-basic-test)))
-
 (defn run-all-basic-test
   [& _]
   (run-tests 'logseq.e2e.editor-basic-test
              'logseq.e2e.commands-basic-test
              'logseq.e2e.outliner-basic-test
              'logseq.e2e.plugins-basic-test
-             'logseq.e2e.reference-basic-test
-             'logseq.e2e.property-basic-test
-             'logseq.e2e.tag-basic-test)
+             'logseq.e2e.reference-basic-test)
   (System/exit 0))
 
 (defn start

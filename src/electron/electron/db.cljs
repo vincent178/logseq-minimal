@@ -9,27 +9,27 @@
 
 (defn ensure-graphs-dir!
   []
-  (fs/ensureDirSync (cli-common-graph/get-db-graphs-dir)))
+  (fs/ensureDirSync (cli-common-graph/get-sqlite-graphs-dir)))
 
 (defn ensure-graph-dir!
   [db-name]
   (ensure-graphs-dir!)
-  (let [graph-dir (node-path/join (cli-common-graph/get-db-graphs-dir) (common-sqlite/sanitize-db-name db-name))]
+  (let [graph-dir (node-path/join (cli-common-graph/get-sqlite-graphs-dir) (common-sqlite/sanitize-db-name db-name))]
     (fs/ensureDirSync graph-dir)
     graph-dir))
 
 (defn get-db
   [db-name]
   (let [_ (ensure-graph-dir! db-name)
-        [_db-name db-path] (common-sqlite/get-db-full-path (cli-common-graph/get-db-graphs-dir) db-name)]
+        [_db-name db-path] (common-sqlite/get-db-full-path (cli-common-graph/get-sqlite-graphs-dir) db-name)]
     (when (fs/existsSync db-path)
       (fs/readFileSync db-path))))
 
 (defn save-db!
   [db-name data]
-  (let [[db-name db-path] (common-sqlite/get-db-full-path (cli-common-graph/get-db-graphs-dir) db-name)
+  (let [[db-name db-path] (common-sqlite/get-db-full-path (cli-common-graph/get-sqlite-graphs-dir) db-name)
         old-data (get-db db-name)
-        backups-path (common-sqlite/get-db-backups-path (cli-common-graph/get-db-graphs-dir) db-name)]
+        backups-path (common-sqlite/get-db-backups-path (cli-common-graph/get-sqlite-graphs-dir) db-name)]
     (when old-data
       (backup-file/backup-file db-name nil nil
                                ".sqlite"
@@ -42,8 +42,8 @@
 (defn unlink-graph!
   [repo]
   (let [db-name (common-sqlite/sanitize-db-name repo)
-        path (node-path/join (cli-common-graph/get-db-graphs-dir) db-name)
-        unlinked (node-path/join (cli-common-graph/get-db-graphs-dir) common-config/unlinked-graphs-dir)
+        path (node-path/join (cli-common-graph/get-sqlite-graphs-dir) db-name)
+        unlinked (node-path/join (cli-common-graph/get-sqlite-graphs-dir) common-config/unlinked-graphs-dir)
         new-path (node-path/join unlinked db-name)
         new-path-exists? (fs/existsSync new-path)
         new-path' (if new-path-exists?

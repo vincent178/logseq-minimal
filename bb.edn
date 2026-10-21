@@ -50,12 +50,6 @@
    :task (apply shell {:dir "deps/db" :extra-env {"ORIGINAL_PWD" (fs/cwd)}}
                 "yarn -s nbb-logseq script/query.cljs" *command-line-args*)}
 
-  dev:db-transact
-  {:doc "Transact against a DB graph's datascript db"
-   :requires ([babashka.fs :as fs])
-   :task (apply shell {:dir "deps/outliner" :extra-env {"ORIGINAL_PWD" (fs/cwd)}}
-                "yarn -s nbb-logseq script/transact.cljs" *command-line-args*)}
-
   dev:db-create
   {:doc "Create a DB graph given a sqlite.build EDN file"
    :requires ([babashka.fs :as fs])

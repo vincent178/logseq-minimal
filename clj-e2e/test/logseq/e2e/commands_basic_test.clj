@@ -6,7 +6,6 @@
    [logseq.e2e.block :as b]
    [logseq.e2e.fixtures :as fixtures]
    [logseq.e2e.keyboard :as k]
-   [logseq.e2e.locator :as loc]
    [logseq.e2e.util :as util]
    [wally.main :as w]
    [wally.repl :as repl]))
@@ -85,15 +84,6 @@
     (is (= "<ins>test</ins>" (util/get-edit-content)))
     (util/move-cursor-to-end)))
 
-(deftest ^:db-graph code-block-test
-  (testing "/code block"
-    (b/new-block "")
-    (util/input-command "code block")
-    (w/wait-for ".CodeMirror")
-    (util/wait-timeout 100)
-    ;; create another block
-    (k/shift+enter)))
-
 (deftest math-block-test
   (testing "/math block"
     (b/new-block "")
@@ -101,12 +91,6 @@
     (util/press-seq "1 + 2 = 3")
     (util/exit-edit)
     (w/wait-for ".katex")))
-
-(deftest ^:db-graph quote-test
-  (testing "/quote"
-    (b/new-block "")
-    (util/input-command "quote")
-    (w/wait-for "div[data-node-type='quote']")))
 
 (deftest headings-test
   (testing "/heading"
@@ -120,49 +104,6 @@
         (is (= (str (apply str (repeat (inc i) "#")) " " text) (util/get-edit-content)))
         (util/exit-edit)
         (w/wait-for heading)))))
-
-(deftest ^:db-graph status-test
-  (testing "task status commands"
-    (let [status->icon {"Doing" "InProgress50"
-                        "In review" "InReview"
-                        "Canceled" "Cancelled"}]
-      (doseq [status ["Backlog" "Todo" "Doing" "In review" "Done" "Canceled"]]
-        (let [text (str status " test ")]
-          (b/new-block text)
-          (util/input-command status)
-          (is (= text (util/get-edit-content)))
-          (util/exit-edit)
-          (k/esc)
-          (w/wait-for (str ".ls-icon-" (get status->icon status status))))))))
-
-(deftest ^:db-graph priority-test
-  (testing "task priority commands"
-    (let [priority->icon {"No priority" "line-dashed"}]
-      (doseq [priority ["No priority" "Low" "Medium" "High" "Urgent"]]
-        (let [text (str priority " test ")]
-          (b/new-block text)
-          (util/input-command priority)
-          (is (= text (util/get-edit-content)))
-          (util/exit-edit)
-          (w/wait-for (str ".ls-icon-" (get priority->icon priority
-                                            (str "priorityLvl" priority)))))))))
-
-(deftest ^:db-graph scheduled-deadline-test
-  (testing "task scheduled and deadline commands"
-    (doseq [command ["Scheduled" "Deadline"]]
-      (fixtures/create-page)
-      (let [text (str command " test ")]
-        (b/new-block text)
-        (util/input-command command)
-        (k/enter)
-        (assert/assert-editor-mode)
-        ;; FIXME: cannot exit edit by k/esc???
-        ;; (util/exit-edit)
-        (k/esc)
-        (b/new-block "temp fix")
-        (util/exit-edit)
-        (is (= command (util/get-text ".property-k")))
-        (is (= "Today" (util/get-text ".ls-datetime a.page-ref")))))))
 
 ;; TODO: java "MMMM d, yyyy" vs js "MMM do, yyyy"
 (deftest date-time-test
@@ -221,9 +162,8 @@
     ;; dropping the time.
     (k/enter)
     (util/wait-timeout 1000)
-    ;; Exit editing. (k/esc) is unreliable here — see the FIXME in
-    ;; scheduled-deadline-test — so push focus out with a new block, then
-    ;; assert on the rendered timestamp directly.
+    ;; Exit editing. (k/esc) is unreliable here, so push focus out with a
+    ;; new block, then assert on the rendered timestamp directly.
     (k/esc)
     (b/new-block "temp")
     (let [text (util/get-text ".ls-block .timestamp")]
@@ -285,26 +225,6 @@
     (w/wait-for "div.extensions__code-calc-output-line")
     (is (= "3" (util/get-text "div.extensions__code-calc-output-line")))))
 
-(deftest ^:db-graph template-test
-  (testing "template"
-    (b/new-block "template 1")
-    (util/set-tag "Template")
-    (b/new-blocks ["block 1" "block 2" "block 3" "test"])
-    (k/arrow-up)
-    (w/wait-for "textarea:text('block 3')")
-    (util/repeat-keyboard 3 "Shift+ArrowUp")
-    (k/tab)
-    (b/jump-to-block "test")
-    (util/input-command "template")
-    (util/input "template 1")
-    (w/wait-for "a.menu-link.chosen:has-text('template 1')")
-    (k/enter)
-    (doseq [text ["block 1" "block 2" "block 3"]]
-      (assert/assert-have-count
-       (loc/or (format ".ls-block .block-title-wrap:text('%s')" text)
-               (format ".ls-block textarea:text('%s')" text))
-       2))))
-
 (deftest embed-html-test
   (testing "embed html"
     (b/new-block "")
@@ -328,5 +248,4 @@
     (util/press-seq "https://x.com/logseq/status/1784914564083314839")
     (util/exit-edit)
     (w/wait-for "iframe")))
-
 

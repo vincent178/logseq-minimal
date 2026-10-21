@@ -35,7 +35,6 @@
   (when-let [id (:db/id page)]
     (let [page (db/sub-block id)
           _repo (state/get-current-repo)
-          db-based? false
           icon (icon/get-node-icon-cp page {:size 16})
           title (:block/title page)
           untitled? (db-model/untitled-page? title)
@@ -53,7 +52,7 @@
                               (when-not recent?
                                 (x-menu-item
                                  {:key "unfavorite"
-                                  :on-click #(page-handler/<unfavorite-page! (if db-based? (str (:block/uuid page)) title))}
+                                  :on-click #(page-handler/<unfavorite-page! title)}
                                  (ctx-icon "star-off")
                                  (t :page/unfavorite)
                                  (x-menu-shortcut (when-let [binding (shortcut-dh/shortcut-binding :command/toggle-favorite)]
@@ -187,10 +186,8 @@
       (when child [:div.bd child])]]))
 
 (rum/defc ^:large-vars/cleanup-todo sidebar-navigations
-  [{:keys [route-match route-name db-based?]}]
-  (let [navs (cond-> [:all-pages :graph-view]
-               db-based?
-               (concat [:tag/tasks :tag/assets]))
+  [{:keys [route-name]}]
+  (let [navs [:all-pages :graph-view]
         [checked-navs set-checked-navs!] (rum/use-state (or (storage/get :ls-sidebar-navigations)
                                                             [:all-pages :graph-view]))]
 
@@ -239,19 +236,7 @@
            {:class "all-pages-nav"
             :title (t :right-side-bar/all-pages)
             :href (rfe/href :all-pages)
-            :active (= route-name :all-pages)})
-
-          (= (namespace nav) "tag")
-          (when db-based?
-            (let [name'' (name nav)
-                  class-ident (get {"assets" :logseq.class/Asset  "tasks" :logseq.class/Task} name'')]
-              (when-let [tag-uuid (and class-ident (:block/uuid (db/entity class-ident)))]
-                (sidebar-item
-                 {:class (str "tag-view-nav " name'')
-                  :title (tt (keyword "left-side-bar" name'')
-                             (keyword "right-side-bar" name''))
-                  :href (rfe/href :page {:name tag-uuid})
-                  :active (= (str tag-uuid) (get-in route-match [:path-params :name]))}))))))])))
+            :active (= route-name :all-pages)})))])))
 
 (rum/defc sidebar-favorites < rum/reactive
   []
@@ -302,7 +287,6 @@
         [el-rect set-el-rect!] (rum/use-state nil)
         ref-el (rum/use-ref nil)
         ref-open? (rum/use-ref left-sidebar-open?)
-        db-based? false
         route-name (get-in route-match [:data :name])
         on-contents-scroll #(when-let [^js el (.-target %)]
                               (let [top (.-scrollTop el)
@@ -376,7 +360,6 @@
         ;; sidebar sticky navigations
         (sidebar-navigations
          {:route-match route-match
-          :db-based? db-based?
           :route-name route-name})]
 
        [:div.sidebar-contents-container

@@ -14,13 +14,13 @@
   "Namespaces or parent namespaces _only_ for DB graphs. Use a '.' at end of a namespace for parent namespaces"
   (mapv escape-shell-regex
         ["logseq.db.sqlite." "logseq.db.frontend."
-         "logseq.outliner.property" "logseq.outliner.validate" "logseq.outliner.page" "logseq.outliner.cli" "logseq.outliner.db-pipeline"
+         "logseq.outliner.property" "logseq.outliner.validate" "logseq.outliner.page" "logseq.outliner.cli"
          "logseq.api.db-based"
          "logseq.cli"
          "electron.db"
          "frontend.handler.db-based."
-         "frontend.components.property" "frontend.components.class" "frontend.components.quick-add"
-         "frontend.components.db-based" "frontend.components.objects" "frontend.components.query.view"]))
+         "frontend.components.property" "frontend.components.class"
+         "frontend.components.db-based" "frontend.components.objects"]))
 
 (def file-graph-ns
   "Namespaces or parent namespaces _only_ for file graphs"
@@ -49,11 +49,8 @@
 (def db-graph-paths
   "Paths _only_ for DB graphs"
   (into block-name-db-graph-paths
-        ["deps/outliner/src/logseq/outliner/db_pipeline.cljs"
-         "deps/outliner/src/logseq/outliner/validate.cljs"
+        ["deps/outliner/src/logseq/outliner/validate.cljs"
          "deps/outliner/src/logseq/outliner/page.cljs"
-         "src/main/frontend/components/quick_add.cljs"
-         "src/main/frontend/components/query/view.cljs"
          "src/electron/electron/db.cljs"]))
 
 (def file-graph-paths

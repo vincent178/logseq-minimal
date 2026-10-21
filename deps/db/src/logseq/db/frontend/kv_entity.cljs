@@ -6,7 +6,7 @@
   (apply
    hash-map
    (defkeywords
-     :logseq.kv/db-type                      {:doc "Set to \"db\" if it's a db-graph"}
+     :logseq.kv/db-type                      {:doc "Legacy graph-type marker; set to \"db\" for the app's SQLite storage"}
      :logseq.kv/graph-uuid                   {:doc "Store graph-uuid if it's a rtc enabled graph"
                                               :rtc {:rtc/ignore-entity-when-init-upload true
                                                     :rtc/ignore-entity-when-init-download true}}

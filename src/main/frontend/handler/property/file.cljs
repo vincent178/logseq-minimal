@@ -9,7 +9,7 @@
 
 ;; Why need these XXX-when-file-based fns?
 ;; there're a lot of usages of property-related fns(e.g. property-util/insert-property) in the whole codebase.
-;; I want to minimize extensive modifications as much as possible when we add db-based graph support.
+;; This indirection minimizes extensive modifications across the codebase.
 
 (defn insert-properties-when-file-based
   [_repo format content kvs]

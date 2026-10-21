@@ -3,7 +3,6 @@
             [frontend.components.file-based.query :as file-query]
             [frontend.components.file-based.query-table :as query-table]
             [frontend.components.query.result :as query-result]
-            [frontend.components.query.view :as query-view]
             [frontend.context.i18n :refer [t]]
             [frontend.db :as db]
             [frontend.db-mixins :as db-mixins]
@@ -25,7 +24,7 @@
 
 ;; TODO: Split this into file and DB graph versions. DB graph needlessly coupled to file graph args
 (rum/defcs custom-query-inner < rum/static
-  [state {:keys [db-graph? dsl-query?] :as config} {:keys [query breadcrumb-show?]}
+  [state {:keys [dsl-query?] :as config} {:keys [query breadcrumb-show?]}
    {:keys [query-error-atom
            current-block
            table?
@@ -59,16 +58,7 @@
                            (str error)]))]
            (util/hiccup-keywordize result))
 
-         (and db-graph? (not (:built-in-query? config)))
-         (when-let [query-block (:logseq.property/query current-block)]
-           (when-not (string/blank? (:block/title query-block))
-             (query-view/query-result (assoc config
-                                             :id (str (:block/uuid current-block))
-                                             :query query)
-                                      current-block result)))
-
-         (and (not db-graph?)
-              (or page-list? table?))
+         (or page-list? table?)
          (query-table/result-table config current-block result {:page? page-list?} map-inline page-cp ->elem inline-text)
 
          ;; Normally displays built-in-query results
@@ -135,7 +125,7 @@
              (assoc state
                     ::result (atom nil)
                     ::collapsed? (atom (or (:collapsed? q) (:collapsed? config))))))}
-  [state {:keys [*query-error db-graph? dsl-query? built-in-query? table? current-block] :as config}
+  [state {:keys [*query-error dsl-query? built-in-query? table? current-block] :as config}
    {:keys [builder query view _collapsed?] :as q}]
   (let [*result (::result state)
         *collapsed? (::collapsed? state)
@@ -168,7 +158,7 @@
       [:code (if dsl-query? (str "Results for " (pr-str query)) "Advanced query results")]
       (when-not (and built-in-query? (empty? result))
         [:div.custom-query (get config :attr {})
-         (when (and (not db-graph?) (not built-in-query?))
+         (when (not built-in-query?)
            (file-query/custom-query-header config
                                            q
                                            {:query-error-atom *query-error
@@ -218,7 +208,6 @@
          table? (or (get-in current-block [:block/properties :query-table])
                     (and (string? query) (string/ends-with? (string/trim query) "table")))
          config' (assoc config
-                        :db-graph? false
                         :current-block current-block
                         :current-block-uuid current-block-uuid
                         :collapsed? collapsed?'

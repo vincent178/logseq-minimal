@@ -163,7 +163,7 @@
 
 (rum/defc property-value-select-inner
   < rum/reactive db-mixins/query
-  [*property *private-property? *find *tree opts loc values {:keys [db-graph?]}]
+  [*property *find *tree opts loc values]
   (let [values' (cons {:label "Select all"
                        :value "Select all"}
                       (map #(hash-map :value (str (:value %))
@@ -173,10 +173,7 @@
         find' (rum/react *find)]
     (select values'
             (fn [{:keys [value original-value]}]
-              (let [k (cond
-                        db-graph? (if @*private-property? :private-property :property)
-                        (= find' :page) :page-property
-                        :else :property)
+              (let [k (if (= find' :page) :page-property :property)
                     x (if (= value "Select all")
                         [k @*property]
                         [k @*property original-value])]
@@ -184,7 +181,7 @@
                 (append-tree! *tree opts loc x))))))
 
 (rum/defc property-value-select
-  [repo *property *private-property? *find *tree opts loc]
+  [repo *property *find *tree opts loc]
   (let [[values set-values!] (rum/use-state nil)]
     (hooks/use-effect!
      (fn [_property]
@@ -194,8 +191,7 @@
                                 :value value}) result))]
          (set-values! result)))
      [@*property])
-    (property-value-select-inner *property *private-property? *find *tree opts loc values
-                                 {:db-graph? false})))
+    (property-value-select-inner *property *find *tree opts loc values)))
 
 (rum/defc tags
   [repo *tree opts loc]
@@ -248,7 +244,7 @@
        (property-select *mode *property *private-property?)
 
        "property-value"
-       (property-value-select repo *property *private-property? *find *tree opts loc)
+       (property-value-select repo *property *find *tree opts loc)
 
        "sample"
        (select (range 1 101)
