@@ -24,6 +24,7 @@
 //   excalidraw-assets was already a no-op and is dropped.
 import fs from 'node:fs'
 import path from 'node:path'
+import chokidar from 'chokidar'
 import { defineConfig } from 'vite'
 import { glob } from 'tinyglobby'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
@@ -88,6 +89,41 @@ const umdScripts = [
   'node_modules/dompurify/dist/purify.js',
 ]
 
+/**
+ * gulp keepSyncResourceFile equivalent: vite-plugin-static-copy only re-copies
+ * on rebuild (writeBundle), and in `vite build --watch` its copy sources are
+ * not watched (its own watcher only serves `vite serve`), so editing a
+ * resources file would not propagate until an unrelated rebuild. Mirror
+ * resources/ changes directly into static/ instead.
+ */
+const watchResources = () => {
+  let watcher
+  return {
+    name: 'watch-resources',
+    apply: () => isWatch,
+    buildStart () {
+      if (watcher) return
+      const srcRoot = path.resolve('resources')
+      const destRoot = path.resolve('static')
+      const destFor = (p) => path.join(destRoot, path.relative(srcRoot, p))
+      const copy = (p) => {
+        const dest = destFor(p)
+        fs.mkdirSync(path.dirname(dest), { recursive: true })
+        fs.copyFileSync(p, dest)
+      }
+      watcher = chokidar
+        .watch(srcRoot, { ignoreInitial: true })
+        .on('add', copy)
+        .on('change', copy)
+        .on('addDir', (p) => {
+          fs.cpSync(p, destFor(p), { recursive: true })
+        })
+        .on('unlink', (p) => fs.rmSync(destFor(p), { force: true }))
+        .on('unlinkDir', (p) => fs.rmSync(destFor(p), { recursive: true, force: true }))
+    },
+  }
+}
+
 /** gulp switchReactDevelopmentMode: in dev watch, swap in development React. */
 const reactDevMode = () => ({
   name: 'react-dev-mode',
@@ -132,8 +168,13 @@ export default defineConfig({
     expandImportGlob(),
     viteStaticCopy({
       targets: [
-        // syncResourceFile: resources/** -> static/
-        { src: 'resources/**', dest: '.', structured: true },
+        // syncResourceFile: resources/** -> static/.
+        // NOTE: `structured` is a plugin-level option in
+        // vite-plugin-static-copy (target-level is silently ignored), and
+        // flatten mode would copy nested files to the output root in
+        // addition to their subtree. Matching only immediate children
+        // (directories copy recursively) keeps the tree intact.
+        { src: 'resources/*', dest: '.' },
         // syncAssetFiles: node_modules UMD/wasm assets
         { src: umdScripts, dest: 'js' },
         {
@@ -197,6 +238,7 @@ export default defineConfig({
         },
       ],
     }),
+    watchResources(),
     reactDevMode(),
   ],
 })
