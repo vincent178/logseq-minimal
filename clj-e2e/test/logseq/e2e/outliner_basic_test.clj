@@ -90,7 +90,16 @@
   (testing "Delete blocks case 1"
     (b/new-blocks ["b1" "b2" "b3" "b4"])
     (b/delete-blocks)                        ; delete b4
+    ;; The delete + editor remount are async (db-worker round trip), and the
+    ;; app's post-delete remount SUPERSEDES any selection built while the tx
+    ;; is in flight (see editor.cljs delete-blocks! -> move-to-prev-block):
+    ;; a Shift+ArrowUp landing in that window extends a selection anchored
+    ;; on the doomed block, which is then discarded — so wait until the app
+    ;; has settled (editor moved to b3) before extending the selection.
+    (util/wait-for-value util/get-edit-content #(= "b3" %))
     (util/repeat-keyboard 2 "Shift+ArrowUp") ; select b3 and b2
+    ;; wait until both blocks are actually selected before deleting
+    (util/wait-for-value #(util/count-elements ".ls-block.selected") #(= 2 %))
     (b/delete-blocks)
     ;; deletion + editor move are async; poll instead of immediate reads
     (is (= "b1" (util/wait-for-value util/get-edit-content #(= "b1" %))))
