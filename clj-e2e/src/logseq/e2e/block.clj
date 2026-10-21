@@ -101,12 +101,20 @@
 (defn- indent-outdent
   [indent?]
   (let [editor (util/get-editor)
-        [x1 _] (util/bounding-xy editor)
-        _ (if indent? (k/tab) (k/shift+tab))
-        [x2 _] (util/bounding-xy editor)]
-    (if indent?
-      (is (< x1 x2))
-      (is (> x1 x2)))))
+        [x1 _] (util/bounding-xy editor)]
+    (if indent? (k/tab) (k/shift+tab))
+    ;; indent/outdent is async (db-worker round trip); Playwright `press`
+    ;; resolves at event dispatch, so poll the editor's x until it moves off
+    ;; the pre-op value (bounded) instead of a single immediate read. On
+    ;; timeout `x2` falls back to the unchanged x, so a genuine no-op (e.g.
+    ;; outdent of a top-level block) still fails the assertion cleanly.
+    (let [x2 (or (util/wait-for-value #(try (first (util/bounding-xy editor))
+                                            (catch Throwable _ nil))
+                                      #(and (some? %) (not= % x1)))
+                 x1)]
+      (if indent?
+        (is (< x1 x2))
+        (is (> x1 x2))))))
 
 (defn indent
   []

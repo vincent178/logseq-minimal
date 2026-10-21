@@ -57,27 +57,33 @@
   (b/new-blocks ["b3" ""])
   (util/input-command "Page embed")
   (util/press-seq "Page embed" {:delay 60})
+  ;; the page search is async; wait until the chosen autocomplete item is the
+  ;; intended page before pressing Enter, otherwise Enter can accept a stale
+  ;; chosen item from an earlier partial query (e.g. a leftover "page N").
+  (w/wait-for ".menu-link.chosen:has-text('Page embed')")
   (k/press "Enter" {:delay 60})
   (util/exit-edit)
   (b/new-blocks ["b4"])
   (util/exit-edit)
-  ;; embed renders the target page title and both of its blocks
-  (is (some? (w/find-one-by-text "span" "Page embed")))
-  (is (some? (w/find-one-by-text "span" "b1")))
-  (is (some? (w/find-one-by-text "span" "b2")))
+  ;; embed rendering is async; poll instead of a single immediate lookup
+  (is (some? (util/wait-for-value #(w/find-one-by-text "span" "Page embed") some?)))
+  (is (some? (util/wait-for-value #(w/find-one-by-text "span" "b1") some?)))
+  (is (some? (util/wait-for-value #(w/find-one-by-text "span" "b2") some?)))
   ;; the sibling block b4 is created at the top level alongside b3
-  (is (some? (w/find-one-by-text "span" "b4"))))
+  (is (some? (util/wait-for-value #(w/find-one-by-text "span" "b4") some?))))
 
 (defn move-up-down []
   (b/new-blocks ["b1" "b2" "b3" "b4"])
   (util/repeat-keyboard 2 "Shift+ArrowUp")
   (let [contents (util/get-page-blocks-contents)]
     (is (= contents ["b1" "b2" "b3" "b4"])))
+  ;; block moves are async (db-worker round trip); poll the contents until
+  ;; settled instead of a single immediate read
   (util/repeat-keyboard 2 (str (if util/mac? "Meta" "Alt") "+Shift+ArrowUp"))
-  (let [contents (util/get-page-blocks-contents)]
+  (let [contents (util/wait-for-value util/get-page-blocks-contents #(= % ["b3" "b4" "b1" "b2"]))]
     (is (= contents ["b3" "b4" "b1" "b2"])))
   (util/repeat-keyboard 2 (str (if util/mac? "Meta" "Alt") "+Shift+ArrowDown"))
-  (let [contents (util/get-page-blocks-contents)]
+  (let [contents (util/wait-for-value util/get-page-blocks-contents #(= % ["b1" "b2" "b3" "b4"]))]
     (is (= contents ["b1" "b2" "b3" "b4"]))))
 
 (defn delete []
@@ -86,16 +92,18 @@
     (b/delete-blocks)                        ; delete b4
     (util/repeat-keyboard 2 "Shift+ArrowUp") ; select b3 and b2
     (b/delete-blocks)
-    (is (= "b1" (util/get-edit-content)))
-    (is (= 1 (util/page-blocks-count)))))
+    ;; deletion + editor move are async; poll instead of immediate reads
+    (is (= "b1" (util/wait-for-value util/get-edit-content #(= "b1" %))))
+    (is (= 1 (util/wait-for-value util/page-blocks-count #(= 1 %))))))
 
 (defn delete-end []
   (testing "Delete at end"
     (b/new-blocks ["b1" "b2" "b3"])
     (k/arrow-up)
     (k/delete)
-    (is (= "b2b3" (util/get-edit-content)))
-    (is (= 2 (util/page-blocks-count)))))
+    ;; the forward-delete merge is async; poll instead of immediate reads
+    (is (= "b2b3" (util/wait-for-value util/get-edit-content #(= "b2b3" %))))
+    (is (= 2 (util/wait-for-value util/page-blocks-count #(= 2 %))))))
 
 (defn delete-test-with-children []
   (testing "Delete block with its children"
@@ -106,8 +114,9 @@
     (k/arrow-up)
     (b/delete-blocks)
     (util/wait-editor-visible)
-    (is (= "b1" (util/get-edit-content)))
-    (is (= 1 (util/page-blocks-count)))))
+    ;; deletion + editor move are async; poll instead of immediate reads
+    (is (= "b1" (util/wait-for-value util/get-edit-content #(= "b1" %))))
+    (is (= 1 (util/wait-for-value util/page-blocks-count #(= 1 %))))))
 
 (deftest create-test-page-and-insert-blocks-test
   (create-test-page-and-insert-blocks))
@@ -137,9 +146,10 @@
     (k/arrow-up)
     (k/delete)
     (util/wait-editor-visible)
-    (is (= "b2" (util/get-edit-content)))
+    ;; the delete-concat op is async; poll instead of immediate reads
+    (is (= "b2" (util/wait-for-value util/get-edit-content #(= "b2" %))))
     (util/exit-edit)
-    (is (= ["b2"] (util/get-page-blocks-contents)))))
+    (is (= ["b2"] (util/wait-for-value util/get-page-blocks-contents #(= ["b2"] %))))))
 
 (deftest delete-concat-test-3-blocks
   (testing "Delete concat with empty block"
@@ -149,9 +159,10 @@
     (k/arrow-up)
     (k/delete)
     (util/wait-editor-visible)
-    (is (= "b2" (util/get-edit-content)))
+    ;; the delete-concat op is async; poll instead of immediate reads
+    (is (= "b2" (util/wait-for-value util/get-edit-content #(= "b2" %))))
     (util/exit-edit)
-    (is (= ["b2" "b3"] (util/get-page-blocks-contents)))))
+    (is (= ["b2" "b3"] (util/wait-for-value util/get-page-blocks-contents #(= ["b2" "b3"] %))))))
 
 (deftest delete-concat-test-with-children
   (testing "Delete concat with children blocks"
@@ -173,8 +184,9 @@
     (k/arrow-up)
     (k/delete)
     (util/wait-editor-visible)
-    (is (= "b2" (util/get-edit-content)))
+    ;; the delete-concat op is async; poll instead of immediate reads
+    (is (= "b2" (util/wait-for-value util/get-edit-content #(= "b2" %))))
     (util/exit-edit)
     (assert/assert-is-visible
      ".ls-block a.tag:has-text('tag1')")
-    (is (= ["b2"] (util/get-page-blocks-contents)))))
+    (is (= ["b2"] (util/wait-for-value util/get-page-blocks-contents #(= ["b2"] %))))))

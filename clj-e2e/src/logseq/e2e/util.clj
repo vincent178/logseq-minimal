@@ -35,6 +35,28 @@
   [ms]
   (.waitForTimeout (w/get-page) ms))
 
+(def ^:private default-settle-timeout-ms 3000)
+
+(defn wait-for-value
+  "Poll `measure-fn` every 50ms until `(pred value)` holds or `timeout-ms`
+  elapses; returns the last measured value (on timeout, a value for which
+  `pred` does NOT hold, so a following assertion still fails meaningfully).
+
+  Use at measurement points whose app operation is async (e.g. outliner ops
+  go through the db-worker round trip: keydown -> transact! -> db worker ->
+  :db/sync-changes broadcast -> re-render). Playwright `press` resolves at
+  event dispatch, so a single immediate read can observe pre-op state and
+  fail spuriously."
+  ([measure-fn pred]
+   (wait-for-value measure-fn pred default-settle-timeout-ms))
+  ([measure-fn pred timeout-ms]
+   (let [deadline (+ (System/currentTimeMillis) timeout-ms)]
+     (loop []
+       (let [v (measure-fn)]
+         (if (or (pred v) (> (System/currentTimeMillis) deadline))
+           v
+           (do (Thread/sleep 50) (recur))))))))
+
 (defn get-active-element
   []
   (w/-query "*:focus"))
