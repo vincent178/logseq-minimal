@@ -37,9 +37,6 @@
    ;; Parallel execution - https://book.babashka.org/#parallel
    :task (run '-dev:electron-start {:parallel true})}
 
-  dev:app-watch
-  logseq.tasks.dev.mobile/app-watch
-
   dev:cli
   {:doc "Run CLI with current deps/db code. Commands with JS deps are not usable e.g. mcp-server"
    :task (apply shell {:dir "deps/db"}
@@ -72,32 +69,6 @@
   dev:diff-datoms
   logseq.tasks.dev/diff-datoms
 
-  dev:npx-cap-run-ios
-  logseq.tasks.dev.mobile/npx-cap-run-ios
-
-  -dev:ios-app
-  {:depends [dev:app-watch dev:npx-cap-run-ios]}
-
-  dev:ios-app
-  {:doc "iOS development environment"
-   :task (run '-dev:ios-app {:parallel true})}
-
-  release:ios-app
-  logseq.tasks.dev.mobile/run-ios-release
-
-  dev:npx-cap-run-android
-  logseq.tasks.dev.mobile/npx-cap-run-android
-
-  -dev:android-app
-  {:depends [dev:app-watch dev:npx-cap-run-android]}
-
-  dev:android-app
-  {:doc "Android development environment"
-   :task (run '-dev:android-app {:parallel true})}
-
-  release:android-app
-  logseq.tasks.dev.mobile/run-android-release
-
   dev:validate-local-storage
   logseq.tasks.spec/validate-local-storage
 
@@ -121,14 +92,6 @@
 
   dev:e2e-basic-test
   logseq.tasks.dev/e2e-basic-test
-
-  dev:e2e-rtc-extra-test
-  {:doc "Run e2e rtc extra tests. HTTP server should be available at localhost:3001"
-   :task (clojure {:dir "clj-e2e"} "-X:dev-run-rtc-extra-test")}
-
-  dev:e2e-rtc-extra-part2-test
-  {:doc "Run e2e rtc extra part2 tests. HTTP server should be available at localhost:3001"
-   :task (clojure {:dir "clj-e2e"} "-X:dev-run-rtc-extra-part2-test")}
 
   dev:gen-malli-kondo-config
   logseq.tasks.dev/gen-malli-kondo-config
@@ -168,9 +131,6 @@
 
   lang:validate-translations
   logseq.tasks.lang/validate-translations
-
-  file-sync:integration-tests
-  logseq.tasks.file-sync/integration-tests
 
   ai:check-common-errors
   logseq.tasks.common-errors/check-common-errors}
