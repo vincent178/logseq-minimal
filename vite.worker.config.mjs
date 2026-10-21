@@ -14,13 +14,10 @@
 //   this bundle in static/js) and ship the referenced files verbatim via the
 //   assets build (see vite.assets.config.mjs) — same contract as the old
 //   gulp+webpack pipeline.
-// - `process` is injected from process/browser, mirroring webpack's
-//   ProvidePlugin. The inject plugin must run with enforce 'post': if it
-//   runs before Vite's commonjs conversion, CJS modules that reference
-//   `process` (e.g. path.js) become mixed ES/CJS modules whose named
-//   exports silently resolve to `undefined`.
+// - `process` is provided by the injectProcess plugin below (a global
+//   process/browser installed before any module body runs), mirroring
+//   webpack's ProvidePlugin.
 import { defineConfig } from 'vite'
-import inject from '@rollup/plugin-inject'
 
 const isWatch = process.argv.includes('--watch')
 
@@ -58,9 +55,39 @@ const dbWorkerShims = () => ({
   },
 })
 
-/** process injection (webpack ProvidePlugin equivalent), post-commonjs. */
-const injectProcess = () =>
-  Object.assign(inject({ process: 'process/browser' }), { enforce: 'post' })
+/**
+ * process polyfill injection (webpack ProvidePlugin equivalent), without
+ * @rollup/plugin-inject.
+ *
+ * Instead of editing every module that has a free `process` reference
+ * (path.js, util.js, the sqlite glue), we prepend a tiny setup module as the
+ * entry's FIRST import, installing process/browser on globalThis. ES module
+ * evaluation is depth-first in import order, so the setup module body runs
+ * before any other module body — including the ones that touch `process` at
+ * top level (`var isWindows = process.platform === 'win32'` in path.js,
+ * `if (process.env.NODE_DEBUG)` in util.js). Modules that declare their own
+ * local `process` binding are unaffected (the local shadows the global).
+ */
+const PROCESS_SETUP_ID = '\0db-worker:process-setup'
+
+const injectProcess = () => ({
+  name: 'inject-process',
+  enforce: 'pre',
+  resolveId (id) {
+    return id === PROCESS_SETUP_ID ? PROCESS_SETUP_ID : null
+  },
+  load (id) {
+    if (id !== PROCESS_SETUP_ID) return null
+    return [
+      "import process from 'process/browser'",
+      'globalThis.process = globalThis.process || process',
+    ].join('\n')
+  },
+  transform (code, id) {
+    if (!id.endsWith('target/db-worker.js')) return null
+    return { code: `import ${JSON.stringify(PROCESS_SETUP_ID)};\n${code}`, map: null }
+  },
+})
 
 export default defineConfig({
   build: {
