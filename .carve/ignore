@@ -11,37 +11,18 @@ frontend.debug/defn
 frontend.debug/print
 ;; Lazily loaded
 frontend.extensions.code/editor
-;; Lazily loaded
-frontend.extensions.age-encryption/keygen
-frontend.extensions.age-encryption/encrypt-with-x25519
-frontend.extensions.age-encryption/decrypt-with-x25519
-frontend.extensions.age-encryption/encrypt-with-user-passphrase
-frontend.extensions.age-encryption/decrypt-with-user-passphrase
-;; Lazily loaded
-frontend.extensions.excalidraw/draw
-;; Lazily loaded
-frontend.extensions.tldraw/tldraw-app
-frontend.extensions.tldraw/generate-preview
 ;; Referenced in commented TODO
 frontend.extensions.pdf.utils/get-page-bounding
-;; For repl
-frontend.extensions.zotero.api/item
 ;; For repl
 frontend.external.roam/reset-state!
 ;; For repl
 logseq.graph-parser.mldoc/ast-export-markdown
 ;; Protocol fn wrapper that could be used
 frontend.fs/readdir
-;; Referenced in TODO
-frontend.handler.metadata/update-properties!
 ;; Referenced in comment
 frontend.image/get-orientation
 ;; For debugging
 frontend.mixins/perf-measure-mixin
-;; Previously useful fn
-frontend.mobile.util/get-idevice-statusbar-height
-;; placeholder fn
-frontend.publishing/stop
 ;; Future use
 frontend.storage/get-transit
 ;; repl fn
@@ -54,43 +35,28 @@ frontend.ui/reset-ios-whole-page-offset!
 frontend.util/d
 ;; Future use?
 frontend.util/safe-search-normalize
-frontend.components.external/import-cp
 frontend.components.repo/add-repo
 ;; For debugging
 frontend.util/trace!
-;; Repl fn
-frontend.util.pool/terminate-pool!
 ;; Repl fn
 frontend.handler.file-based.property.util/add-page-properties
 ;; Test runners used by shadow
 frontend.test.node-test-runner/main
 frontend.test.frontend-node-test-runner/main
-;; Test runner for nbb
-logseq.graph-parser.nbb-test-runner/run-tests
-;; For debugging
-frontend.fs.sync/debug-print-sync-events-loop
-frontend.fs.sync/stop-debug-print-sync-events-loop
 ;; Used in macro
 frontend.state/get-current-edit-block-and-position
 ;; For debugging
 frontend.db.model/get-all-classes
 ;; Initial loaded
 frontend.ui/_emoji-init-data
-;; placeholder var for defonce
-frontend.worker.rtc.op-mem-layer/_sync-loop-canceler
 ;; Used by shadow.cljs
 frontend.worker.db-worker/init
-;; Future use?
-frontend.worker.rtc.hash/hash-blocks
 ;; Repl fn
 frontend.rum/use-atom-in
 ;; missionary utils
 frontend.common.missionary/<!
 ;; only used in deps/common
 frontend.common.missionary/background-task-running?
-;; defonce
-mobile.components.popup/native-sheet-listener
-mobile.bottom-tabs/add-tab-listeners!
 ;; Minimal build: login/sync removed (Cut 1). These are kept only as a
 ;; compile-stable seam for sync code that Cut 2 deletes; all inert.
 frontend.handler.user/username
@@ -104,10 +70,6 @@ frontend.state/set-auth-refresh-token
 frontend.state/set-auth-access-token
 frontend.state/clear-user-info!
 frontend.state/user-groups
-;; Minimal build: legacy file-sync surface, removed entirely in Cut 2
-frontend.fs.sync/remove-all-pwd!
-frontend.handler.file-sync/reset-session-graphs
-frontend.handler.file-sync/reset-user-state!
 frontend.components.settings/sync-switcher-row
 frontend.components.settings/sync-diff-merge-switcher-row
 frontend.config/LOGIN-URL
@@ -141,17 +103,14 @@ frontend.common.missionary/snapshot-of-flow
 frontend.flows/document-visibility-state-flow
 frontend.handler.user/new-task--upload-user-avatar
 frontend.handler.user/task--ensure-id&access-token
-frontend.mobile.flows/mobile-app-state-flow
 frontend.test.helper/db-based-start-and-destroy-db-map-fixture
 frontend.ui/indicator-progress-pie
 frontend.worker.db-metadata/<store
-frontend.worker.fixtures/listen-test-db-fixture
 frontend.worker.flows/online-event-flow
 frontend.worker.handler.page/rtc-create-page!
 frontend.worker.state/<invoke-main-thread
 ;; Minimal build cut 2b: sync/login orphans (removed in cut 3 or kept as stubs)
 frontend.components.header/recent-slider
-frontend.components.onboarding.quick-tour/start-file-sync
 frontend.components.settings/settings-rtc-members
 frontend.config/API-DOMAIN
 frontend.config/config-default-content-md5
@@ -175,10 +134,6 @@ frontend.handler.user/logout
 frontend.handler.user/manager?
 frontend.handler.user/rtc-group?
 frontend.handler.user/upgrade
-frontend.mobile.secure-storage/<get-item
-frontend.mobile.secure-storage/<remove-item!
-frontend.mobile.secure-storage/<set-item!
-frontend.modules.instrumentation.sentry/set-user!
 frontend.state/enable-sync-diff-merge?
 frontend.state/enable-sync?
 frontend.state/get-auth-refresh-token
@@ -196,10 +151,6 @@ frontend.util/safe-sanitize-file-name
 frontend.util.fs/file-name-sanity
 ;; Used by src/bench (not scanned by carve)
 frontend.common.file.util/ugly-pr-str
-;; DB-graph import fns, unreachable now (DB-graph import UI removed); physical removal in the DB-graph cleanup cut
-frontend.handler.db-based.import/import-from-sqlite-db!
-frontend.handler.db-based.import/import-from-debug-transit!
-frontend.handler.db-based.import/import-from-edn-file!
 ;; Inert data-preservation: kept so shape blocks in existing user graphs stay
 ;; loadable; UI callers removed with whiteboards (goal mufyry37-hlu4wy)
 frontend.handler.property.util/shape-block?
