@@ -97,9 +97,18 @@
     ;; commands, datepicker) instead of exiting the editor (see
     ;; `editor-on-hide`), leaving the editor open. If the editor is still in
     ;; edit mode after the first Esc, press Esc again to actually exit.
+    ;;
+    ;; Probe with `visible?` only — do NOT call the focusing `get-editor`
+    ;; here. The first Esc may already have closed the editor while its DOM
+    ;; unmount lands a frame later; `get-editor`'s blocking `.focus` then
+    ;; resolves the doomed textarea, loses the race against the unmount
+    ;; ("element was detached from the DOM, retrying") and, since a correctly
+    ;; closed editor never re-appears, burns the full 30s locator timeout
+    ;; (CI flake in page-reference-test). The Esc presses are global keyboard
+    ;; events handled by window-level listeners, so no focus is needed.
     (let [deadline (+ (System/currentTimeMillis) 2000)]
       (while (and (< (System/currentTimeMillis) deadline)
-                  (get-editor))
+                  (w/visible? editor-q))
         (k/esc)
         (Thread/sleep 100))))
   (assert/assert-non-editor-mode))
