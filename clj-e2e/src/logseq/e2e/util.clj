@@ -11,6 +11,7 @@
             Locator$PressSequentiallyOptions
             Locator$FilterOptions
             Locator$ClickOptions
+            Locator$FocusOptions
             Page$GetByTextOptions
             TimeoutError]
            [com.microsoft.playwright.options
@@ -90,12 +91,14 @@
                         (.setDelay (Locator$PressSequentiallyOptions.) delay))))
 
 (defn- focus-editor-if-present!
-  "Best-effort, non-blocking focus of the block editor textarea: one atomic
-  page eval that focuses the textarea iff it is currently attached. Unlike
-  `get-editor`'s locator `.focus`, this never waits and never retries, so it
-  cannot race a pending editor unmount into a 30s locator timeout."
+  "Best-effort focus of the block editor textarea. Unlike `get-editor`'s
+  unbounded locator `.focus`, the timeout is capped at 200ms: a mid-teardown
+  textarea fails fast on detach (TimeoutError, swallowed) instead of burning
+  the 30s default waiting for an editor that correctly never re-appears."
   []
-  (w/eval-js "() => { const ta = document.querySelector('.editor-wrapper textarea'); if (ta) ta.focus(); }"))
+  (try
+    (.focus (w/-query editor-q) (.setTimeout (Locator$FocusOptions.) 200))
+    (catch TimeoutError _ nil)))
 
 (defn exit-edit
   []
@@ -118,9 +121,9 @@
   ;; via Esc happens in the TEXTAREA's own :on-key-down — which only fires when
   ;; the textarea has focus. Editor popups use :onCloseAutoFocus
   ;; preventDefault, so after popup dismissal focus is NOT restored to the
-  ;; textarea. Hence `focus-editor-if-present!`: restore focus with an atomic,
-  ;; non-waiting DOM call so Escape reaches the textarea, without
-  ;; reintroducing the blocking locator focus.
+  ;; textarea. Hence `focus-editor-if-present!`: restore focus so Escape
+  ;; reaches the textarea, but with a bounded 200ms timeout that fails fast on
+  ;; detach instead of reintroducing the unbounded blocking focus.
   (when (w/visible? editor-q)
     (focus-editor-if-present!)
     (k/esc)
