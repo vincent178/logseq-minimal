@@ -174,3 +174,88 @@ var StatusBar;
 StatusBar.setStyle = {}
 StatusBar.setBackgroundColor = {}
 StatusBar.setOverlaysWebView = {}
+
+/**
+ * React / ReactDOM are loaded as globals via <script> tags
+ * (static/js/react.production.min.js, react-dom.production.min.js) and
+ * shadow-cljs resolves the "react"/"react-dom" npm requires to these globals
+ * (:js-options :resolve {:target :global}). Property names accessed on them
+ * must therefore never be renamed by :advanced compilation.
+ *
+ * These explicit externs replace the protection that the legacy
+ * externs/app.txt (removed in PR #65) used to provide via shadow-cljs's
+ * simplified-externs mechanism: while a property name is visible in any
+ * externs source, shadow-cljs's infer-externs SKIPS recording cljs-side
+ * js/React.* accesses (shadow.build.cljs-hacks/infer-externs-dot), and that
+ * skip persists in the cljs analyzer cache. Removing the externs source
+ * afterwards leaves the names unprotected and :advanced renames e.g.
+ * React.useRef to React.$useRef$, crashing the packaged app.
+ */
+var React = {};
+React.version;
+React.Children = {};
+React.Children.map = function() {};
+React.Children.forEach = function() {};
+React.Children.count = function() {};
+React.Children.only = function() {};
+React.Children.toArray = function() {};
+React.Component = function() {};
+React.Component.prototype.setState = function() {};
+React.Component.prototype.forceUpdate = function() {};
+React.PureComponent = function() {};
+React.Fragment;
+React.StrictMode;
+React.Suspense;
+React.SuspenseList;
+React.Element;
+React.createElement = function() {};
+React.cloneElement = function() {};
+React.createFactory = function() {};
+React.createRef = function() {};
+React.createContext = function() {};
+React.forwardRef = function() {};
+React.lazy = function() {};
+React.memo = function() {};
+React.isValidElement = function() {};
+React.startTransition = function() {};
+React.unstable_act = function() {};
+React.useCallback = function() {};
+React.useContext = function() {};
+React.useDebugValue = function() {};
+React.useDeferredValue = function() {};
+React.useEffect = function() {};
+React.useId = function() {};
+React.useImperativeHandle = function() {};
+React.useInsertionEffect = function() {};
+React.useLayoutEffect = function() {};
+React.useMemo = function() {};
+React.useReducer = function() {};
+React.useRef = function() {};
+React.useState = function() {};
+React.useSyncExternalStore = function() {};
+React.useTransition = function() {};
+React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+/** object returned by React.useRef / React.createRef */
+React.RefObject = function() {};
+React.RefObject.prototype.current;
+
+var ReactDOM = {};
+ReactDOM.version;
+ReactDOM.render = function() {};
+ReactDOM.hydrate = function() {};
+ReactDOM.unmountComponentAtNode = function() {};
+ReactDOM.findDOMNode = function() {};
+ReactDOM.createPortal = function() {};
+ReactDOM.flushSync = function() {};
+ReactDOM.unstable_batchedUpdates = function() {};
+ReactDOM.createRoot = function() {};
+ReactDOM.hydrateRoot = function() {};
+
+var ReactDOMServer = {};
+ReactDOMServer.renderToString = function() {};
+ReactDOMServer.renderToStaticMarkup = function() {};
+ReactDOMServer.renderToNodeStream = function() {};
+ReactDOMServer.renderToStaticNodeStream = function() {};
+
+var ReactNative = {};
+ReactNative.unstable_batchedUpdates = function() {};
