@@ -2,7 +2,6 @@
   "System-component-like ns that manages user's repos/graphs"
   (:refer-clojure :exclude [clone])
   (:require [cljs-bean.core :as bean]
-            [clojure.string :as string]
             [electron.ipc :as ipc]
             [frontend.config :as config]
             [frontend.db :as db]
@@ -24,7 +23,6 @@
             [frontend.util :as util]
             [frontend.util.text :as text-util]
             [logseq.db :as ldb]
-            [logseq.db.frontend.schema :as db-schema]
             [promesa.core :as p]))
 
 ;; Project settings should be checked in two situations:
@@ -108,52 +106,17 @@
                              nfs-dbs))]
     (seq (bean/->clj nfs-dbs))))
 
-(defn combine-local-&-remote-graphs
-  [local-repos remote-repos]
-  (when-let [repos' (seq (concat (map (fn [{:keys [sync-meta metadata] :as repo}]
-                                        (let [graph-id (some-> (or (:kv/value metadata)
-                                                                   (second sync-meta)) str)]
-                                          (if graph-id (assoc repo :GraphUUID graph-id) repo)))
-                                      local-repos)
-                                 (some->> remote-repos
-                                          (map #(assoc % :remote? true)))))]
-    (let [app-major-schema-version (str (:major (db-schema/parse-schema-version db-schema/version)))
-          repos' (group-by :url repos')
-          repos'' (mapcat (fn [[k vs]]
-                            (if (some? k)
-                              (let [remote-repos (filter :remote? vs)
-                                    version-matched-remote-repo
-                                    (first
-                                     (filter
-                                      #(= app-major-schema-version (:GraphSchemaVersion %))
-                                      remote-repos))]
-                                [(merge (first vs) (second vs) version-matched-remote-repo)])
-                              vs))
-                          repos')]
-      (sort-by (fn [repo]
-                 (let [graph-name (or (:GraphName repo)
-                                      (last (string/split (:root repo) #"/")))]
-                   [(:remote? repo) (string/lower-case graph-name)])) repos''))))
-
 (defn get-detail-graph-info
   [url]
-  (when-let [graphs (seq (and url (combine-local-&-remote-graphs
-                                   (state/get-repos)
-                                   (state/get-remote-file-graphs))))]
+  (when-let [graphs (seq (and url (state/get-repos)))]
     (first (filter #(when-let [url' (:url %)]
                       (= url url')) graphs))))
 
 (defn refresh-repos!
   []
-  (p/let [repos (get-repos)
-          repos' (combine-local-&-remote-graphs
-                  repos
-                  (concat
-                   (state/get-rtc-graphs)
-                   (when-not (or (util/mobile?) util/web-platform?)
-                     (state/get-remote-file-graphs))))]
-    (state/set-repos! repos')
-    repos'))
+  (p/let [repos (get-repos)]
+    (state/set-repos! repos)
+    repos))
 
 (defn graph-ready!
   ;; FIXME: Call electron that the graph is loaded, an ugly implementation for redirect to page when graph is restored

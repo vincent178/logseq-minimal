@@ -33,7 +33,7 @@
 
 (defmethod handle :add-repo [_ _worker data]
   (state/add-repo! {:url (:repo data)})
-  (state/pub-event! [:graph/switch (:repo data) {:rtc-download? true}]))
+  (state/pub-event! [:graph/switch (:repo data)]))
 
 (defmethod handle :sync-db-changes [_ _worker data]
   (state/pub-event! [:db/sync-changes data]))

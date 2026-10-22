@@ -40,8 +40,6 @@
 
 ;;; no-op lifecycle (kept so startup / event handlers are inert)
 
-(defn restore-tokens-from-localstorage [] nil)
-
 (defn logout [] nil)
 
 (defn upgrade

@@ -70,16 +70,13 @@
 ;; Parameters for the `persist-db` function, to show the notification messages
 (defn- graph-switch-on-persisted
   "graph: the target graph to switch to"
-  [graph opts]
+  [graph]
   (p/do!
    (repo-handler/restore-and-setup-repo! graph)
    (graph-switch graph)
-   (state/set-state! :sync-graph/init? false)
-   (when (:rtc-download? opts)
-     (and (search-handler/rebuild-indices!) true)
-     (repo-handler/refresh-repos!))))
+   (state/set-state! :sync-graph/init? false)))
 
-(defmethod handle :graph/switch [[_ graph opts]]
+(defmethod handle :graph/switch [[_ graph]]
   (let [switch-promise
         (p/do!
          (persist-db/export-current-graph!)
@@ -92,7 +89,7 @@
                (notification/show!
                 "Please wait seconds until all changes are saved for the current graph."
                 :warning))
-             (graph-switch-on-persisted graph opts))))]
+             (graph-switch-on-persisted graph))))]
     (p/then switch-promise
             (fn [_] nil))))
 

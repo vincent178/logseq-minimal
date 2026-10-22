@@ -185,10 +185,6 @@
   ;; no accounts in the minimal build — logout is a no-op
   nil)
 
-(defmethod events/handle :user/login [[_ _host-ui?]]
-  ;; no accounts in the minimal build — login is a no-op
-  nil)
-
 (defmethod events/handle :user/fetch-info-and-graphs [[_]]
   ;; no accounts or remote graphs in the minimal build
   (state/set-state! [:ui/loading? :login] false))
