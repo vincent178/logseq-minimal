@@ -5,6 +5,9 @@
 #   scripts/smoke/verify.sh              # lint+unit, then boot Electron + smoke
 #   scripts/smoke/verify.sh --skip-smoke # only lint + unit tests
 #   scripts/smoke/verify.sh --no-boot    # smoke assumes env already running
+#   scripts/smoke/verify.sh --release    # additionally: :advanced release compile of :app
+#                                        #   + React-externs invariant on static/js/main.js
+#                                        #   (combine with --skip-smoke for a fast check)
 #
 # Exit 0 = everything passed.
 
@@ -15,10 +18,12 @@ export JAVA_HOME="$HOME/.local/share/mise/installs/java/21.0.2/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 
 SKIP_SMOKE=0
+RELEASE=0
 BOOT_ARG=""
 for a in "$@"; do
   case "$a" in
     --skip-smoke) SKIP_SMOKE=1 ;;
+    --release) RELEASE=1 ;;
     --no-boot) BOOT_ARG="--no-boot" ;;
   esac
 done
@@ -34,6 +39,29 @@ if [ "$LINT" != "0" ]; then
   exit 1
 fi
 log "lint + unit tests: PASS"
+
+if [ "$RELEASE" = "1" ]; then
+  log "release check (--release): clojure -M:cljs release app (:advanced compile)"
+  clojure -M:cljs release app > /tmp/logseq-verify-release.log 2>&1
+  REL=$?
+  tail -4 /tmp/logseq-verify-release.log | sed 's/^/    /'
+  if [ "$REL" != "0" ]; then
+    log "FAIL: release compile (see /tmp/logseq-verify-release.log)"
+    exit 1
+  fi
+  # Externs invariant: the release bundle must not contain Closure-renamed
+  # property accesses on the globally-scripted React/ReactDOM libs.
+  MUNGED=$(grep -cE 'React(DOM)?\.\$[A-Za-z]+\$' static/js/main.js || true)
+  USEREF=$(grep -c 'React\.useRef' static/js/main.js || true)
+  log "externs invariant: munged-accesses=$MUNGED (want 0), React.useRef=$USEREF (want >=1)"
+  if [ "$MUNGED" != "0" ] || [ "$USEREF" = "0" ]; then
+    log "FAIL: release bundle has Closure-renamed React accesses (externs/cache poisoning)"
+    log "      see .pi/knowledge/shadow-cljs-externs-and-cache-poisoning.md"
+    log "      usual fix: rm -rf .shadow-cljs and re-run (stale cache self-heals clean)"
+    exit 1
+  fi
+  log "release build + externs invariant: PASS"
+fi
 
 if [ "$SKIP_SMOKE" = "1" ]; then
   log "step 2/2: smoke skipped (--skip-smoke)"
