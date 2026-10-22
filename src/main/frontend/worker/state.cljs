@@ -33,10 +33,6 @@
                        :config {}
                        :git/current-repo nil
 
-                       :auth/id-token nil
-                       :auth/access-token nil
-                       :auth/refresh-token nil
-
                        ;; thread atoms, these atoms' value are syncing from ui-thread
                        :thread-atom/online-event (atom nil)}))
 

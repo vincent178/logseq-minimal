@@ -115,9 +115,7 @@ frontend.components.settings/settings-rtc-members
 frontend.config/API-DOMAIN
 frontend.config/config-default-content-md5
 frontend.config/CONNECTIVITY-TESTING-S3-URL
-frontend.config/FILE-SYNC-PROD?
 frontend.config/get-string-repo-dir
-frontend.config/WS-URL
 frontend.date/parse-iso
 frontend.debug/pprint
 frontend.encrypt/decrypt-with-passphrase
@@ -125,6 +123,9 @@ frontend.encrypt/encrypt-with-passphrase
 frontend.fs/asset-href-exists?
 frontend.fs/copy!
 frontend.handler.repo/get-detail-graph-info
+;; No remaining caller after RTC :rtc-download? branch removal; kept as the
+;; repo-refresh seam
+frontend.handler.repo/refresh-repos!
 frontend.handler.user/<user-uuid
 frontend.handler.user/<wrap-ensure-id&access-token
 frontend.handler.user/alpha-or-beta-user?
@@ -156,5 +157,3 @@ frontend.common.file.util/ugly-pr-str
 frontend.handler.property.util/shape-block?
 ;; Only used in (comment) REPL snippets after RTC asset sync removal
 frontend.handler.assets/<write-asset
-;; Auth accessor kept for API compat; last UI caller removed with dev RTC menu
-frontend.state/get-auth-id-token

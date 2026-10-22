@@ -269,11 +269,6 @@
 
       :reactive/query-dbs                    {}
 
-      ;; login, userinfo, token, ...
-      :auth/refresh-token                    (some-> (storage/get "refresh-token") str)
-      :auth/access-token                     nil
-      :auth/id-token                         nil
-
       :rtc/users-info                        (atom {})
 
       :user/info                             {:UserGroups (storage/get :user-groups)}
@@ -775,15 +770,6 @@ Similar to re-frame subscriptions"
   "Returns the current repo URL, or else open demo graph"
   []
   (:git/current-repo @state))
-
-;; minimal build: no remote/sync graphs
-(defn get-remote-file-graphs
-  []
-  nil)
-
-(defn get-rtc-graphs
-  []
-  nil)
 
 (defn get-repos
   []
@@ -1923,24 +1909,6 @@ Similar to re-frame subscriptions"
 (defn get-modal-id
   []
   (shui-dialog/get-last-modal-id))
-
-(defn set-auth-id-token
-  [id-token]
-  (set-state! :auth/id-token id-token))
-
-(defn set-auth-refresh-token
-  [refresh-token]
-  (set-state! :auth/refresh-token refresh-token))
-
-(defn set-auth-access-token
-  [access-token]
-  (set-state! :auth/access-token access-token))
-
-(defn get-auth-id-token []
-  (sub :auth/id-token))
-
-(defn get-auth-refresh-token []
-  (:auth/refresh-token @state))
 
 (defn reset-parsing-state!
   []

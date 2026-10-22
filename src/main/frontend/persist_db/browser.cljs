@@ -32,8 +32,7 @@
   (let [state-flow
         (->> (m/watch state/state)
              (m/eduction
-              (map #(select-keys % [:git/current-repo :config
-                                    :auth/id-token :auth/access-token :auth/refresh-token]))
+              (map #(select-keys % [:git/current-repo :config]))
               (dedupe)))
         <init-sync-done? (p/deferred)
         task (m/reduce
@@ -44,8 +43,7 @@
                              (nil? (:git/current-repo m)))
                     (log/error :sync-app-state
                                [m (select-keys @state/state
-                                               [:git/current-repo
-                                                :auth/id-token :auth/access-token :auth/refresh-token])]))
+                                               [:git/current-repo])]))
                   (c.m/<? (state/<invoke-db-worker :thread-api/sync-app-state m))
                   (p/resolve! <init-sync-done?))))]
     (c.m/run-task* task)
