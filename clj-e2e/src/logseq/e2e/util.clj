@@ -89,11 +89,19 @@
     (.pressSequentially input-node text
                         (.setDelay (Locator$PressSequentiallyOptions.) delay))))
 
+(defn- focus-editor-if-present!
+  "Best-effort, non-blocking focus of the block editor textarea: one atomic
+  page eval that focuses the textarea iff it is currently attached. Unlike
+  `get-editor`'s locator `.focus`, this never waits and never retries, so it
+  cannot race a pending editor unmount into a 30s locator timeout."
+  []
+  (w/eval-js "() => { const ta = document.querySelector('.editor-wrapper textarea'); if (ta) ta.focus(); }"))
+
 (defn exit-edit
   []
-  ;; Probe with `visible?` only — never the focusing `get-editor`. The editor
-  ;; may already be mid-teardown when exit-edit runs: the app exits edit mode
-  ;; on ANY mousedown outside the editor (editor box's
+  ;; Probe visibility with `visible?` only — never the focusing `get-editor`.
+  ;; The editor may already be mid-teardown when exit-edit runs: the app exits
+  ;; edit mode on ANY mousedown outside the editor (editor box's
   ;; `mixins/hide-when-esc-or-outside` -> `editor-on-hide` -> `escape-editing`
   ;; -> async `save-current-block!` -> `state/clear-edit!` -> rum unmount a
   ;; frame+ round-trip later), and the `validate-graph` fixture's
@@ -103,17 +111,28 @@
   ;; retrying"); since a correctly closed editor never re-appears, the focus
   ;; burns the full 30s locator timeout (CI flakes in page-reference-test —
   ;; loop probe — and link-image-test -> link-test fixture transition — entry
-  ;; probe). The Esc presses are global keyboard events handled by
-  ;; window-level listeners, so no focus is needed.
+  ;; probe).
+  ;;
+  ;; Focus still matters for Esc delivery: the editor box's on-hide wrapper
+  ;; ignores :esc (components/editor.cljs `when-not (= type :esc)`), so exiting
+  ;; via Esc happens in the TEXTAREA's own :on-key-down — which only fires when
+  ;; the textarea has focus. Editor popups use :onCloseAutoFocus
+  ;; preventDefault, so after popup dismissal focus is NOT restored to the
+  ;; textarea. Hence `focus-editor-if-present!`: restore focus with an atomic,
+  ;; non-waiting DOM call so Escape reaches the textarea, without
+  ;; reintroducing the blocking locator focus.
   (when (w/visible? editor-q)
+    (focus-editor-if-present!)
     (k/esc)
     ;; A single Esc can be consumed by an open editor popup (page/block search,
     ;; commands, datepicker) instead of exiting the editor (see
-    ;; `editor-on-hide`), leaving the editor open. If the editor is still in
-    ;; edit mode after the first Esc, press Esc again to actually exit.
+    ;; `editor-on-hide`), leaving the editor open — and popup dismissal leaves
+    ;; focus off the textarea. If the editor is still in edit mode after the
+    ;; first Esc, re-focus (best-effort) and press Esc again to actually exit.
     (let [deadline (+ (System/currentTimeMillis) 2000)]
       (while (and (< (System/currentTimeMillis) deadline)
                   (w/visible? editor-q))
+        (focus-editor-if-present!)
         (k/esc)
         (Thread/sleep 100))))
   (assert/assert-non-editor-mode))

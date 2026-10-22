@@ -108,13 +108,22 @@
   clojure.test's per-test reporting path entirely (the run dies with a bare
   \"Execution error\" and CI uploads no artifacts), so without this a fixture
   failure leaves zero evidence. Same pattern as `boot-graph!` for :once
-  fixtures."
+  fixtures.
+
+  The diagnostic collection itself is best-effort: it does Playwright
+  screenshots + file writes, which can throw (e.g. a closed/crashed page).
+  A collection failure must never replace the original fixture exception —
+  it is attached as suppressed and the original is always rethrown."
   [f]
   (try
     (f)
     (catch Throwable e
       (println "Exception in :each fixture; dumping diagnostics to e2e-dump/")
-      (custom-report/collect-info-when-error-or-failed)
+      (try
+        (custom-report/collect-info-when-error-or-failed)
+        (catch Throwable dump-error
+          (println "Diagnostic collection failed:" (ex-message dump-error))
+          (.addSuppressed e dump-error)))
       (throw e))))
 
 (defn create-page
