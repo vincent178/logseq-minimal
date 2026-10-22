@@ -111,6 +111,7 @@
         "fuse.js": "6.4.6",
         "grapheme-splitter": "1.0.4",
         "graphology": "0.20.0",
+        "graphology-types": "^0.19.2",
         "hnswlib-wasm": "^0.8.2",
         "html2canvas": "^1.4.1",
         "ignore": "5.1.8",
@@ -129,9 +130,9 @@
         "prop-types": "^15.7.2",
         "react": "18.3.1",
         "react-dom": "18.3.1",
-        "react-grid-layout": "0.16.6",
+        "react-draggable": "^4.5.0",
         "react-intersection-observer": "^9.3.5",
-        "react-textarea-autosize": "8.3.3",
+        "react-textarea-autosize": "8.5.9",
         "react-transition-group": "4.3.0",
         "react-virtuoso": "4.12.5",
         "remove-accents": "0.4.2",
@@ -144,6 +145,8 @@
         "yargs-parser": "20.2.4"
     },
     "resolutions": {
+        "pdfjs-dist/canvas": "3.2.3",
+        "pixi-graph-fork/pixi-viewport": "4.34.4",
         "pixi-graph-fork/@pixi/app": "6.2.0",
         "pixi-graph-fork/@pixi/constants": "6.2.0",
         "pixi-graph-fork/@pixi/core": "6.2.0",
