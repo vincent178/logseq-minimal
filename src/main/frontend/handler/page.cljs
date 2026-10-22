@@ -226,7 +226,14 @@
                 (throw (ex-info "No chosen item"
                                 {:chosen chosen-result})))
             chosen (:block/title chosen-result)
-            chosen' (string/replace-first chosen (str (t :new-page) " ") "")
+            ;; The auto-complete invokes this handler with its last *render's*
+            ;; props, which can lag behind fast typing: the synthetic
+            ;; "New page: <q>" item may carry a stale q. The live query is the
+            ;; source of truth for the page being created.
+            chosen' (if (and (string/starts-with? chosen (str (t :new-page) " "))
+                             (not (string/blank? q)))
+                      q
+                      (string/replace-first chosen (str (t :new-page) " ") ""))
             [chosen' chosen-result] (or (when (and (:nlp-date? chosen-result) (not (de/entity? chosen-result)))
                                           (when-let [result (date/nld-parse chosen')]
                                             (let [d (doto (goog.date.DateTime.) (.setTime (.getTime result)))
@@ -255,20 +262,25 @@
 
 (defn on-chosen-handler
   [input id pos format]
-  (let [current-pos (cursor/pos input)
-        edit-content (state/get-edit-content)
-        action (state/get-editor-action)
-        hashtag? (= action :page-search-hashtag)
-        q (or
-           (editor-handler/get-selected-text)
-           (when hashtag?
-             (common-util/safe-subs edit-content pos current-pos))
-           (when (> (count edit-content) current-pos)
-             (common-util/safe-subs edit-content pos current-pos)))
-        ]
-    (if hashtag?
-      (tag-on-chosen-handler input id pos format current-pos edit-content q)
-      (page-on-chosen-handler id format q))))
+  ;; Compute the query at event time, not render time: the auto-complete
+  ;; dispatches Enter with the props of its last render (`(:rum/args state)`
+  ;; via `auto-complete-complete`), which can lag several keystrokes behind
+  ;; under load, so a closure over render-time `q`/`current-pos` would
+  ;; complete with stale text and clobber what the user typed.
+  (fn [chosen-result e]
+    (let [current-pos (cursor/pos input)
+          edit-content (state/get-edit-content)
+          action (state/get-editor-action)
+          hashtag? (= action :page-search-hashtag)
+          q (or
+             (editor-handler/get-selected-text)
+             (when hashtag?
+               (common-util/safe-subs edit-content pos current-pos))
+             (when (> (count edit-content) current-pos)
+               (common-util/safe-subs edit-content pos current-pos)))]
+      (if hashtag?
+        ((tag-on-chosen-handler input id pos format current-pos edit-content q) chosen-result e)
+        ((page-on-chosen-handler id format q) chosen-result e)))))
 
 (defn create-today-journal!
   []
