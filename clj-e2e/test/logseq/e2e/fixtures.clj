@@ -102,6 +102,21 @@
 
 (defonce *page-number (atom 0))
 
+(defn- with-error-dump
+  "Run `f`; on any exception dump diagnostics (screenshots/console logs) to
+  e2e-dump/ before rethrowing. Exceptions thrown in :each fixtures escape
+  clojure.test's per-test reporting path entirely (the run dies with a bare
+  \"Execution error\" and CI uploads no artifacts), so without this a fixture
+  failure leaves zero evidence. Same pattern as `boot-graph!` for :once
+  fixtures."
+  [f]
+  (try
+    (f)
+    (catch Throwable e
+      (println "Exception in :each fixture; dumping diagnostics to e2e-dump/")
+      (custom-report/collect-info-when-error-or-failed)
+      (throw e))))
+
 (defn create-page
   [& [page-name]]
   (let [page-name (or page-name (str "page " (swap! *page-number inc)))]
@@ -110,17 +125,19 @@
 
 (defn new-logseq-page
   [f]
-  (create-page)
+  (with-error-dump create-page)
   (f))
 
 (defn validate-graph
   [f]
   (f)
-  (if (and @*page1 @*page2)
-    (doseq [p [@*page1 @*page2]]
-      (w/with-page p
-        (graph/validate-graph)))
+  (with-error-dump
+   (fn []
+     (if (and @*page1 @*page2)
+       (doseq [p [@*page1 @*page2]]
+         (w/with-page p
+           (graph/validate-graph)))
 
-    (graph/validate-graph)))
+       (graph/validate-graph)))))
 
 
