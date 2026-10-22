@@ -23,6 +23,10 @@
   - `bb dev:test -i focus`
 - E2E tests files are located in `/clj-e2e`
 
+## Release build verification
+- Any task that produces a packaged app must LAUNCH it and check the console for errors — artifact existence is not verification.
+- PRs touching `deps.edn`, `shadow-cljs.edn`, `externs*`, `scripts/smoke/*`, or vite configs must run `scripts/smoke/verify.sh --release` after `rm -rf .shadow-cljs`.
+
 ## Common used cljs keywords
 - All commonly used ClojureScript keywords are defined using `logseq.common.defkeywords/defkeyword`.
 - Search for `defkeywords` to find all the definitions.
