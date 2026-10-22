@@ -11,6 +11,7 @@
             Locator$PressSequentiallyOptions
             Locator$FilterOptions
             Locator$ClickOptions
+            Locator$FocusOptions
             Page$GetByTextOptions
             TimeoutError]
            [com.microsoft.playwright.options
@@ -89,26 +90,52 @@
     (.pressSequentially input-node text
                         (.setDelay (Locator$PressSequentiallyOptions.) delay))))
 
+(defn- focus-editor-if-present!
+  "Best-effort focus of the block editor textarea. Unlike `get-editor`'s
+  unbounded locator `.focus`, the timeout is capped at 200ms: a mid-teardown
+  textarea fails fast on detach (TimeoutError, swallowed) instead of burning
+  the 30s default waiting for an editor that correctly never re-appears."
+  []
+  (try
+    (.focus (w/-query editor-q) (.setTimeout (Locator$FocusOptions.) 200))
+    (catch TimeoutError _ nil)))
+
 (defn exit-edit
   []
-  (when (get-editor)
+  ;; Probe visibility with `visible?` only — never the focusing `get-editor`.
+  ;; The editor may already be mid-teardown when exit-edit runs: the app exits
+  ;; edit mode on ANY mousedown outside the editor (editor box's
+  ;; `mixins/hide-when-esc-or-outside` -> `editor-on-hide` -> `escape-editing`
+  ;; -> async `save-current-block!` -> `state/clear-edit!` -> rum unmount a
+  ;; frame+ round-trip later), and the `validate-graph` fixture's
+  ;; notification-close click is exactly such a mousedown. A blocking `.focus`
+  ;; on the textarea can then resolve the doomed element and lose the race
+  ;; against the pending unmount ("element was detached from the DOM,
+  ;; retrying"); since a correctly closed editor never re-appears, the focus
+  ;; burns the full 30s locator timeout (CI flakes in page-reference-test —
+  ;; loop probe — and link-image-test -> link-test fixture transition — entry
+  ;; probe).
+  ;;
+  ;; Focus still matters for Esc delivery: the editor box's on-hide wrapper
+  ;; ignores :esc (components/editor.cljs `when-not (= type :esc)`), so exiting
+  ;; via Esc happens in the TEXTAREA's own :on-key-down — which only fires when
+  ;; the textarea has focus. Editor popups use :onCloseAutoFocus
+  ;; preventDefault, so after popup dismissal focus is NOT restored to the
+  ;; textarea. Hence `focus-editor-if-present!`: restore focus so Escape
+  ;; reaches the textarea, but with a bounded 200ms timeout that fails fast on
+  ;; detach instead of reintroducing the unbounded blocking focus.
+  (when (w/visible? editor-q)
+    (focus-editor-if-present!)
     (k/esc)
     ;; A single Esc can be consumed by an open editor popup (page/block search,
     ;; commands, datepicker) instead of exiting the editor (see
-    ;; `editor-on-hide`), leaving the editor open. If the editor is still in
-    ;; edit mode after the first Esc, press Esc again to actually exit.
-    ;;
-    ;; Probe with `visible?` only — do NOT call the focusing `get-editor`
-    ;; here. The first Esc may already have closed the editor while its DOM
-    ;; unmount lands a frame later; `get-editor`'s blocking `.focus` then
-    ;; resolves the doomed textarea, loses the race against the unmount
-    ;; ("element was detached from the DOM, retrying") and, since a correctly
-    ;; closed editor never re-appears, burns the full 30s locator timeout
-    ;; (CI flake in page-reference-test). The Esc presses are global keyboard
-    ;; events handled by window-level listeners, so no focus is needed.
+    ;; `editor-on-hide`), leaving the editor open — and popup dismissal leaves
+    ;; focus off the textarea. If the editor is still in edit mode after the
+    ;; first Esc, re-focus (best-effort) and press Esc again to actually exit.
     (let [deadline (+ (System/currentTimeMillis) 2000)]
       (while (and (< (System/currentTimeMillis) deadline)
                   (w/visible? editor-q))
+        (focus-editor-if-present!)
         (k/esc)
         (Thread/sleep 100))))
   (assert/assert-non-editor-mode))
