@@ -83,6 +83,7 @@
 
 ;; db
 (def ^:export q api-db/q)
+(def ^:export datascript_query api-db/datascript_query)
 (def ^:export custom_query api-db/custom_query)
 
 ;; editor
