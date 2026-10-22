@@ -91,21 +91,26 @@
 
 (defn exit-edit
   []
-  (when (get-editor)
+  ;; Probe with `visible?` only — never the focusing `get-editor`. The editor
+  ;; may already be mid-teardown when exit-edit runs: the app exits edit mode
+  ;; on ANY mousedown outside the editor (editor box's
+  ;; `mixins/hide-when-esc-or-outside` -> `editor-on-hide` -> `escape-editing`
+  ;; -> async `save-current-block!` -> `state/clear-edit!` -> rum unmount a
+  ;; frame+ round-trip later), and the `validate-graph` fixture's
+  ;; notification-close click is exactly such a mousedown. A blocking `.focus`
+  ;; on the textarea can then resolve the doomed element and lose the race
+  ;; against the pending unmount ("element was detached from the DOM,
+  ;; retrying"); since a correctly closed editor never re-appears, the focus
+  ;; burns the full 30s locator timeout (CI flakes in page-reference-test —
+  ;; loop probe — and link-image-test -> link-test fixture transition — entry
+  ;; probe). The Esc presses are global keyboard events handled by
+  ;; window-level listeners, so no focus is needed.
+  (when (w/visible? editor-q)
     (k/esc)
     ;; A single Esc can be consumed by an open editor popup (page/block search,
     ;; commands, datepicker) instead of exiting the editor (see
     ;; `editor-on-hide`), leaving the editor open. If the editor is still in
     ;; edit mode after the first Esc, press Esc again to actually exit.
-    ;;
-    ;; Probe with `visible?` only — do NOT call the focusing `get-editor`
-    ;; here. The first Esc may already have closed the editor while its DOM
-    ;; unmount lands a frame later; `get-editor`'s blocking `.focus` then
-    ;; resolves the doomed textarea, loses the race against the unmount
-    ;; ("element was detached from the DOM, retrying") and, since a correctly
-    ;; closed editor never re-appears, burns the full 30s locator timeout
-    ;; (CI flake in page-reference-test). The Esc presses are global keyboard
-    ;; events handled by window-level listeners, so no focus is needed.
     (let [deadline (+ (System/currentTimeMillis) 2000)]
       (while (and (< (System/currentTimeMillis) deadline)
                   (w/visible? editor-q))
