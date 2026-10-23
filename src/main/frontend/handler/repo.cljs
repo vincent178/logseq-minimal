@@ -2,6 +2,7 @@
   "System-component-like ns that manages user's repos/graphs"
   (:refer-clojure :exclude [clone])
   (:require [cljs-bean.core :as bean]
+            [clojure.core.async :as async]
             [electron.ipc :as ipc]
             [frontend.config :as config]
             [frontend.db :as db]
@@ -22,6 +23,7 @@
             [frontend.undo-redo :as undo-redo]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
+            [lambdaisland.glogi :as log]
             [logseq.db :as ldb]
             [promesa.core :as p]))
 
@@ -59,6 +61,8 @@
                                  :listen-handler (fn [conn]
                                                    (undo-redo/listen-db-changes! repo conn)))))
 
+(declare <reseed-demo-graph-if-needed!)
+
 (defn restore-and-setup-repo!
   "Restore the db of a graph from the persisted data, and setup. Create a new
   conn, or replace the conn in state with a new one."
@@ -66,6 +70,7 @@
   (p/do!
    (state/set-db-restoring! true)
    (db-restore/restore-graph! repo opts)
+   (<reseed-demo-graph-if-needed! repo)
    (repo-config-handler/restore-repo-config! repo)
    (when (config/global-config-enabled?)
      (global-config-handler/restore-global-config!))
@@ -128,28 +133,67 @@
 ;; Exception: the first-run demo graph is still created so a fresh launch (and
 ;; the e2e suite, which has no native folder picker) opens into a working graph.
 
+(def ^:private demo-graph-dir "memory:///local")
+
+(def ^:private demo-graph-seed-files
+  [{:file/path "journals/2020_12_26.md"
+    :file/content "- Welcome to Logseq!\n- This is a demo graph stored in memory."}])
+
+(defn- <write-demo-graph-files!
+  [repo dir]
+  (p/do! (fs/mkdir-recur! (str dir "/journals"))
+         (fs/mkdir-recur! (str dir "/pages"))
+         (fs/mkdir-recur! (str dir "/logseq"))
+         (fs/write-plain-text-file! repo dir "journals/2020_12_26.md"
+                                    "- Welcome to Logseq!\n- This is a demo graph stored in memory." {})
+         (fs/write-plain-text-file! repo dir "logseq/config.edn" config/config-default-content {})))
+
+(defn- <parse-demo-graph-files!
+  "Parse the demo seed files into the db, resolving only once the initial parse
+  has completed. The wait matters: parsing is what makes the seed durable in
+  the db-worker's store, so a reload (or an e2e fixture refreshing the page)
+  right after first-run seeding must not observe a partial db."
+  [repo new-graph?]
+  (let [graph-added-chan (file-repo-handler/load-new-repo-to-db! repo {:new-graph? new-graph?
+                                                                       :empty-graph? false
+                                                                       :file-objs demo-graph-seed-files})]
+    (p/create (fn [resolve _reject]
+                (async/take! graph-added-chan resolve)))))
+
+(defn- demo-graph-seed-incomplete?
+  "True when the demo graph's db is missing its seeded files. A reload during
+  first-run seeding can leave the graph's sqlite db restored from a partial
+  snapshot while the in-memory fs that held the seed files is already wiped,
+  so nothing would ever re-add the missing pages and the app renders
+  \"Page not found\" for the page route the first boot redirected to."
+  [repo]
+  (and (config/demo-graph? repo)
+       (or (nil? (db/get-file repo "journals/2020_12_26.md"))
+           (nil? (db/get-file repo "pages/contents.md")))))
+
+(defn <reseed-demo-graph-if-needed!
+  "Re-run the (deterministic and idempotent) demo-graph seed when a previous
+  boot was reloaded mid-seed. Called on the restore path, where the worker and
+  frontend conns already exist."
+  [repo]
+  (when (demo-graph-seed-incomplete? repo)
+    (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); re-seeding" :repo repo)
+    (p/do! (<write-demo-graph-files! repo demo-graph-dir)
+           (<parse-demo-graph-files! repo false))))
+
 (defn create-demo-file-graph!
   "Create the first-run demo file graph. Web/e2e only (Electron lands on the
   folder picker). Uses the in-memory memory-fs backend, so no directory picker
   or SQLite is needed."
   []
   (let [repo config/demo-repo
-        dir "memory:///local"
-        today (date/today)
-        files [{:file/path "journals/2020_12_26.md"
-                :file/content "- Welcome to Logseq!\n- This is a demo graph stored in memory."}]]
-    (-> (p/do! (fs/mkdir-recur! (str dir "/journals"))
-               (fs/mkdir-recur! (str dir "/pages"))
-               (fs/mkdir-recur! (str dir "/logseq"))
-               (fs/write-plain-text-file! repo dir "journals/2020_12_26.md"
-                                          "- Welcome to Logseq!\n- This is a demo graph stored in memory." {})
-               (fs/write-plain-text-file! repo dir "logseq/config.edn" config/config-default-content {})
+        dir demo-graph-dir
+        today (date/today)]
+    (-> (p/do! (<write-demo-graph-files! repo dir)
                ;; register the worker-side conn (same as the NFS open flow)
                (persist-db/<new repo {})
                (start-repo-db-if-not-exists! repo)
-               (file-repo-handler/load-new-repo-to-db! repo {:new-graph? true
-                                                             :empty-graph? false
-                                                             :file-objs files})
+               (<parse-demo-graph-files! repo true)
                (state/add-repo! {:url repo :root dir}))
         (p/then (fn [_]
                   (state/pub-event! [:shortcut/refresh])

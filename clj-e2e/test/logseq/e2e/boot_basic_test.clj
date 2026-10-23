@@ -50,3 +50,31 @@
       (is (true? (w/with-page page (assert/assert-graph-loaded?)))
           "App boots even when the graph service lock is initially held by a stale (dead) master")
       (.close ctx))))
+
+(deftest refresh-during-first-run-seed-test
+  ;; Regression test for the boot-time "Page not found" flake (CI runs
+  ;; 39529122322, 39864177546 attempts 4/14): the first-run demo-graph seed
+  ;; parses files asynchronously, so a refresh before the seed's txes reach
+  ;; the db-worker store restores a partial db on the next boot — the seeded
+  ;; page is missing and the route from boot 1's redirect renders "Page not
+  ;; found" forever. The fix re-seeds the demo graph on restore when the
+  ;; seeded files are missing.
+  ;;
+  ;; The refresh below lands in the seeding window with high probability
+  ;; (header renders well before the initial parse completes), but the
+  ;; assertion must hold either way: a restored demo graph always renders
+  ;; its content.
+  (w/with-page-open
+    (w/make-page {:headless @config/*headless
+                  :persistent false
+                  :slow-mo 0
+                  :default-timeout @config/*default-timeout})
+    (w/navigate (pw-page/get-test-url nil))
+    ;; Wait only for the app chrome (as fixtures/developer-mode does), not
+    ;; for the graph to finish seeding, then refresh mid-seed.
+    (.waitFor (.first (w/-query "button[title='More']")))
+    (w/refresh)
+    (is (true? (assert/assert-graph-loaded?))
+        "App renders the graph after a refresh that interrupted first-run seeding")
+    (is (true? (assert/assert-is-visible "text=Welcome to Logseq!"))
+        "Seeded journal content survives a mid-seed refresh (re-seeded on restore)")))
