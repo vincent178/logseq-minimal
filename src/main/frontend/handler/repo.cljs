@@ -3,6 +3,7 @@
   (:refer-clojure :exclude [clone])
   (:require [cljs-bean.core :as bean]
             [clojure.core.async :as async]
+            [datascript.core :as d]
             [electron.ipc :as ipc]
             [frontend.config :as config]
             [frontend.db :as db]
@@ -171,17 +172,36 @@
 
 (defn- demo-graph-missing-seed-files
   "Seed files absent from the db, i.e. seed data that was never durably
-  created. Only non-empty when a reload interrupted the first-run seed: the
-  restored sqlite snapshot predates the parse txes while the in-memory fs that
-  held the seed files is already wiped, so nothing would ever re-add the
-  missing pages and the app renders \"Page not found\" for the page route the
-  first boot redirected to."
+  created. When a reload interrupted the first-run seed, the restored sqlite
+  snapshot predates the parse txes while the in-memory fs that held the seed
+  files is already wiped, so nothing would ever re-add the missing pages and
+  the app renders \"Page not found\" for the page route the first boot
+  redirected to."
   [repo]
   (into []
         (keep (fn [[file-rpath _content]]
                 (when (nil? (db/get-file repo file-rpath))
                   file-rpath)))
         demo-graph-seed-files))
+
+(def ^:private demo-graph-seed-completed-ident
+  :logseq.kv/demo-graph-seed-completed)
+
+(defn- demo-graph-seed-completed?
+  "Whether the first-run seed finished. Persisted in the graph db itself so it
+  survives reloads exactly as well as the seed data it describes; an
+  interrupted seed never got this far, so its restored snapshots never carry
+  the marker. This is what distinguishes an interrupted seed (recover) from
+  an intentional user deletion of a seed page after a completed first run
+  (leave it deleted)."
+  [repo]
+  (boolean (when-let [db (db/get-db repo)]
+             (:kv/value (d/entity db demo-graph-seed-completed-ident)))))
+
+(defn- <mark-demo-graph-seed-completed!
+  [repo]
+  (ldb/transact! repo [{:db/ident demo-graph-seed-completed-ident
+                        :kv/value true}]))
 
 (defn- <create-demo-seed-file!
   "Create one missing seed file: writes the canned content only when the file
@@ -200,28 +220,36 @@
 
 (defn <reseed-demo-graph-if-needed!
   "Recreate the demo graph's MISSING seed files when a previous boot was
-  reloaded mid-seed. Creates only seed data that is absent from the db —
-  existing files/pages (and any user edits in the demo graph) are never
-  rewritten or reparsed. Called on the restore path, where the worker and
-  frontend conns already exist."
+  reloaded mid-seed. Only fires when the first-run seed never completed (no
+  seed-completed marker in the db) — after a completed first run, seed pages
+  the user intentionally deleted stay deleted. Creates only seed data that is
+  absent from the db — existing files/pages (and any user edits in the demo
+  graph) are never rewritten or reparsed. Called on the restore path, where
+  the worker and frontend conns already exist."
   [repo]
   ;; `=`, not `config/demo-graph?`: the latter also matches any user graph
   ;; whose name ends in "Demo", which must never get canned content.
-  (when (= repo config/demo-repo)
+  (when (and (= repo config/demo-repo)
+             (not (demo-graph-seed-completed? repo)))
     (let [missing (set (demo-graph-missing-seed-files repo))]
-      (when (seq missing)
-        (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); recreating missing seed files"
-                  :repo repo :files missing)
-        (-> (p/do! (fs/mkdir-recur! (str demo-graph-dir "/journals"))
+      (-> (if (seq missing)
+            (p/do! (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); recreating missing seed files"
+                             :repo repo :files missing)
+                   (fs/mkdir-recur! (str demo-graph-dir "/journals"))
                    (fs/mkdir-recur! (str demo-graph-dir "/pages"))
                    (p/all (map (fn [[file-rpath content]]
                                  (<create-demo-seed-file! repo file-rpath content))
                                (filter #(contains? missing (first %))
-                                       demo-graph-seed-files))))
-            ;; recovery is best-effort self-heal: a failure here must not
-            ;; abort the surrounding restore/boot chain
-            (p/catch (fn [e]
-                       (log/error ::reseed-demo-graph-failed e))))))))
+                                       demo-graph-seed-files)))
+                   (<mark-demo-graph-seed-completed! repo))
+            ;; Seed data complete but marker absent (graph created before the
+            ;; marker existed, or a reload lost exactly the marker tx): just
+            ;; persist the marker.
+            (<mark-demo-graph-seed-completed! repo))
+          ;; recovery is best-effort self-heal: a failure here must not
+          ;; abort the surrounding restore/boot chain
+          (p/catch (fn [e]
+                     (log/error ::reseed-demo-graph-failed e)))))))
 
 (defn create-demo-file-graph!
   "Create the first-run demo file graph. Web/e2e only (Electron lands on the
@@ -236,6 +264,9 @@
                (persist-db/<new repo {})
                (start-repo-db-if-not-exists! repo)
                (<parse-demo-graph-files! repo true)
+               ;; last step of the seed: a reload after this point must not be
+               ;; mistaken for an interrupted seed on the next boot
+               (<mark-demo-graph-seed-completed! repo)
                (state/add-repo! {:url repo :root dir}))
         (p/then (fn [_]
                   (state/pub-event! [:shortcut/refresh])

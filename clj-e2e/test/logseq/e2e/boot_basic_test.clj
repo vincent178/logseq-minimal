@@ -55,18 +55,20 @@
           "App boots even when the graph service lock is initially held by a stale (dead) master")
       (.close ctx))))
 
-(deftest interrupted-seed-recovery-test
-  ;; Deterministic regression test for the boot-time "Page not found" flake
-  ;; (CI runs 39529122322, 39864177546 attempts 4/14): a reload during
-  ;; first-run seeding restores a partial db; recovery on the restore path
-  ;; must recreate the missing seed data.
+(deftest deleted-demo-seed-page-stays-deleted-test
+  ;; Deterministic guard for the interrupted-first-run-seed recovery (CI runs
+  ;; 39529122322, 39864177546 attempts 4/14): recovery must only fire when the
+  ;; first-run seed never completed (no seed-completed marker in the db). A
+  ;; seed page the user intentionally deleted AFTER a completed first run
+  ;; must stay deleted across a reload — recovery must not resurrect it —
+  ;; while user edits in other seed pages survive.
   ;;
-  ;; Instead of racing the seed with a refresh (probabilistic), this test
-  ;; puts the graph into the persisted-but-incomplete state directly: it
-  ;; deletes the seeded journal page while keeping Contents (with a user
-  ;; edit), then refreshes. Recovery must recreate exactly the missing seed
-  ;; page and must NOT reparse/rewrite the surviving seed page — the user
-  ;; edit added below must survive.
+  ;; The positive recovery path (interrupted seed -> missing seed data
+  ;; recreated) is exercised by the refresh-mid-seed repro sweep recorded in
+  ;; .pi/tasks/task-20261021-e2e-plugins-page-not-found-boot-flake.md; it
+  ;; cannot be reached deterministically through the UI once the seed has
+  ;; completed, because page deletion is only possible after the marker is
+  ;; durably written.
   (w/with-page-open
     (w/make-page {:headless @config/*headless
                   :persistent false
@@ -74,8 +76,8 @@
                   :default-timeout @config/*default-timeout})
     (w/navigate (pw-page/get-test-url nil))
     (assert/assert-graph-loaded?)
-    ;; a user edit in a seed page that recovery must not clobber (Contents is
-    ;; excluded from page-menu delete, so it is the page that survives)
+    ;; a user edit in a seed page that must survive (Contents is excluded
+    ;; from page-menu delete, so it is the page that survives)
     (page/goto-page "Contents")
     ;; Contents' seed block is empty (contents.md is "-"), so its
     ;; .block-content is zero-size and unclickable; use the block add button,
@@ -84,22 +86,25 @@
     (assert/assert-editor-mode)
     (b/save-block "e2e persisted edit")
     (k/esc)
-    ;; delete the seeded journal page -> the restored db on next boot has an
-    ;; incomplete seed (journals/2020_12_26.md missing, contents.md intact)
+    ;; delete the seeded journal page. The first-run seed has completed by
+    ;; now (the delete UI only works after boot finished, which is gated on
+    ;; the seed-completed marker being durable), so the restored db on next
+    ;; boot carries the marker and recovery must NOT fire.
     (page/delete-page "Dec 26th, 2020")
     ;; the delete only round-trips through the db-worker once the app has
     ;; redirected home, so wait for the journals view before refreshing
     (w/wait-for "#journals")
     (w/refresh)
     (assert/assert-graph-loaded?)
-    ;; recovery recreated exactly the missing seed page (a missing journal
-    ;; would make the search-click time out instead)
-    (page/goto-page "Dec 26th, 2020")
-    (is (true? (assert/assert-is-visible "div[data-testid='page title']:has-text('Dec 26th, 2020')"))
-        "recovery recreated the deleted seed journal page")
-    (is (true? (assert/assert-is-visible "text=Welcome to Logseq!"))
-        "recreated journal has the seed content")
-    ;; ...and left the surviving seed page untouched: the user edit is still there
+    ;; the intentionally deleted seed page stays deleted: searching for it
+    ;; offers only to create a new page, with no title match
+    (util/search "Dec 26th, 2020")
+    (assert/assert-is-visible "text=Create page called 'Dec 26th, 2020'")
+    (is (zero? (.count (w/get-by-test-id "Dec 26th, 2020")))
+        "recovery did not resurrect the intentionally deleted seed journal page")
+    (k/esc)
+    ;; ...and the surviving seed page was never reparsed/rewritten: the user
+    ;; edit is still there
     (page/goto-page "Contents")
     (is (true? (assert/assert-is-visible "text=e2e persisted edit"))
-        "recovery did not reparse/rewrite the surviving seed page (user edit preserved)")))
+        "user edit in the surviving seed page preserved across reload")))

@@ -80,8 +80,12 @@
           (.toString ^js result)
           result))
       (p/catch
-          ;; ensure throw ex-info both on web & electron, not string or js/Error
-          (fn [e] (ex-info (str e) {})))))
+          ;; ensure the promise REJECTS with ex-info both on web & electron,
+          ;; not string or js/Error. (Merely returning `(ex-info ...)` here
+          ;; would fulfill the promise with an exception VALUE, so a
+          ;; downstream p/catch would never fire and the ex-info would flow
+          ;; into callers as if it were file content.)
+          (fn [e] (throw (ex-info (str e) {}))))))
 
 (defrecord MemoryFs []
   protocol/Fs
