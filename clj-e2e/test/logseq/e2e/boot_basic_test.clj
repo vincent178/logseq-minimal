@@ -17,8 +17,12 @@
   browser context."
   (:require [clojure.test :refer [deftest is]]
             [logseq.e2e.assert :as assert]
+            [logseq.e2e.block :as b]
             [logseq.e2e.config :as config]
+            [logseq.e2e.keyboard :as k]
+            [logseq.e2e.page :as page]
             [logseq.e2e.playwright-page :as pw-page]
+            [logseq.e2e.util :as util]
             [wally.main :as w]))
 
 (deftest boot-while-stale-service-lock-held-test
@@ -51,30 +55,51 @@
           "App boots even when the graph service lock is initially held by a stale (dead) master")
       (.close ctx))))
 
-(deftest refresh-during-first-run-seed-test
-  ;; Regression test for the boot-time "Page not found" flake (CI runs
-  ;; 39529122322, 39864177546 attempts 4/14): the first-run demo-graph seed
-  ;; parses files asynchronously, so a refresh before the seed's txes reach
-  ;; the db-worker store restores a partial db on the next boot — the seeded
-  ;; page is missing and the route from boot 1's redirect renders "Page not
-  ;; found" forever. The fix re-seeds the demo graph on restore when the
-  ;; seeded files are missing.
+(deftest interrupted-seed-recovery-test
+  ;; Deterministic regression test for the boot-time "Page not found" flake
+  ;; (CI runs 39529122322, 39864177546 attempts 4/14): a reload during
+  ;; first-run seeding restores a partial db; recovery on the restore path
+  ;; must recreate the missing seed data.
   ;;
-  ;; The refresh below lands in the seeding window with high probability
-  ;; (header renders well before the initial parse completes), but the
-  ;; assertion must hold either way: a restored demo graph always renders
-  ;; its content.
+  ;; Instead of racing the seed with a refresh (probabilistic), this test
+  ;; puts the graph into the persisted-but-incomplete state directly: it
+  ;; deletes the seeded journal page while keeping Contents (with a user
+  ;; edit), then refreshes. Recovery must recreate exactly the missing seed
+  ;; page and must NOT reparse/rewrite the surviving seed page — the user
+  ;; edit added below must survive.
   (w/with-page-open
     (w/make-page {:headless @config/*headless
                   :persistent false
                   :slow-mo 0
                   :default-timeout @config/*default-timeout})
     (w/navigate (pw-page/get-test-url nil))
-    ;; Wait only for the app chrome (as fixtures/developer-mode does), not
-    ;; for the graph to finish seeding, then refresh mid-seed.
-    (.waitFor (.first (w/-query "button[title='More']")))
+    (assert/assert-graph-loaded?)
+    ;; a user edit in a seed page that recovery must not clobber (Contents is
+    ;; excluded from page-menu delete, so it is the page that survives)
+    (page/goto-page "Contents")
+    ;; Contents' seed block is empty (contents.md is "-"), so its
+    ;; .block-content is zero-size and unclickable; use the block add button,
+    ;; which inserts a new block straight into edit mode.
+    (w/click ".ls-page-blocks .block-add-button")
+    (assert/assert-editor-mode)
+    (b/save-block "e2e persisted edit")
+    (k/esc)
+    ;; delete the seeded journal page -> the restored db on next boot has an
+    ;; incomplete seed (journals/2020_12_26.md missing, contents.md intact)
+    (page/delete-page "Dec 26th, 2020")
+    ;; the delete only round-trips through the db-worker once the app has
+    ;; redirected home, so wait for the journals view before refreshing
+    (w/wait-for "#journals")
     (w/refresh)
-    (is (true? (assert/assert-graph-loaded?))
-        "App renders the graph after a refresh that interrupted first-run seeding")
+    (assert/assert-graph-loaded?)
+    ;; recovery recreated exactly the missing seed page (a missing journal
+    ;; would make the search-click time out instead)
+    (page/goto-page "Dec 26th, 2020")
+    (is (true? (assert/assert-is-visible "div[data-testid='page title']:has-text('Dec 26th, 2020')"))
+        "recovery recreated the deleted seed journal page")
     (is (true? (assert/assert-is-visible "text=Welcome to Logseq!"))
-        "Seeded journal content survives a mid-seed refresh (re-seeded on restore)")))
+        "recreated journal has the seed content")
+    ;; ...and left the surviving seed page untouched: the user edit is still there
+    (page/goto-page "Contents")
+    (is (true? (assert/assert-is-visible "text=e2e persisted edit"))
+        "recovery did not reparse/rewrite the surviving seed page (user edit preserved)")))

@@ -10,6 +10,7 @@
             [frontend.date :as date]
             [frontend.db.restore :as db-restore]
             [frontend.fs :as fs]
+            [frontend.handler.file-based.file :as file-handler]
             [frontend.handler.file-based.repo :as file-repo-handler]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
@@ -25,7 +26,8 @@
             [frontend.util.text :as text-util]
             [lambdaisland.glogi :as log]
             [logseq.db :as ldb]
-            [promesa.core :as p]))
+            [promesa.core :as p]
+            [shadow.resource :as rc]))
 
 ;; Project settings should be checked in two situations:
 ;; 1. User changes the config.edn directly in logseq.com (fn: alter-file)
@@ -135,9 +137,15 @@
 
 (def ^:private demo-graph-dir "memory:///local")
 
+(def ^:private demo-graph-journal-content
+  "- Welcome to Logseq!\n- This is a demo graph stored in memory.")
+
 (def ^:private demo-graph-seed-files
-  [{:file/path "journals/2020_12_26.md"
-    :file/content "- Welcome to Logseq!\n- This is a demo graph stored in memory."}])
+  "The demo graph's deterministic first-run content, as [file-rpath content]
+  pairs. `logseq/config.edn` is deliberately not included: it carries no pages
+  and the app falls back to the default config when it is missing."
+  [["journals/2020_12_26.md" demo-graph-journal-content]
+   ["pages/contents.md" (rc/inline "templates/contents.md")]])
 
 (defn- <write-demo-graph-files!
   [repo dir]
@@ -145,7 +153,7 @@
          (fs/mkdir-recur! (str dir "/pages"))
          (fs/mkdir-recur! (str dir "/logseq"))
          (fs/write-plain-text-file! repo dir "journals/2020_12_26.md"
-                                    "- Welcome to Logseq!\n- This is a demo graph stored in memory." {})
+                                    demo-graph-journal-content {})
          (fs/write-plain-text-file! repo dir "logseq/config.edn" config/config-default-content {})))
 
 (defn- <parse-demo-graph-files!
@@ -156,30 +164,64 @@
   [repo new-graph?]
   (let [graph-added-chan (file-repo-handler/load-new-repo-to-db! repo {:new-graph? new-graph?
                                                                        :empty-graph? false
-                                                                       :file-objs demo-graph-seed-files})]
+                                                                       :file-objs [{:file/path "journals/2020_12_26.md"
+                                                                                    :file/content demo-graph-journal-content}]})]
     (p/create (fn [resolve _reject]
                 (async/take! graph-added-chan resolve)))))
 
-(defn- demo-graph-seed-incomplete?
-  "True when the demo graph's db is missing its seeded files. A reload during
-  first-run seeding can leave the graph's sqlite db restored from a partial
-  snapshot while the in-memory fs that held the seed files is already wiped,
-  so nothing would ever re-add the missing pages and the app renders
-  \"Page not found\" for the page route the first boot redirected to."
+(defn- demo-graph-missing-seed-files
+  "Seed files absent from the db, i.e. seed data that was never durably
+  created. Only non-empty when a reload interrupted the first-run seed: the
+  restored sqlite snapshot predates the parse txes while the in-memory fs that
+  held the seed files is already wiped, so nothing would ever re-add the
+  missing pages and the app renders \"Page not found\" for the page route the
+  first boot redirected to."
   [repo]
-  (and (config/demo-graph? repo)
-       (or (nil? (db/get-file repo "journals/2020_12_26.md"))
-           (nil? (db/get-file repo "pages/contents.md")))))
+  (into []
+        (keep (fn [[file-rpath _content]]
+                (when (nil? (db/get-file repo file-rpath))
+                  file-rpath)))
+        demo-graph-seed-files))
+
+(defn- <create-demo-seed-file!
+  "Create one missing seed file: writes the canned content only when the file
+  is not on disk (never overwrites an existing file), then parses whatever is
+  on disk into the db. When the file exists on disk its content is preferred
+  (it can hold user edits the db snapshot predates); the read-back falls back
+  to the canned content because lightning-fs can occasionally fail to read a
+  torn file (stat succeeded but content blob missing)."
+  [repo file-rpath canned-content]
+  (p/let [exists? (fs/create-if-not-exists repo demo-graph-dir file-rpath canned-content)
+          content (if exists?
+                    (-> (fs/read-file demo-graph-dir file-rpath)
+                        (p/catch (fn [_] canned-content)))
+                    canned-content)]
+    (file-handler/reset-file! repo file-rpath content {})))
 
 (defn <reseed-demo-graph-if-needed!
-  "Re-run the (deterministic and idempotent) demo-graph seed when a previous
-  boot was reloaded mid-seed. Called on the restore path, where the worker and
+  "Recreate the demo graph's MISSING seed files when a previous boot was
+  reloaded mid-seed. Creates only seed data that is absent from the db —
+  existing files/pages (and any user edits in the demo graph) are never
+  rewritten or reparsed. Called on the restore path, where the worker and
   frontend conns already exist."
   [repo]
-  (when (demo-graph-seed-incomplete? repo)
-    (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); re-seeding" :repo repo)
-    (p/do! (<write-demo-graph-files! repo demo-graph-dir)
-           (<parse-demo-graph-files! repo false))))
+  ;; `=`, not `config/demo-graph?`: the latter also matches any user graph
+  ;; whose name ends in "Demo", which must never get canned content.
+  (when (= repo config/demo-repo)
+    (let [missing (set (demo-graph-missing-seed-files repo))]
+      (when (seq missing)
+        (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); recreating missing seed files"
+                  :repo repo :files missing)
+        (-> (p/do! (fs/mkdir-recur! (str demo-graph-dir "/journals"))
+                   (fs/mkdir-recur! (str demo-graph-dir "/pages"))
+                   (p/all (map (fn [[file-rpath content]]
+                                 (<create-demo-seed-file! repo file-rpath content))
+                               (filter #(contains? missing (first %))
+                                       demo-graph-seed-files))))
+            ;; recovery is best-effort self-heal: a failure here must not
+            ;; abort the surrounding restore/boot chain
+            (p/catch (fn [e]
+                       (log/error ::reseed-demo-graph-failed e))))))))
 
 (defn create-demo-file-graph!
   "Create the first-run demo file graph. Web/e2e only (Electron lands on the
