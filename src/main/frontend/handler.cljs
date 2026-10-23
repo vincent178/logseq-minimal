@@ -58,10 +58,7 @@
 (defn restore-and-setup!
   [repo]
   (when repo
-    (-> (p/let [_ (db-restore/restore-graph! repo)
-                ;; A reload during first-run demo-graph seeding can restore a
-                ;; partial db; re-seed before the UI leaves the skeleton state.
-                _ (repo-handler/<reseed-demo-graph-if-needed! repo)]
+    (-> (p/let [_ (db-restore/restore-graph! repo)]
           (repo-config-handler/start {:repo repo}))
         (p/then
          (fn []

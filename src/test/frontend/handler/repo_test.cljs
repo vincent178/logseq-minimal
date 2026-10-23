@@ -7,8 +7,6 @@
             [frontend.db.conn :as conn]
             [frontend.db.model :as model]
             [frontend.handler.file-based.repo :as file-repo-handler]
-            [frontend.handler.repo]
-            [logseq.db :as ldb]
             [frontend.test.helper :as test-helper :refer [load-test-files]]
             [frontend.worker.state :as worker-state]
             [logseq.common.util.block-ref :as block-ref]
@@ -76,44 +74,3 @@
       (is (= [(parse-uuid test-uuid)] (model/get-all-referenced-blocks-uuid)))
       (is (= 0 (get-page-block-count "referrer")))
       (is (= 2 (get-page-block-count "updatedPage"))))))
-
-(deftest demo-graph-pristine-first-boot-test
-  (testing "R6: recovery fingerprint only matches the genuine interrupted first boot"
-    (let [pristine? (fn [] (#'frontend.handler.repo/demo-graph-pristine-first-boot?
-                            (conn/get-db test-helper/test-db) "oct 23rd, 2026"))]
-      (testing "pre-parse skeleton (no pages/blocks) is pristine"
-        (is (true? (pristine?))))
-      (testing "seed pages + seed blocks + auto-created empty today journal are pristine"
-        (load-test-files [{:file/path "journals/2020_12_26.md"
-                           :file/content "- Welcome to Logseq!\n- This is a demo graph stored in memory."}
-                          {:file/path "pages/contents.md"
-                           :file/content "-"}])
-        (ldb/transact! (conn/get-db test-helper/test-db false)
-                       [{:block/name "oct 23rd, 2026"}])
-        (is (true? (pristine?))))
-      (testing "a user page means user data -> not pristine (legacy graph, deleted seed pages stay deleted)"
-        (load-test-files [{:file/path "pages/my_notes.md"
-                           :file/content "- my own note"}])
-        (is (false? (pristine?)))))
-    (testing "a user edit inside the seed journal page itself is user data -> not pristine"
-      (load-test-files [{:file/path "journals/2020_12_26.md"
-                         :file/content "- Welcome to Logseq!\n- my own addition"}])
-      (is (false? (#'frontend.handler.repo/demo-graph-pristine-first-boot?
-                   (conn/get-db test-helper/test-db) "oct 23rd, 2026"))))
-    (testing "a block with content in the auto-created today journal is user data -> not pristine"
-      (load-test-files [{:file/path "journals/2020_12_26.md"
-                         :file/content "- Welcome to Logseq!"}])
-      (ldb/transact! (conn/get-db test-helper/test-db false)
-                     [{:block/name "oct 23rd, 2026"}])
-      (ldb/transact! (conn/get-db test-helper/test-db false)
-                     [{:block/content "user wrote here"
-                       :block/page [:block/name "oct 23rd, 2026"]}])
-      (is (false? (#'frontend.handler.repo/demo-graph-pristine-first-boot?
-                   (conn/get-db test-helper/test-db) "oct 23rd, 2026"))))
-    (testing "a content block with no page is conservatively user data -> not pristine"
-      (load-test-files [{:file/path "journals/2020_12_26.md"
-                         :file/content "- Welcome to Logseq!"}])
-      (ldb/transact! (conn/get-db test-helper/test-db false)
-                     [{:block/content "orphan block"}])
-      (is (false? (#'frontend.handler.repo/demo-graph-pristine-first-boot?
-                   (conn/get-db test-helper/test-db) "oct 23rd, 2026"))))))

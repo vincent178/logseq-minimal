@@ -3,8 +3,6 @@
   (:refer-clojure :exclude [clone])
   (:require [cljs-bean.core :as bean]
             [clojure.core.async :as async]
-            [clojure.string :as string]
-            [datascript.core :as d]
             [electron.ipc :as ipc]
             [frontend.config :as config]
             [frontend.db :as db]
@@ -12,7 +10,6 @@
             [frontend.date :as date]
             [frontend.db.restore :as db-restore]
             [frontend.fs :as fs]
-            [frontend.handler.file-based.file :as file-handler]
             [frontend.handler.file-based.repo :as file-repo-handler]
             [frontend.handler.global-config :as global-config-handler]
             [frontend.handler.notification :as notification]
@@ -26,9 +23,7 @@
             [frontend.undo-redo :as undo-redo]
             [frontend.util :as util]
             [frontend.util.text :as text-util]
-            [lambdaisland.glogi :as log]
             [logseq.db :as ldb]
-            [logseq.graph-parser.db :as gp-db]
             [promesa.core :as p]
             [shadow.resource :as rc]))
 
@@ -66,8 +61,6 @@
                                  :listen-handler (fn [conn]
                                                    (undo-redo/listen-db-changes! repo conn)))))
 
-(declare <reseed-demo-graph-if-needed!)
-
 (defn restore-and-setup-repo!
   "Restore the db of a graph from the persisted data, and setup. Create a new
   conn, or replace the conn in state with a new one."
@@ -75,7 +68,6 @@
   (p/do!
    (state/set-db-restoring! true)
    (db-restore/restore-graph! repo opts)
-   (<reseed-demo-graph-if-needed! repo)
    (repo-config-handler/restore-repo-config! repo)
    (when (config/global-config-enabled?)
      (global-config-handler/restore-global-config!))
@@ -143,13 +135,6 @@
 (def ^:private demo-graph-journal-content
   "- Welcome to Logseq!\n- This is a demo graph stored in memory.")
 
-(def ^:private demo-graph-seed-files
-  "The demo graph's deterministic first-run content, as [file-rpath content]
-  pairs. `logseq/config.edn` is deliberately not included: it carries no pages
-  and the app falls back to the default config when it is missing."
-  [["journals/2020_12_26.md" demo-graph-journal-content]
-   ["pages/contents.md" (rc/inline "templates/contents.md")]])
-
 (defn- <write-demo-graph-files!
   [repo dir]
   (p/do! (fs/mkdir-recur! (str dir "/journals"))
@@ -169,7 +154,7 @@
   BOTH seed files are passed as file-objs so the awaited parse covers them
   both — `after-parse`'s `create-default-files!` is not awaited by the
   graph-added signal, so a contents.md created only there could land after
-  the seed-completed marker."
+  this resolves."
   [repo new-graph?]
   (let [graph-added-chan (file-repo-handler/load-new-repo-to-db! repo {:new-graph? new-graph?
                                                                        :empty-graph? false
@@ -179,143 +164,6 @@
                                                                                     :file/content (rc/inline "templates/contents.md")}]})]
     (p/create (fn [resolve _reject]
                 (async/take! graph-added-chan resolve)))))
-
-(defn- demo-graph-missing-seed-files
-  "Seed files absent from the db, i.e. seed data that was never durably
-  created. When a reload interrupted the first-run seed, the restored sqlite
-  snapshot predates the parse txes while the in-memory fs that held the seed
-  files is already wiped, so nothing would ever re-add the missing pages and
-  the app renders \"Page not found\" for the page route the first boot
-  redirected to."
-  [repo]
-  (into []
-        (keep (fn [[file-rpath _content]]
-                (when (nil? (db/get-file repo file-rpath))
-                  file-rpath)))
-        demo-graph-seed-files))
-
-(def ^:private demo-graph-seed-completed-ident
-  :logseq.kv/demo-graph-seed-completed)
-
-(defn- demo-graph-seed-completed?
-  "Whether the first-run seed finished. Persisted in the graph db itself so it
-  survives reloads exactly as well as the seed data it describes; an
-  interrupted seed never got this far, so its restored snapshots never carry
-  the marker. This is what distinguishes an interrupted seed (recover) from
-  an intentional user deletion of a seed page after a completed first run
-  (leave it deleted)."
-  [repo]
-  (boolean (when-let [db (db/get-db repo)]
-             (:kv/value (d/entity db demo-graph-seed-completed-ident)))))
-
-(def ^:private demo-graph-seed-block-contents
-  "The block contents the canned seed journal parses to."
-  (set (map #(string/trim (string/replace % #"^-\s*" ""))
-            (string/split-lines demo-graph-journal-content))))
-
-(defn- demo-graph-pristine-first-boot?
-  "Pure predicate (unit-tested): does the db contain ONLY what the first boot
-  itself creates before the seed-completed marker — the built-in pages every
-  fresh file graph starts with (incl. \"contents\"), the seeded journal page
-  with exactly its canned blocks, and possibly the auto-created (empty)
-  today journal page? A graph with any other page, or any non-seed content
-  block (including user edits inside seed pages), carries user data. Used to
-  narrow marker-absent recovery to the genuine interrupted FIRST boot: legacy
-  demo graphs (created before the marker existed) whose user intentionally
-  deleted a seed page have user data and must take the marker-only path, so
-  their deletion stays deleted."
-  [db today-page-name]
-  (let [allowed-pages (-> (set (map string/lower-case gp-db/built-in-pages-names))
-                          (conj "dec 26th, 2020" today-page-name))]
-    (and
-     ;; no pages beyond the built-ins, the seed pages and the auto-created
-     ;; today journal
-     (empty? (d/q '[:find [?n ...]
-                    :in $ ?allowed
-                    :where
-                    [?e :block/name ?n]
-                    (not [(contains? ?allowed ?n)])]
-                  db allowed-pages))
-     ;; every content block is a canned seed block in the seed journal page
-     (empty? (->> (d/q '[:find ?c ?pn
-                         :where
-                         [?b :block/content ?c]
-                         [(not= ?c "")]
-                         [?b :block/page ?p]
-                         [?p :block/name ?pn]]
-                       db)
-                  (remove (fn [[content page-name]]
-                            (and (= page-name "dec 26th, 2020")
-                                 (contains? demo-graph-seed-block-contents content))))))
-     ;; conservative: a content block without a page is not recognizable as
-     ;; seed data
-     (empty? (d/q '[:find [?b ...]
-                    :where
-                    [?b :block/content ?c]
-                    [(not= ?c "")]
-                    [(missing? $ ?b :block/page)]]
-                  db)))))
-
-(defn- <mark-demo-graph-seed-completed!
-  [repo]
-  (ldb/transact! repo [{:db/ident demo-graph-seed-completed-ident
-                        :kv/value true}]))
-
-(defn- <create-demo-seed-file!
-  "Create one missing seed file: writes the canned content only when the file
-  is not on disk (never overwrites an existing file), then parses whatever is
-  on disk into the db. When the file exists on disk its content is preferred
-  (it can hold user edits the db snapshot predates); the read-back falls back
-  to the canned content because lightning-fs can occasionally fail to read a
-  torn file (stat succeeded but content blob missing)."
-  [repo file-rpath canned-content]
-  (p/let [exists? (fs/create-if-not-exists repo demo-graph-dir file-rpath canned-content)
-          content (if exists?
-                    (-> (fs/read-file demo-graph-dir file-rpath)
-                        (p/catch (fn [_] canned-content)))
-                    canned-content)]
-    (file-handler/reset-file! repo file-rpath content {})))
-
-(defn <reseed-demo-graph-if-needed!
-  "Recreate the demo graph's MISSING seed files when a previous boot was
-  reloaded mid-seed. Only fires when the first-run seed never completed (no
-  seed-completed marker in the db) — after a completed first run, seed pages
-  the user intentionally deleted stay deleted. Creates only seed data that is
-  absent from the db — existing files/pages (and any user edits in the demo
-  graph) are never rewritten or reparsed. Called on the restore path, where
-  the worker and frontend conns already exist."
-  [repo]
-  ;; `=`, not `config/demo-graph?`: the latter also matches any user graph
-  ;; whose name ends in "Demo", which must never get canned content.
-  (when (and (= repo config/demo-repo)
-             (not (demo-graph-seed-completed? repo)))
-    (let [missing (set (demo-graph-missing-seed-files repo))
-          pristine? (when-let [db (db/get-db repo)]
-                      (demo-graph-pristine-first-boot? db (util/page-name-sanity-lc (date/today))))]
-      (-> (if (and (seq missing) pristine?)
-            (p/do! (log/warn ::reseed-demo-graph "Demo graph seed is incomplete (interrupted first-run seed); recreating missing seed files"
-                             :repo repo :files missing)
-                   (fs/mkdir-recur! (str demo-graph-dir "/journals"))
-                   (fs/mkdir-recur! (str demo-graph-dir "/pages"))
-                   (p/all (map (fn [[file-rpath content]]
-                                 (<create-demo-seed-file! repo file-rpath content))
-                               (filter #(contains? missing (first %))
-                                       demo-graph-seed-files)))
-                   (<mark-demo-graph-seed-completed! repo))
-            (p/do! (when (seq missing)
-                     ;; marker absent + seed files missing + user data: a
-                     ;; legacy pre-marker graph whose user deleted seed pages
-                     ;; — do not resurrect them, just persist the marker
-                     (log/warn ::reseed-demo-graph-skipped "Demo graph has user data; not recreating missing seed files (recording seed as complete)"
-                               :repo repo :files missing))
-                   ;; Seed data complete but marker absent (graph created before
-                   ;; the marker existed, or a reload lost exactly the marker
-                   ;; tx): just persist the marker.
-                   (<mark-demo-graph-seed-completed! repo)))
-          ;; recovery is best-effort self-heal: a failure here must not
-          ;; abort the surrounding restore/boot chain
-          (p/catch (fn [e]
-                     (log/error ::reseed-demo-graph-failed e)))))))
 
 (defn create-demo-file-graph!
   "Create the first-run demo file graph. Web/e2e only (Electron lands on the
@@ -330,9 +178,6 @@
                (persist-db/<new repo {})
                (start-repo-db-if-not-exists! repo)
                (<parse-demo-graph-files! repo true)
-               ;; last step of the seed: a reload after this point must not be
-               ;; mistaken for an interrupted seed on the next boot
-               (<mark-demo-graph-seed-completed! repo)
                (state/add-repo! {:url repo :root dir}))
         (p/then (fn [_]
                   (state/pub-event! [:shortcut/refresh])

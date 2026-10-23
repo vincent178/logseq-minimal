@@ -287,9 +287,6 @@
                         :logseq.kv/latest-code-lang
                         :logseq.kv/graph-backup-folder
                         :logseq.kv/graph-text-embedding-model-name
-                        ;; demo-graph first-run seed completion marker, read on
-                        ;; the restore path (frontend.handler.repo)
-                        :logseq.kv/demo-graph-seed-completed
                         :logseq.property/empty-placeholder])
         recent-updated-pages (let [pages (get-recent-updated-pages db)]
                                (mapcat (fn [p] (d/datoms db :eavt (:db/id p))) pages))
